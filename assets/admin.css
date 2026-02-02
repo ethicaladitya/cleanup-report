@@ -1,0 +1,199 @@
+/* Enhanced admin styles with WPMU DEV design system */
+.crg-help {
+    color: #6C757D;
+    font-size: 13px;
+    margin: 8px 0;
+    padding: 12px 16px;
+    background: #F8F9FA;
+    border: 1px solid #E9ECEF;
+    border-radius: 8px;
+    border-left: 4px solid #003366;
+}
+
+.crg-row {
+    margin: 16px 0;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #E9ECEF;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(33, 37, 41, 0.06);
+}
+
+.crg-row:hover {
+    border-color: #003366;
+    box-shadow: 0 4px 6px rgba(0, 51, 102, 0.1);
+}
+
+.crg-section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #212529;
+    margin: 24px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #003366;
+}
+
+.crg-pick {
+    background: linear-gradient(135deg, #003366 0%, #002244 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    margin-left: 8px;
+}
+
+.crg-pick:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 51, 102, 0.3);
+    color: white;
+}
+
+.crg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+}
+
+.crg-card {
+    background: #fff;
+    border: 1px solid #E9ECEF;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(33, 37, 41, 0.06);
+}
+
+.crg-card h3 {
+    color: #212529;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #E9ECEF;
+}
+
+.crg-input-group {
+    margin-bottom: 16px;
+}
+
+.crg-input-group label {
+    display: block;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 6px;
+}
+
+.crg-input-group input,
+.crg-input-group textarea,
+.crg-input-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #CED4DA;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.crg-input-group input:focus,
+.crg-input-group textarea:focus,
+.crg-input-group select:focus {
+    border-color: #1565D8;
+    box-shadow: 0 0 0 3px rgba(21, 101, 216, 0.1);
+    outline: none;
+}
+
+.crg-status-indicator {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.crg-status-required {
+    background: #FFEBEE;
+    color: #DC3545;
+}
+
+.crg-status-optional {
+    background: #E8F5E8;
+    color: #00A144;
+}
+
+.crg-textarea-large {
+    min-height: 120px;
+    resize: vertical;
+}
+
+/* Review Workflow Styles */
+.crg-review-workflow,
+.crg-author-status {
+    font-size: 14px;
+}
+
+.crg-status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+}
+
+.crg-status-draft {
+    background: #F3F4F6;
+    color: #6B7280;
+}
+
+.crg-status-submitted {
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
+
+.crg-status-reviewed {
+    background: #D1FAE5;
+    color: #059669;
+}
+
+.crg-status-approved {
+    background: #D1FAE5;
+    color: #047857;
+}
+
+.crg-status-needs_revision {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+/* Make sure review notes are readonly for authors */
+.crg-author-status textarea[name="crg_review_notes"] {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
+/* Enhanced button styling */
+#crg-submit-review,
+#crg-resubmit-review {
+    background: linear-gradient(135deg, #1565D8 0%, #0F4A9C 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+#crg-submit-review:hover,
+#crg-resubmit-review:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(21, 101, 216, 0.3);
+}
