@@ -20,14 +20,14 @@ Malware cleanup reports for members: staff fill in a report in wp-admin, a Buddy
 Works on any WordPress site: nothing in the code points at a particular site, and everything the plugin defines is prefixed (classes `Cleanup_Report_*`, constants `CLEANUP_REPORT_*`, hooks `cleanup_report_*`). Stored settings and report fields keep their original `crg_` names so existing reports carry over.
 
 == Installation ==
-1. Upload the zip in Plugins › Add New › Upload Plugin, and activate it.
+1. Upload the zip in Plugins › Add New › Upload Plugin, and activate it. Use the `cleanup-report-generator-<version>.zip` attached to the GitHub release (it includes Dompdf), not a copy of the repository.
 2. Set the branding in Reports › Settings › Branding and pick Buddyleads in Reports › Settings › Review.
 3. Add a report in Reports › Add New; preview it or download the PDF from the report's screen.
 
 == Dompdf ==
 Dompdf ships inside the plugin in `vendor-prefixed/`, moved into the plugin's own namespace (`CleanupReportGenerator\Vendor\`), so another plugin that bundles a different Dompdf version can't clash with it. Nothing needs installing on the server.
 
-To build from source, run `composer install` (needs PHP 8 and Composer on the build machine). It installs Dompdf, then Strauss (in `tools/strauss`, build-only) copies it into `vendor-prefixed/` and re-namespaces it. Then zip the plugin without the files listed in `.distignore`, for example with `wp dist-archive .`.
+To build from source, run `composer install` (needs PHP 8 and Composer on the build machine). It installs Dompdf, then Strauss (in `tools/strauss`, build-only) copies it into `vendor-prefixed/` and re-namespaces it. Then zip the plugin without the files listed in `.distignore`, for example with `wp dist-archive .`. The GitHub workflow in `.github/workflows/build-zip.yml` does the same on every pull request and attaches the zip to each published release.
 
 == Changelog ==
 
@@ -87,6 +87,7 @@ To build from source, run `composer install` (needs PHP 8 and Composer on the bu
 * Removed unused PDF code paths (TCPDF, mPDF, FPDF, hand-built PDF) and duplicate class files.
 * Plugin Check: passes with no errors (output escaping, wp_date()/wp_parse_url(), unslashed input, setting sanitisation, direct-access guard). Saving keeps backslashes in text.
 * Dev files (tests, install script, markdown docs) are listed in .distignore and left out of the plugin zip.
+* A GitHub workflow builds the installable zip (Dompdf included) on every pull request and attaches it to each published release.
 * Known limitation: Chinese/Japanese/Korean text and emoji show as empty boxes in the PDF (neither Roboto nor the fallback DejaVu font has glyphs for them).
 
 == Credits ==

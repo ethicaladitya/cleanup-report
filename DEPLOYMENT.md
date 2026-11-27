@@ -31,11 +31,20 @@
 
 ## 🌐 Server Deployment Steps
 
-### Step 1: Build (on your machine)
+### Step 1: Get the zip
+Easiest: publish a GitHub release whose tag matches the plugin's Version (e.g. `v2.1.0`). The "Build plugin zip"
+workflow (`.github/workflows/build-zip.yml`) builds `cleanup-report-generator-<version>.zip` and attaches it to the
+release. Pull requests build the same zip as a workflow artifact, and Actions › Build plugin zip › Run workflow makes one
+on demand.
+
+Or build it on your machine:
 ```bash
 ./install.sh            # composer install: Dompdf, re-namespaced into vendor-prefixed/ by Strauss
 wp dist-archive .       # zip without the files in .distignore
 ```
+
+A `git clone` or GitHub's "Download ZIP" has no `vendor-prefixed/`, so PDF export falls back to the print view until
+`composer install --no-dev` is run in the plugin folder. Install the release zip instead.
 
 ### Step 2: Upload Plugin
 Upload the zip in Plugins › Add New › Upload Plugin. No Composer is needed on the server.

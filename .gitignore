@@ -17,3 +17,6 @@ node_modules/
 # Layout check output and compiled tools
 tests/layout/out/
 tests/layout/.build/
+
+# Release zip built by .github/workflows/build-zip.yml
+build/

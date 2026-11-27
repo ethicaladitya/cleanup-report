@@ -1,0 +1,94 @@
+# Builds the installable plugin zip: Dompdf bundled in vendor-prefixed/, build-only files left out (.distignore).
+#
+# - Pull requests and "Run workflow": the zip is kept as a workflow artifact (Actions › the run › Artifacts), so a
+#   broken build is caught before merging.
+# - Publishing a GitHub release: the zip is also attached to the release. The release tag (with or without a leading
+#   "v") must match the plugin's Version header, or the build fails.
+name: Build plugin zip
+
+on:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the plugin version
+        id: version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version=$(sed -n 's/^ \* Version: *//p' cleanup-report-generator.php | tr -d '\r' | head -1)
+          stable=$(sed -n 's/^Stable tag: *//p' readme.txt | tr -d '\r' | head -1)
+          [ -n "$version" ] || { echo "::error::No Version header in cleanup-report-generator.php"; exit 1; }
+          [ "$version" = "$stable" ] || { echo "::error::Plugin Version $version doesn't match readme.txt Stable tag $stable"; exit 1; }
+          if [ -n "$TAG" ] && [ "${TAG#v}" != "$version" ]; then
+            echo "::error::Release tag $TAG doesn't match plugin Version $version"; exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # Strauss (build-only) needs PHP 8; the plugin itself runs on PHP 7.4+ (composer.json pins the platform to 7.4).
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Build Dompdf into vendor-prefixed/
+        run: bash install.sh
+
+      - name: Make the zip
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p build/cleanup-report-generator
+          rsync -a --exclude-from=.distignore --exclude=/build ./ build/cleanup-report-generator/
+          cd build
+          zip -rqX "cleanup-report-generator-$VERSION.zip" cleanup-report-generator
+
+      - name: Check the zip
+        env:
+          ZIP: build/cleanup-report-generator-${{ steps.version.outputs.version }}.zip
+        run: |
+          files=$(unzip -Z1 "$ZIP")
+          for need in cleanup-report-generator/cleanup-report-generator.php cleanup-report-generator/vendor-prefixed/autoload.php cleanup-report-generator/vendor-prefixed/dompdf/dompdf/src/Dompdf.php; do
+            grep -qx "$need" <<<"$files" || { echo "::error::$need is missing from the zip"; exit 1; }
+          done
+          if grep -E '^cleanup-report-generator/((vendor|tools|tests|\.git|\.github)/|(composer\.json|composer\.lock|install\.sh|\.distignore)$)' <<<"$files"; then
+            echo "::error::Build-only files ended up in the zip (listed above)"; exit 1
+          fi
+          echo "$(wc -l <<<"$files") files, $(du -h "$ZIP" | cut -f1)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cleanup-report-generator-${{ steps.version.outputs.version }}
+          path: build/cleanup-report-generator-${{ steps.version.outputs.version }}.zip
+          if-no-files-found: error
+
+  attach-to-release:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: cleanup-report-generator-${{ needs.build.outputs.version }}
+
+      - name: Attach the zip to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          ZIP: cleanup-report-generator-${{ needs.build.outputs.version }}.zip
+        run: gh release upload "$TAG" "$ZIP" --clobber --repo "$GITHUB_REPOSITORY"
