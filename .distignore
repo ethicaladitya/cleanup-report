@@ -1,0 +1,17 @@
+# Not shipped in the plugin zip (wp dist-archive) or deployed by tests/layout/run.sh.
+/.git
+/.gitignore
+/.gitattributes
+/.distignore
+/.vscode
+/DEPLOYMENT.md
+/README.md
+/install.sh
+/tests
+/tools
+/vendor
+/composer.json
+/composer.lock
+.DS_Store
+*.zip
+node_modules
