@@ -13,6 +13,7 @@ class Cleanup_Report_Render {
             'primary' => get_option('crg_brand_primary','#0059FF'),
             'footer'  => get_option('crg_footer_text','© ' . wp_date('Y') . ' WPMU DEV Services'),
             'theme'   => 'dark' === get_option( 'crg_report_theme', 'light' ) ? 'dark' : 'light',
+            'glow'    => self::cover_glow( get_option( 'crg_cover_glow', 100 ) ),
         ];
         
         // Handle screenshots (new format)
@@ -117,6 +118,21 @@ class Cleanup_Report_Render {
         'danger'  => [ 'Danger', 'Required, Pending, Critical', '#D92D20' ],
         'neutral' => [ 'Neutral', 'In place', '#667085' ],
     ];
+
+    /**
+     * Colour presets (Settings › Branding): one click fills the primary colour, the status colours and the cover gradient;
+     * nothing changes until the settings are saved. Bold is the plugin's original look (the defaults above).
+     */
+    const PRESETS = [
+        'subtle'   => [ 'Subtle', [ 'primary' => '#3366CC', 'success' => '#ABEFC6', 'warning' => '#FEDF89', 'high' => '#F9DBAF', 'danger' => '#FECDCA', 'neutral' => '#EAECF0', 'glow' => 60 ] ],
+        'balanced' => [ 'Balanced', [ 'primary' => '#2F64D6', 'success' => '#47CD89', 'warning' => '#FDC94B', 'high' => '#F79A5C', 'danger' => '#F97066', 'neutral' => '#D0D5DD', 'glow' => 80 ] ],
+        'bold'     => [ 'Bold', [ 'primary' => '#0059FF', 'success' => '#067647', 'warning' => '#FDB022', 'high' => '#C4320A', 'danger' => '#D92D20', 'neutral' => '#667085', 'glow' => 100 ] ],
+    ];
+
+    /** Cover gradient strength (Settings › Branding) as a whole percentage, 0–100; 100 when unset or not a number. */
+    public static function cover_glow( $value ) {
+        return is_numeric( $value ) ? max( 0, min( 100, (int) round( (float) $value ) ) ) : 100;
+    }
 
     /** The status colours in use: key => hex. */
     public static function colors() {

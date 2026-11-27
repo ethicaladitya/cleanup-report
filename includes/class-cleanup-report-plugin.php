@@ -7,6 +7,7 @@ require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-checklists.php
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-settings.php';
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-plugin-check.php';
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-plugin-registry.php';
+require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-retention.php';
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-admin.php';
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-render.php';
 
@@ -23,6 +24,7 @@ class Cleanup_Report_Generator {
         Cleanup_Report_Settings::init();
         Cleanup_Report_Plugin_Check::init();
         Cleanup_Report_Plugin_Registry::init();
+        Cleanup_Report_Retention::init();
 
         // Review workflow hooks
         add_action( 'admin_notices', [ __CLASS__, 'review_admin_notices' ] );

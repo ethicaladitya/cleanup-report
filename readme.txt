@@ -16,6 +16,7 @@ Malware cleanup reports for members: staff fill in a report in wp-admin, a Buddy
 - Plugin and theme check that flags abandoned, closed and vulnerable items, plus a self-building plugin list
 - Branding: name, logos, primary and status colours, light or dark report theme, footer
 - PDF export with Dompdf, bundled with the plugin; without it, a print view the browser can save as PDF
+- Data retention: reports nobody has edited for a set number of days (30 by default) are deleted automatically, with their screenshots
 
 Works on any WordPress site: nothing in the code points at a particular site, and everything the plugin defines is prefixed (classes `Cleanup_Report_*`, constants `CLEANUP_REPORT_*`, hooks `cleanup_report_*`). Stored settings and report fields keep their original `crg_` names so existing reports carry over.
 
@@ -32,6 +33,7 @@ To build from source, run `composer install` (needs PHP 8 and Composer on the bu
 == Changelog ==
 
 = 2.1.0 =
+* Data retention (Settings › Review, administrators only): a daily cleanup permanently deletes reports nobody has edited for the set number of days (30 by default; 0 keeps them forever), including their history and their screenshots in the Media Library unless another report uses the same file. The tab shows how many reports the next cleanup will delete and what the last one did. Note when updating: reports untouched for 30+ days are deleted at the first daily run unless you change the setting first.
 * Security: report fields (crg_*) are protected meta, so WordPress's generic custom-field paths (hidden custom-field inputs on save, Quick Edit, add-meta, XML-RPC) can't change them; previously a writer could mark their own report approved that way. Only Buddyleads and administrators can change a report's author. Approved and completed reports can't be deleted by writers. The plugin list CSV neutralises cells that would run as spreadsheet formulas. The PDF renderer no longer follows redirects when fetching images.
 * Performance: one-time upgrades run from a single autoloaded version number (no extra queries on every admin page) with caches primed and a lock; the checklist settings aren't autoloaded on the front end; the plugin check sends requests in batches of 20 and caches only the fields it uses (e.g. WooCommerce's vulnerability list: ~21 KB instead of the full response); a logo with nothing to trim isn't rescanned on every PDF; PDF rendering raises the memory limit for large screenshots.
 * Compatibility: explicit flags for html_entity_decode() and CSV functions, so behaviour is the same on PHP 7.4 to 8.5.
@@ -53,7 +55,7 @@ To build from source, run `composer install` (needs PHP 8 and Composer on the bu
 * Light (day) report theme by default: a soft cover tinted from the primary colour, white card, light panels and table headers. The previous dark look is still available (Settings › Branding › Report theme). Separate logos for light and dark covers.
 * Logos are trimmed of empty (transparent or white) borders automatically, so they line up with the cover text and show at full size; the cropped copy is kept in uploads/crg-cache/.
 * Pills and tags (cover label, status chip, table statuses, screenshot badges) have their text centred: capitals sat low with the normal line height.
-* Status colours in Settings › Branding (success, warning, high, danger, neutral) next to the primary colour; text on each colour is chosen automatically (white or near-black) for contrast.
+* Status colours in Settings › Branding (success, warning, high, danger, neutral) next to the primary colour; text on each colour is chosen automatically (white or near-black) for contrast. A Cover gradient setting (0–100%) sets how strong the blue glow on the cover is; 0 removes it. Colour presets (Subtle, Balanced, Bold) fill all the colours and the cover gradient in one click; Bold is the original look.
 * Access: give everyone who works on reports the Editor role (WordPress needs it to save someone else's report). Writers edit their own reports and can preview any; Buddyleads open and edit any report and manage the Follow-ups, Defender checklist and Plugin list settings; administrators have full access: every report, approving, and every setting, and only they see the Branding and Review tabs. Writers have no Settings page. Approved reports are read-only for Writers except marking them Completed. A who-can-do-what guide is on the Review tab.
 * Solid colours throughout the report: red, amber, green and blue tiles, status pills and badges with white or black text, black table headers, a dark "Key finding" panel, and darker body text for contrast.
 * "Preview in browser" now shows the PDF's own layout, page by page, with buttons to download the PDF or go back to editing (it replaces the old separate web template, which had drifted from the PDF and loaded a chart from quickchart.io). Without Dompdf, "Download PDF" opens this view with the print dialog.

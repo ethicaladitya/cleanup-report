@@ -1051,3 +1051,25 @@
 	cursor: pointer;
 	font-size: 12.5px;
 }
+
+/* Settings › Branding: colour presets */
+.crg-settings .crg-preset {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	margin: 0 6px 6px 0;
+}
+.crg-settings .crg-preset .crg-preset-swatch {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	border-radius: 3px;
+	box-shadow: inset 0 0 0 1px rgba(16, 24, 40, 0.12);
+}
+.crg-settings .crg-preset .crg-preset-swatch:last-of-type {
+	margin-right: 4px;
+}
+.crg-settings .crg-preset.is-picked {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+}

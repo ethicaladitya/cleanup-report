@@ -51,10 +51,12 @@ class Cleanup_Report_Settings {
         }
         register_setting( 'crg_settings', 'crg_brand_primary', [ 'default' => '#0059FF', 'sanitize_callback' => [ __CLASS__, 'sanitize_primary' ] ] ); // wpmudev.com blue
         register_setting( 'crg_settings', 'crg_report_theme', [ 'default' => 'light', 'sanitize_callback' => static function ( $v ) { return 'dark' === $v ? 'dark' : 'light'; } ] );
+        register_setting( 'crg_settings', 'crg_cover_glow', [ 'type' => 'integer', 'default' => 100, 'sanitize_callback' => [ 'Cleanup_Report_Render', 'cover_glow' ] ] );
         register_setting( 'crg_settings', 'crg_footer_text', [ 'default' => '© ' . wp_date( 'Y' ) . ' WPMU DEV Services', 'sanitize_callback' => 'sanitize_text_field' ] );
         register_setting( 'crg_followups', Cleanup_Report_Checklists::FOLLOWUP_OPTION, [ 'type' => 'array', 'sanitize_callback' => [ 'Cleanup_Report_Checklists', 'sanitize_followup_items' ] ] );
         register_setting( 'crg_review', 'crg_watermark_text', [ 'default' => 'NOT FINAL', 'sanitize_callback' => static function ( $v ) { return mb_substr( trim( sanitize_text_field( (string) $v ) ), 0, 40 ) ?: 'NOT FINAL'; } ] );
         register_setting( 'crg_review', 'crg_pdf_requires_approval', [ 'type' => 'boolean', 'default' => 1, 'sanitize_callback' => static function ( $v ) { return empty( $v ) ? 0 : 1; } ] );
+        register_setting( 'crg_review', Cleanup_Report_Retention::OPTION, [ 'type' => 'integer', 'default' => Cleanup_Report_Retention::DEFAULT_DAYS, 'sanitize_callback' => [ 'Cleanup_Report_Retention', 'sanitize_days' ] ] );
         register_setting( 'crg_review', Cleanup_Report_Admin::BUDDYLEADS_OPTION, [ 'type' => 'array', 'default' => [], 'sanitize_callback' => [ __CLASS__, 'sanitize_buddyleads' ] ] );
         register_setting( 'crg_defender', Cleanup_Report_Checklists::DEFENDER_OPTION, [ 'type' => 'array', 'sanitize_callback' => [ 'Cleanup_Report_Checklists', 'sanitize_defender_items' ] ] );
     }
@@ -164,6 +166,18 @@ class Cleanup_Report_Settings {
                 </tr>
                 <?php endforeach; ?>
                 <tr>
+                    <th scope="row">Colour presets</th>
+                    <td>
+                        <?php foreach ( Cleanup_Report_Render::PRESETS as $key => [ $label, $preset ] ) : ?>
+                            <button type="button" class="button crg-preset" data-preset="<?php echo esc_attr( (string) wp_json_encode( $preset ) ); ?>">
+                                <?php foreach ( [ 'primary', 'danger', 'warning', 'success' ] as $swatch ) : ?><span class="crg-preset-swatch" style="background:<?php echo esc_attr( $preset[ $swatch ] ); ?>"></span><?php endforeach; ?>
+                                <?php echo esc_html( $label ); ?>
+                            </button>
+                        <?php endforeach; ?>
+                        <p class="description">Fills the colours and cover gradient below in one click. Nothing changes until you save; you can still adjust any colour afterwards. Bold is the original look.</p>
+                    </td>
+                </tr>
+                <tr>
                     <th scope="row"><label for="crg_brand_primary">Primary colour</label></th>
                     <td><input type="text" id="crg_brand_primary" name="crg_brand_primary" value="<?php echo esc_attr( get_option( 'crg_brand_primary', '#0059FF' ) ); ?>" class="crg-color" data-default-color="#0059FF">
                     <p class="description">Headings, links and highlights. WPMU DEV blue is <code>#0059FF</code>.</p></td>
@@ -188,6 +202,11 @@ class Cleanup_Report_Settings {
                         <label class="crg-radio"><input type="radio" name="crg_report_theme" value="dark" <?php checked( 'dark', $theme ); ?>> Dark</label>
                         <p class="description">Light prints well and suits most members; dark matches the wpmudev.com look. Applies to the PDF and the preview.</p>
                     </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="crg_cover_glow">Cover gradient</label></th>
+                    <td><input type="number" id="crg_cover_glow" name="crg_cover_glow" value="<?php echo esc_attr( Cleanup_Report_Render::cover_glow( get_option( 'crg_cover_glow', 100 ) ) ); ?>" min="0" max="100" step="5" class="small-text"> %
+                    <p class="description">How strong the blue glow on the cover is. 100% is the original look; lower is lighter, and 0 removes it.</p></td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="crg_footer_text">Footer text</label></th>
@@ -272,6 +291,38 @@ class Cleanup_Report_Settings {
                 <input type="text" id="crg_watermark_text" name="crg_watermark_text" value="<?php echo esc_attr( Cleanup_Report_Admin::watermark() ); ?>" class="regular-text" maxlength="40" placeholder="NOT FINAL">
             </p>
             <p class="description">Up to 40 characters, e.g. NOT FINAL, DRAFT or FOR REVIEW ONLY. Longer text is set smaller to fit the page.</p>
+
+            <h2 class="title">Data retention</h2>
+            <?php
+            $retention_days = Cleanup_Report_Retention::days();
+            $retention_due  = Cleanup_Report_Retention::due_count();
+            $retention_next = wp_next_scheduled( Cleanup_Report_Retention::CRON_HOOK );
+            $retention_last = get_option( Cleanup_Report_Retention::LAST_RUN );
+            ?>
+            <p>
+                <label for="crg_retention_days"><strong>Delete reports nobody has edited for</strong></label><br>
+                <input type="number" id="crg_retention_days" name="<?php echo esc_attr( Cleanup_Report_Retention::OPTION ); ?>" value="<?php echo esc_attr( $retention_days ); ?>" min="0" max="<?php echo (int) Cleanup_Report_Retention::MAX_DAYS; ?>" step="1" class="small-text"> days
+            </p>
+            <p class="description">Checked once a day. A report is deleted <strong>permanently</strong>, including the Trash, with its history and its screenshots in the Media Library (a screenshot another report uses is kept). This can't be undone. Use 0 to keep reports forever.</p>
+            <p class="description">
+                <?php if ( ! $retention_days ) : ?>
+                    Retention is off: reports are kept until someone deletes them.
+                <?php else : ?>
+                    <?php
+                    if ( ! $retention_due ) {
+                        echo esc_html( sprintf( 'Nothing to delete yet: every report was edited in the last %d days.', $retention_days ) );
+                    } else {
+                        echo esc_html( sprintf( '%d %s been edited for %d days.', $retention_due, 1 === $retention_due ? 'report hasn\'t' : 'reports haven\'t', $retention_days ) );
+                    }
+                    ?>
+                    <?php if ( $retention_due && $retention_next ) : ?>
+                        <?php echo esc_html( sprintf( 'The next cleanup, around %s, deletes %s.', wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $retention_next ), 1 === $retention_due ? 'it' : 'them' ) ); ?>
+                    <?php endif; ?>
+                <?php endif; ?>
+                <?php if ( is_array( $retention_last ) && ! empty( $retention_last['time'] ) ) : ?>
+                    <?php echo esc_html( sprintf( 'Last cleanup %s: %d %s and %d %s deleted.', wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $retention_last['time'] ), (int) $retention_last['reports'], 1 === (int) $retention_last['reports'] ? 'report' : 'reports', (int) $retention_last['files'], 1 === (int) $retention_last['files'] ? 'screenshot' : 'screenshots' ) ); ?>
+                <?php endif; ?>
+            </p>
 
             <h2 class="title">Buddyleads</h2>
             <p class="description">Who can approve reports or send them back, besides administrators (who have full access).</p>

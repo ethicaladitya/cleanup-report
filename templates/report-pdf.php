@@ -20,6 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $primary = sanitize_hex_color( $data['brand']['primary'] ) ?: '#0059FF';
 $dark    = 'dark' === ( $data['brand']['theme'] ?? 'light' ); // Settings › Branding › Report theme
+$glow_k  = Cleanup_Report_Render::cover_glow( $data['brand']['glow'] ?? 100 ) / 100; // Settings › Branding › Cover gradient: scales both glows
+$glow_op = static function ( $base ) use ( $glow_k ) { return rtrim( rtrim( number_format( $base * $glow_k, 3, '.', '' ), '0' ), '.' ); };
 // Status colours (Settings › Branding) and readable text on them.
 $col  = ( $data['brand']['colors'] ?? [] ) + [ 'success' => '#067647', 'warning' => '#FDB022', 'high' => '#C4320A', 'danger' => '#D92D20', 'neutral' => '#667085' ];
 $rgb  = static function ( $hex ) { $h = ltrim( (string) $hex, '#' ); $h = 3 === strlen( $h ) ? preg_replace( '/(.)/', '$1$1', $h ) : $h; return array_map( 'hexdec', str_split( substr( str_pad( $h, 6, '0' ), 0, 6 ), 2 ) ); };
@@ -54,7 +56,7 @@ if ( $host ) {
     $h1_size = $len <= 24 ? 38 : ( $len <= 40 ? 32 : ( $len <= 64 ? 26 : 21 ) );
 }
 $brand_short  = $clip( preg_replace( '/\s+Services$/i', '', (string) $data['brand']['name'] ) ?: 'WPMU DEV', 40 );
-$glow         = $asset( 'assets/cover-glow.png' );
+$glow         = $glow_k > 0 ? $asset( 'assets/cover-glow.png' ) : ''; // not loaded when the cover gradient is off
 $has     = static function ( $html ) { return '' !== trim( wp_strip_all_tags( (string) $html ) ); };
 
 $text_block = [ 'Cleanup_Report_Render', 'text_to_html' ]; // plain-text notes → paragraphs and lists
@@ -202,8 +204,8 @@ table { border-collapse: collapse; width: 100%; }
 
 /* ---------- Cover (light: soft blue-white page, dark type, blue accent, white card; the dark theme overrides below) ---------- */
 .cover { position: relative; height: 296.5mm; background: <?php echo esc_attr( $mix( $primary, 0.96 ) ); ?>; color: #101828; page-break-after: always; overflow: hidden; }
-.cover .glow { position: absolute; left: 92mm; top: -78mm; width: 190mm; height: 190mm; opacity: 0.35; }
-.cover .glow2 { position: absolute; left: -70mm; top: 170mm; width: 150mm; height: 150mm; opacity: 0.22; }
+.cover .glow { position: absolute; left: 92mm; top: -78mm; width: 190mm; height: 190mm; opacity: <?php echo esc_attr( $glow_op( 0.35 ) ); ?>; }
+.cover .glow2 { position: absolute; left: -70mm; top: 170mm; width: 150mm; height: 150mm; opacity: <?php echo esc_attr( $glow_op( 0.22 ) ); ?>; }
 .cover .brand { position: absolute; left: 22mm; top: 20mm; width: 120mm; font-size: 12pt; font-weight: bold; color: #101828; }
 .cover .brand img { max-height: 30pt; }
 .cover .conf { position: absolute; right: 22mm; top: 21mm; font-size: 6.5pt; letter-spacing: 1.2pt; text-transform: uppercase; color: #667085; border: 0.6pt solid #d0d5dd; border-radius: 9pt; padding: 3.5pt 8pt; }
@@ -315,7 +317,7 @@ h3 { font-size: 10pt; color: #1a1a1a; margin: 12pt 0 5pt; }
 <?php if ( $dark ) : ?>
 /* ---------- Dark theme (Settings › Branding › Report theme): near-black cover and panels, like wpmudev.com ---------- */
 .cover { background: #0e0e0e; color: #fff; }
-.cover .glow { opacity: 1; } .cover .glow2 { opacity: 0.55; }
+.cover .glow { opacity: <?php echo esc_attr( $glow_op( 1 ) ); ?>; } .cover .glow2 { opacity: <?php echo esc_attr( $glow_op( 0.55 ) ); ?>; }
 .cover .brand, .cover h1, .cover .site strong, .cover .stats .n, .cover .meta .v { color: #fff; }
 .cover .conf { color: #aaaaaa; border-color: #3a3a3a; }
 .cover .site, .cover .stats .l { color: #aaaaaa; }
@@ -372,8 +374,10 @@ body { padding: 72px 0 48px; }
 
 <!-- ======================= COVER ======================= -->
 <div class="cover">
+    <?php if ( $glow_k > 0 ) : ?>
     <img class="glow" src="<?php echo esc_attr( $glow ); ?>" alt="">
     <img class="glow2" src="<?php echo esc_attr( $glow ); ?>" alt="">
+    <?php endif; ?>
     <div class="brand">
         <?php if ( ! empty( $images['logo'] ) ) : ?>
             <img src="<?php echo esc_attr( $images['logo']['src'] ); ?>" alt="<?php echo esc_attr( $data['brand']['name'] ); ?>">

@@ -32,3 +32,5 @@ Cleanup_Report_Generator::init();
 
 // The plugin list's daily refresh (WP-Cron) stops when the plugin is deactivated.
 register_deactivation_hook( __FILE__, [ 'Cleanup_Report_Plugin_Registry', 'unschedule' ] );
+// So does the daily retention cleanup (Settings › Review › Data retention).
+register_deactivation_hook( __FILE__, [ 'Cleanup_Report_Retention', 'unschedule' ] );

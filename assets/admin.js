@@ -552,6 +552,22 @@
 		if ( $.fn.wpColorPicker ) {
 			$wrap.find( '.crg-color' ).wpColorPicker();
 		}
+		/* Branding: a colour preset fills the primary, status colours and cover gradient (saved with Save Changes). */
+		$wrap.on( 'click', '.crg-preset', function () {
+			var preset = $( this ).data( 'preset' ) || {};
+			$.each( preset, function ( key, value ) {
+				if ( 'glow' === key ) {
+					$( '#crg_cover_glow' ).val( value );
+					return;
+				}
+				var $input = $( 'primary' === key ? '#crg_brand_primary' : '#crg_color_' + key );
+				if ( $input.length ) {
+					$.fn.wpColorPicker && $input.data( 'a8cIris' ) ? $input.wpColorPicker( 'color', value ) : $input.val( value );
+				}
+			} );
+			$wrap.find( '.crg-preset' ).removeClass( 'is-picked' );
+			$( this ).addClass( 'is-picked' );
+		} );
 		$wrap.on( 'change input', '.crg-logo-url', function () {
 			var url = $.trim( this.value ), $p = $( this ).siblings( '.crg-logo-preview' );
 			$p.toggleClass( 'is-empty', ! url ).html( url ? $( '<img alt="">' ).attr( 'src', url ) : '' );
