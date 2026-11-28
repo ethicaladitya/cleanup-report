@@ -39,9 +39,11 @@ $pill = [ 'ok' => 'ok', 'bad' => 'todo', 'info' => 'low', 'na' => 'na' ];
                     <tr><td class="name" style="width:38%"><?php echo esc_html( $fact_label ); ?></td><td><?php echo wp_kses_post( make_clickable( esc_html( $fact_value ) ) ); ?></td></tr>
                 <?php endforeach; ?>
             </tbody></table></div>
-        <?php elseif ( 'html' === $block['kind'] ) : ?>
+        <?php elseif ( 'html' === $block['kind'] ) : $short = mb_strlen( wp_strip_all_tags( (string) $block['html'] ) ) <= 900; // a short text stays with its heading ?>
+            <?php if ( $short ) : ?><div class="keep"><?php endif; ?>
             <div class="head"><?php echo $heading . $label; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above ?></div>
             <?php echo wp_kses_post( $block['html'] ); ?>
+            <?php if ( $short ) : ?></div><?php endif; ?>
         <?php elseif ( 'table' === $block['kind'] ) : ?>
             <div class="<?php echo count( $block['rows'] ) <= 6 ? 'keep' : 'flow'; ?>"><div class="head"><?php echo $heading . $label; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above ?></div>
             <table class="grid">

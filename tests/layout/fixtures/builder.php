@@ -33,6 +33,9 @@ $posted = [
 ];
 $def   = Cleanup_Report_Type_Builder::sanitize_definition( $posted, $key );
 $types = get_option( Cleanup_Report_Type_Builder::OPTION, [] );
+// Start from a new type: a type that was edited keeps its retired keys and never gives them out again.
+unset( $types[ $key ] );
+update_option( Cleanup_Report_Type_Builder::OPTION, $types, false );
 $types[ $key ] = $def;
 update_option( Cleanup_Report_Type_Builder::OPTION, $types, false );
 Cleanup_Report_Types::flush();
