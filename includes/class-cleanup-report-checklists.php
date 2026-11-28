@@ -71,22 +71,31 @@ class Cleanup_Report_Checklists {
      * (the member has to finish it). "pending" keeps its 2.0 meaning, so older reports still read the same.
      */
     const DEFENDER_STATUSES = [ 'applied', 'in_progress', 'pending' ];
-    const PROGRESS_FALLBACK = 'Not configured yet.';
 
-    /** Placeholders allowed in client-facing texts. */
-    const PLACEHOLDERS = [ '{site}', '{host}', '{wp_admin}' ];
 
-    const DEFAULT_FIXED = [
-        'ssl'             => 'We installed an SSL certificate; all traffic is now encrypted.',
-        'cloudflare'      => 'We set up Cloudflare to cache and protect your site.',
-        'php_update'      => 'We moved the site to a supported PHP version.',
-        'check_admins'    => 'We reviewed the administrators and removed accounts that weren\'t yours.',
-        'reset_passwords' => 'We reset the passwords of all users.',
-        'mask_login'      => 'We set a custom login URL in Defender.',
-        'automate'        => 'We enabled WPMU DEV Automate to keep plugins and themes updated.',
-        'review_content'  => 'We reviewed posts and comments and removed the spam.',
-    ];
-    const FIXED_FALLBACK = 'Done during the cleanup.';
+
+    /** Follow-ups with a report text of their own for "Done" (fixed_text() has the wording). */
+    const DEFAULT_FIXED = [ 'ssl', 'cloudflare', 'php_update', 'check_admins', 'reset_passwords', 'mask_login', 'automate', 'review_content' ];
+
+    /** The report text for a follow-up we did during the cleanup, or the general one. */
+    public static function fixed_text( $key ) {
+        $texts = [
+            'ssl'             => __( 'We installed an SSL certificate; all traffic is now encrypted.', 'cleanup-report-generator' ),
+            'cloudflare'      => __( 'We set up Cloudflare to cache and protect your site.', 'cleanup-report-generator' ),
+            'php_update'      => __( 'We moved the site to a supported PHP version.', 'cleanup-report-generator' ),
+            'check_admins'    => __( 'We reviewed the administrators and removed accounts that weren\'t yours.', 'cleanup-report-generator' ),
+            'reset_passwords' => __( 'We reset the passwords of all users.', 'cleanup-report-generator' ),
+            'mask_login'      => __( 'We set a custom login URL in Defender.', 'cleanup-report-generator' ),
+            'automate'        => __( 'We enabled WPMU DEV Automate to keep plugins and themes updated.', 'cleanup-report-generator' ),
+            'review_content'  => __( 'We reviewed posts and comments and removed the spam.', 'cleanup-report-generator' ),
+        ];
+        return $texts[ $key ] ?? __( 'Done during the cleanup.', 'cleanup-report-generator' );
+    }
+
+    /** The report text for a Defender setting not configured yet, when the item has none of its own. */
+    public static function progress_text() {
+        return __( 'Not configured yet.', 'cleanup-report-generator' );
+    }
 
     /**
      * Where each item is configured on the member's site, as linked in the team's cleanup report template.
@@ -176,19 +185,19 @@ class Cleanup_Report_Checklists {
     public static function default_followups() {
         // done = report text when already configured; fixed = when we did it during the cleanup; todo = when the member must.
         $f = static function ( $key, $label, $hint, $todo, $done, $tone = 'required', $docs = '', $enabled = true ) {
-            return compact( 'key', 'label', 'hint', 'docs', 'todo', 'done', 'tone' ) + [ 'fixed' => self::DEFAULT_FIXED[ $key ] ?? '', 'link' => self::FOLLOWUP_LINKS[ $key ] ?? '', 'enabled' => $enabled ];
+            return compact( 'key', 'label', 'hint', 'docs', 'todo', 'done', 'tone' ) + [ 'fixed' => in_array( $key, self::DEFAULT_FIXED, true ) ? self::fixed_text( $key ) : '', 'link' => self::FOLLOWUP_LINKS[ $key ] ?? '', 'enabled' => $enabled ];
         };
         // Names as in the team's report template.
         return [
-            $f( 'ssl', 'Configure SSL', 'Does the site need an SSL certificate?', 'Install an SSL certificate so all traffic is encrypted.', 'Your site already has SSL.' ),
-            $f( 'cloudflare', 'Configure Cloudflare', 'Cloudflare caches the site globally and adds security.', 'Once configured, Cloudflare caches and protects your site across its worldwide network.', 'Already in place.' ),
-            $f( 'php_update', 'Update PHP Version', 'Running a supported PHP version improves security and speed.', 'The latest PHP version gives better security and performance.', 'Running a supported version.', 'required', 'https://www.php.net/supported-versions.php' ),
-            $f( 'check_admins', 'Check any suspect admins', 'Any administrator accounts the member should confirm?', 'Review Users and remove any administrator you don\'t recognise.', 'No unknown administrators found.' ),
-            $f( 'reset_passwords', 'Login & Access - Password Rules', 'Force users to change their passwords at their next login after the breach.', 'Force users to change their passwords at their next login, because of the security breach.', 'Not needed.', 'required', self::DEFENDER_DOCS . '#reset-passwords' ),
+            $f( 'ssl', __( 'Configure SSL', 'cleanup-report-generator' ), __( 'Does the site need an SSL certificate?', 'cleanup-report-generator' ), __( 'Install an SSL certificate so all traffic is encrypted.', 'cleanup-report-generator' ), __( 'Your site already has SSL.', 'cleanup-report-generator' ) ),
+            $f( 'cloudflare', __( 'Configure Cloudflare', 'cleanup-report-generator' ), __( 'Cloudflare caches the site globally and adds security.', 'cleanup-report-generator' ), __( 'Once configured, Cloudflare caches and protects your site across its worldwide network.', 'cleanup-report-generator' ), __( 'Already in place.', 'cleanup-report-generator' ) ),
+            $f( 'php_update', __( 'Update PHP Version', 'cleanup-report-generator' ), __( 'Running a supported PHP version improves security and speed.', 'cleanup-report-generator' ), __( 'The latest PHP version gives better security and performance.', 'cleanup-report-generator' ), __( 'Running a supported version.', 'cleanup-report-generator' ), 'required', 'https://www.php.net/supported-versions.php' ),
+            $f( 'check_admins', __( 'Check any suspect admins', 'cleanup-report-generator' ), __( 'Any administrator accounts the member should confirm?', 'cleanup-report-generator' ), __( 'Review Users and remove any administrator you don\'t recognise.', 'cleanup-report-generator' ), __( 'No unknown administrators found.', 'cleanup-report-generator' ) ),
+            $f( 'reset_passwords', __( 'Login & Access - Password Rules', 'cleanup-report-generator' ), __( 'Force users to change their passwords at their next login after the breach.', 'cleanup-report-generator' ), __( 'Force users to change their passwords at their next login, because of the security breach.', 'cleanup-report-generator' ), __( 'Not needed.', 'cleanup-report-generator' ), 'required', self::DEFENDER_DOCS . '#reset-passwords' ),
             // Off by default: Hide Login URL is in the Defender checklist's member part.
-            $f( 'mask_login', 'Hide Login URL', 'Setting a custom login URL needs the site owner.', 'Set a custom login URL in Defender and share it with your team.', 'Already configured.', 'recommended', self::DEFENDER_DOCS . '#hide-login-url', false ),
-            $f( 'automate', 'Enable WPMU DEV Automate', 'Keeps plugins and themes updated automatically.', 'Keeps plugins and themes updated automatically.', 'Already enabled.' ),
-            $f( 'review_content', 'Review Post/Comment Section', 'Check for spam the attacker may have added.', 'Check recent posts and comments for spam the attacker may have added.', 'Nothing suspicious found.' ),
+            $f( 'mask_login', __( 'Hide Login URL', 'cleanup-report-generator' ), __( 'Setting a custom login URL needs the site owner.', 'cleanup-report-generator' ), __( 'Set a custom login URL in Defender and share it with your team.', 'cleanup-report-generator' ), __( 'Already configured.', 'cleanup-report-generator' ), 'recommended', self::DEFENDER_DOCS . '#hide-login-url', false ),
+            $f( 'automate', __( 'Enable WPMU DEV Automate', 'cleanup-report-generator' ), __( 'Keeps plugins and themes updated automatically.', 'cleanup-report-generator' ), __( 'Keeps plugins and themes updated automatically.', 'cleanup-report-generator' ), __( 'Already enabled.', 'cleanup-report-generator' ), 'required', '', (bool) Cleanup_Report_Presets::get( 'product_items' ) ), // WPMU DEV preset
+            $f( 'review_content', __( 'Review Post/Comment Section', 'cleanup-report-generator' ), __( 'Check for spam the attacker may have added.', 'cleanup-report-generator' ), __( 'Check recent posts and comments for spam the attacker may have added.', 'cleanup-report-generator' ), __( 'Nothing suspicious found.', 'cleanup-report-generator' ) ),
         ];
     }
 
@@ -196,30 +205,30 @@ class Cleanup_Report_Checklists {
         // [ name as in the team's report template, docs anchor, report text when the member needs to act ]
         $items = [
             // To be done by the agent.
-            'defender_recommendations'  => [ 'Defender Hardening', 'security-recommendations', '' ],
-            'audit_logging'             => [ 'Enabling Audit Log', 'audit-log', '' ],
-            'firewall_antibot'          => [ 'Firewalls - Global Firewall', 'antibot-global-firewall', '' ],
-            'login_protection'          => [ 'Local Firewall - Login Protection', 'login-protection', '' ],
-            'firewall_404'              => [ 'Local Firewall - 404 Detection', '404-detection', '' ],
-            'malicious_bot'             => [ 'Local Firewall - Malicious Bot Detector', 'malicious-bot-detector', '' ],
-            'user_agent_bot_trap'       => [ 'Local Firewall - Trap Bots That Ignore robots.txt', 'trap-bots-that-ignore-robots-txt', '' ],
-            'fake_bots'                 => [ 'Local Firewall - Catch Fake Bots', 'catch-fake-bots-impersonating-legitimate-crawlers', '' ],
-            'user_agent_empty_headers'  => [ 'Local Firewall - Empty Headers', 'empty-headers', '' ],
-            'user_agent_banning'        => [ 'Custom Rules - User Agent', 'user-agent-banning', '' ],
-            'pwned_passwords'           => [ 'Password Rules - Pwned Passwords', 'pwned-passwords', '' ],
-            'strong_passwords'          => [ 'Password Rules - Strong Password', 'strong-passwords', '' ],
-            'password_reset'            => [ 'Password Rules - Reset Passwords', 'reset-passwords', '' ],
-            'malware_scanning'          => [ 'Tools > Issues Scan', 'issues-scan', '' ],
-            'ip_detection'              => [ 'Tools > Firewall Detect IP Addresses', 'firewall-tools', '' ],
-            'blocklist_monitor'         => [ 'Tools > Blocklist Monitor', 'blocklist-monitor', '' ],
-            'security_headers'          => [ 'Tools > Security Headers', 'security-policies', '' ],
-            'reports_alerts'            => [ 'Reports & Alerts - Scheduled Reports', 'reports-alerts', '' ],
+            'defender_recommendations'  => [ __( 'Defender Hardening', 'cleanup-report-generator' ), 'security-recommendations', '' ],
+            'audit_logging'             => [ __( 'Enabling Audit Log', 'cleanup-report-generator' ), 'audit-log', '' ],
+            'firewall_antibot'          => [ __( 'Firewalls - Global Firewall', 'cleanup-report-generator' ), 'antibot-global-firewall', '' ],
+            'login_protection'          => [ __( 'Local Firewall - Login Protection', 'cleanup-report-generator' ), 'login-protection', '' ],
+            'firewall_404'              => [ __( 'Local Firewall - 404 Detection', 'cleanup-report-generator' ), '404-detection', '' ],
+            'malicious_bot'             => [ __( 'Local Firewall - Malicious Bot Detector', 'cleanup-report-generator' ), 'malicious-bot-detector', '' ],
+            'user_agent_bot_trap'       => [ __( 'Local Firewall - Trap Bots That Ignore robots.txt', 'cleanup-report-generator' ), 'trap-bots-that-ignore-robots-txt', '' ],
+            'fake_bots'                 => [ __( 'Local Firewall - Catch Fake Bots', 'cleanup-report-generator' ), 'catch-fake-bots-impersonating-legitimate-crawlers', '' ],
+            'user_agent_empty_headers'  => [ __( 'Local Firewall - Empty Headers', 'cleanup-report-generator' ), 'empty-headers', '' ],
+            'user_agent_banning'        => [ __( 'Custom Rules - User Agent', 'cleanup-report-generator' ), 'user-agent-banning', '' ],
+            'pwned_passwords'           => [ __( 'Password Rules - Pwned Passwords', 'cleanup-report-generator' ), 'pwned-passwords', '' ],
+            'strong_passwords'          => [ __( 'Password Rules - Strong Password', 'cleanup-report-generator' ), 'strong-passwords', '' ],
+            'password_reset'            => [ __( 'Password Rules - Reset Passwords', 'cleanup-report-generator' ), 'reset-passwords', '' ],
+            'malware_scanning'          => [ __( 'Tools > Issues Scan', 'cleanup-report-generator' ), 'issues-scan', '' ],
+            'ip_detection'              => [ __( 'Tools > Firewall Detect IP Addresses', 'cleanup-report-generator' ), 'firewall-tools', '' ],
+            'blocklist_monitor'         => [ __( 'Tools > Blocklist Monitor', 'cleanup-report-generator' ), 'blocklist-monitor', '' ],
+            'security_headers'          => [ __( 'Tools > Security Headers', 'cleanup-report-generator' ), 'security-policies', '' ],
+            'reports_alerts'            => [ __( 'Reports & Alerts - Scheduled Reports', 'cleanup-report-generator' ), 'reports-alerts', '' ],
             // To be done by the member.
-            'mask_login'                => [ 'Hide Login URL', 'hide-login-url', 'Choose a custom login URL and share it with your team.' ],
-            'two_factor_auth'           => [ 'Login & Access - Two-Factor Auth', 'two-factor-auth', 'Each administrator needs to set up 2FA on their own account.' ],
-            'session_protection'        => [ 'Login & Access - Session Security', 'session-security', 'Set an idle timeout and session lock to protect your users from session hijacking.' ],
-            'google_recaptcha'          => [ 'Login & Access - Bot Protection', 'bot-protection', 'Add a CAPTCHA (Google reCAPTCHA or Cloudflare Turnstile) to your login, registration and comment forms. It needs your own API keys.' ],
-            'user_agent_script_presets' => [ 'Custom Rules - User Agent - Scripts', 'blocklist-presets', 'Block the Scripts preset (automated clients) if none of your own services reach the site that way.' ],
+            'mask_login'                => [ __( 'Hide Login URL', 'cleanup-report-generator' ), 'hide-login-url', __( 'Choose a custom login URL and share it with your team.', 'cleanup-report-generator' ) ],
+            'two_factor_auth'           => [ __( 'Login & Access - Two-Factor Auth', 'cleanup-report-generator' ), 'two-factor-auth', __( 'Each administrator needs to set up 2FA on their own account.', 'cleanup-report-generator' ) ],
+            'session_protection'        => [ __( 'Login & Access - Session Security', 'cleanup-report-generator' ), 'session-security', __( 'Set an idle timeout and session lock to protect your users from session hijacking.', 'cleanup-report-generator' ) ],
+            'google_recaptcha'          => [ __( 'Login & Access - Bot Protection', 'cleanup-report-generator' ), 'bot-protection', __( 'Add a CAPTCHA (Google reCAPTCHA or Cloudflare Turnstile) to your login, registration and comment forms. It needs your own API keys.', 'cleanup-report-generator' ) ],
+            'user_agent_script_presets' => [ __( 'Custom Rules - User Agent - Scripts', 'cleanup-report-generator' ), 'blocklist-presets', __( 'Block the Scripts preset (automated clients) if none of your own services reach the site that way.', 'cleanup-report-generator' ) ],
         ];
         $out = [];
         foreach ( $items as $key => [ $label, $anchor, $pending ] ) {
@@ -232,7 +241,7 @@ class Cleanup_Report_Checklists {
                 'pending_note' => $pending,
                 'link'         => self::DEFENDER_LINKS[ $key ] ?? '',
                 'docs'         => self::DEFENDER_DOCS . '#' . $anchor,
-                'enabled'      => true,
+                'enabled'      => (bool) Cleanup_Report_Presets::get( 'product_items' ), // on with the WPMU DEV preset; can be switched on in Settings
             ];
         }
         return $out;
@@ -252,7 +261,8 @@ class Cleanup_Report_Checklists {
      * alone), and gives Defender items their owner and docs link. $kind: 'defender' or 'followups'.
      */
     private static function renamed( array $items, $kind ) {
-        $defaults = self::keyed( 'defender' === $kind ? self::default_defender() : self::default_followups() );
+        static $cache = [];
+        $defaults = $cache[ $kind ] ?? ( $cache[ $kind ] = self::keyed( 'defender' === $kind ? self::default_defender() : self::default_followups() ) );
         foreach ( $items as $i => $item ) {
             $key = $item['key'] ?? '';
             if ( ! isset( $defaults[ $key ] ) ) {
@@ -417,7 +427,7 @@ class Cleanup_Report_Checklists {
      * Rows posted from the settings repeater → clean list. Rows keep their key (reports refer to it); new rows
      * get one made from their label. Rows without a label are dropped. Safe to run twice on its own output.
      */
-    private static function sanitize_items( $input, array $fields, ?callable $extra = null ) {
+    public static function sanitize_items( $input, array $fields, ?callable $extra = null ) {
         if ( ! is_array( $input ) ) {
             return [];
         }
@@ -500,7 +510,7 @@ class Cleanup_Report_Checklists {
             'label'  => $def['label'],
             'todo'   => $def['todo'] ?? '',
             'done'   => $def['done'] ?? '',
-            'fixed'  => ( $def['fixed'] ?? '' ) ?: ( self::DEFAULT_FIXED[ $def['key'] ] ?? self::FIXED_FALLBACK ),
+            'fixed'  => ( $def['fixed'] ?? '' ) ?: self::fixed_text( $def['key'] ),
             'tone'   => $def['tone'] ?? 'required',
             'link'   => $def['link'] ?? ( self::FOLLOWUP_LINKS[ $def['key'] ] ?? '' ),
             'status' => $status,
@@ -617,7 +627,7 @@ class Cleanup_Report_Checklists {
                     [ $status, $text ] = [ 'recommended' === $row['tone'] ? 'recommended' : 'required', $row['todo'] ];
                     break;
                 case 'fixed':
-                    [ $status, $text ] = [ 'done', ( $row['fixed'] ?? '' ) ?: self::FIXED_FALLBACK ];
+                    [ $status, $text ] = [ 'done', ( $row['fixed'] ?? '' ) ?: self::fixed_text( '' ) ];
                     break;
                 default: // not_required
                     [ $status, $text ] = [ 'in_place', $row['done'] ];
@@ -641,7 +651,7 @@ class Cleanup_Report_Checklists {
         foreach ( $rows as $row ) {
             $fallback = [
                 'applied'     => ( $row['applied_note'] ?? '' ) ?: 'Configured to recommended settings.',
-                'in_progress' => ( $row['progress_note'] ?? '' ) ?: self::PROGRESS_FALLBACK,
+                'in_progress' => ( $row['progress_note'] ?? '' ) ?: self::progress_text(),
             ][ $row['status'] ] ?? ( $row['pending_note'] ?? '' );
             $out[]    = [
                 'setting' => $row['label'],

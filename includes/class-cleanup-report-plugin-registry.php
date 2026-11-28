@@ -4,7 +4,7 @@
  * on any report, with whether it's still maintained.
  *
  *  - WordPress.org items: status found automatically (closed, no release for 2 years, "Tested up to" 3+ WordPress
- *    versions behind) and refreshed daily by WP-Cron.
+ *    versions behind); refreshed daily by WP-Cron when Settings › Review › "Re-check the plugin list every day" is on.
  *  - Everything else (premium, custom, or a folder name WordPress.org uses for something else): staff mark it
  *    Maintained or Abandoned once; the check then uses that decision on every report.
  *
@@ -20,18 +20,27 @@ class Cleanup_Report_Plugin_Registry {
     const REFRESH_DAYS  = 7;   // re-check a WordPress.org item once a week
     const REFRESH_BATCH = 120; // items per daily run
     const MAX_REPORTS   = 25;  // report IDs remembered per item
+    const MAX_LIST      = 3000; // items on the list; beyond it, new folder names aren't added (known ones still update)
 
     public static function init() {
         add_action( self::CRON_HOOK, [ __CLASS__, 'refresh' ] );
-        add_action( 'init', [ __CLASS__, 'schedule' ] );
+        // The daily re-check is (un)scheduled when its setting changes, not checked on every page.
+        add_action( 'add_option_crg_plugin_recheck', [ __CLASS__, 'schedule' ] );
+        add_action( 'update_option_crg_plugin_recheck', [ __CLASS__, 'schedule' ] );
         add_action( 'admin_post_crg_save_plugin_list', [ __CLASS__, 'handle_save' ] );
         add_action( 'admin_post_crg_refresh_plugin_list', [ __CLASS__, 'handle_refresh' ] );
         add_action( 'admin_post_crg_export_plugin_list', [ __CLASS__, 'handle_export' ] );
     }
 
+    /** The daily re-check runs only when an administrator turned it on (Settings › Review › Outside services). */
     public static function schedule() {
-        if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-            wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_HOOK );
+        $next = wp_next_scheduled( self::CRON_HOOK );
+        if ( get_option( 'crg_plugin_recheck', 0 ) ) {
+            if ( ! $next ) {
+                wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_HOOK );
+            }
+        } elseif ( $next ) {
+            self::unschedule();
         }
     }
 
@@ -135,6 +144,9 @@ class Cleanup_Report_Plugin_Registry {
         $list = self::all();
         foreach ( $rows as $r ) {
             $key = self::key( $r['type'], $r['slug'] );
+            if ( ! isset( $list[ $key ] ) && count( $list ) >= self::MAX_LIST ) {
+                continue;
+            }
             $e   = $list[ $key ] ?? self::blank( $r['type'], $r['slug'], $r['name'] );
             if ( '' === $e['decision'] && empty( $r['errors'] ) ) {
                 $e['source']       = 'wporg' === $r['source'] ? 'wporg' : 'unknown';
@@ -161,10 +173,18 @@ class Cleanup_Report_Plugin_Registry {
      * Daily (WP-Cron) or on demand: re-check WordPress.org items not checked for REFRESH_DAYS, and undecided ones
      * (a plugin can be added to WordPress.org later). Returns how many were checked.
      */
-    public static function refresh( $force = false ) {
+    /**
+     * @param bool $force   Re-check every undecided item now ("Re-check WordPress.org now").
+     * @param bool $by_user Run because someone just did something (not WP-Cron), even when the daily re-check is off.
+     * @param string[] $only Only these items (list keys), e.g. the one just added.
+     */
+    public static function refresh( $force = false, $by_user = false, array $only = [] ) {
+        if ( ! $force && ! $by_user && ! get_option( 'crg_plugin_recheck', 0 ) ) {
+            return; // the daily run was turned off since it was scheduled
+        }
         $list  = self::all();
-        $stale = array_filter( $list, static function ( $e ) use ( $force ) {
-            return '' === $e['decision'] && ( $force || $e['checked'] < time() - self::REFRESH_DAYS * DAY_IN_SECONDS );
+        $stale = array_filter( $only ? array_intersect_key( $list, array_flip( $only ) ) : $list, static function ( $e ) use ( $force, $only ) {
+            return '' === $e['decision'] && ( $force || $only || $e['checked'] < time() - self::REFRESH_DAYS * DAY_IN_SECONDS );
         } );
         uasort( $stale, static function ( $a, $b ) { return $a['checked'] <=> $b['checked']; } );
         $stale = array_slice( $stale, 0, self::REFRESH_BATCH, true );
@@ -204,7 +224,7 @@ class Cleanup_Report_Plugin_Registry {
     /** Capability check (admins and Buddyleads); each handler verifies its own nonce first (check_admin_referer). */
     private static function guard() {
         if ( ! Cleanup_Report_Access::can_manage_plugin_list() ) {
-            wp_die( 'You are not allowed to change these settings.', 'Forbidden', [ 'response' => 403, 'back_link' => true ] );
+            wp_die( esc_html__( 'You are not allowed to change these settings.', 'cleanup-report-generator' ), esc_html__( 'Forbidden', 'cleanup-report-generator' ), [ 'response' => 403, 'back_link' => true ] );
         }
     }
 
@@ -250,7 +270,7 @@ class Cleanup_Report_Plugin_Registry {
         }
         self::save( $list );
         if ( '' !== $slug ) {
-            self::refresh(); // a new undecided item gets looked up straight away
+            self::refresh( false, true, [ $key ] ); // the item just added is looked up straight away (only that one)
         }
         self::back( [ 'saved' => 1 ] );
     }

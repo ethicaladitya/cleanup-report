@@ -1,4 +1,4 @@
-# 🚀 Deployment Checklist - Cleanup Report Generator v2.0.0
+# 🚀 Deployment Checklist - Handover – Service Reports for Agencies (formerly Cleanup Report Generator)
 
 ## ✅ Pre-Deployment Verification
 
@@ -51,10 +51,10 @@ Upload the zip in Plugins › Add New › Upload Plugin. No Composer is needed o
 
 ### Step 3: Activate Plugin
 - Go to WordPress Admin → Plugins
-- Activate "Cleanup Report Generator"
+- Activate "Handover – Service Reports for Agencies" (called "Cleanup Report Generator" before 2.2.0; the plugin folder is still `cleanup-report-generator`)
 
 ### Step 4: Test PDF Generation
-- Create a test cleanup report
+- Create a test report of each type (Reports › Add cleanup report / Add optimization report)
 - Click "Export PDF"
 - Verify professional PDF output
 

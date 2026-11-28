@@ -9,6 +9,7 @@ class Cleanup_Report_Admin {
     /**
      * Review workflow. Anyone who can edit a report can draft it and submit it for review; only Buddyleads
      * (Reports › Settings › Review) can approve it or send it back; once approved, anyone can mark it completed.
+     * The labels are shown translated through statuses().
      */
     const STATUSES = [
         'draft'          => 'Draft',
@@ -31,7 +32,7 @@ class Cleanup_Report_Admin {
         'complete'       => 'publish',
     ];
 
-    /** "Report approved." etc. after a save that changed the review status (post_updated_messages indexes). */
+    /** "Report approved." etc. after a save that changed the review status (post_updated_messages indexes; shown translated through status_messages()). */
     const STATUS_MESSAGES = [
         'draft'          => [ 51, 'Report moved back to draft.' ],
         'submitted'      => [ 52, 'Report submitted for review.' ],
@@ -41,23 +42,13 @@ class Cleanup_Report_Admin {
     ];
 
     /** Bump to run upgrade() once more on every site (stored in the autoloaded option crg_db_version). */
-    const DB_VERSION = 3;
+    const DB_VERSION = 6;
 
     /** The review status this request changed the report to, for the "saved" message. */
     private static $changed_to = '';
 
-    /** History: the fields in each section, so an edit is noted as "Edited Findings, Defender". */
-    const HISTORY_FIELDS = [
-        'Member & website'         => [ 'crg_client_name', 'crg_site_url', 'crg_report_date', 'crg_request_link', 'crg_task_url' ],
-        'Findings'                 => [ 'crg_screenshots', 'crg_key_finding', 'crg_infection_summary', 'crg_summary_critical', 'crg_summary_medium', 'crg_summary_low', 'crg_components', 'crg_improvements', 'crg_plugin_list' ],
-        'Work done & verification' => [ 'crg_highlights', 'crg_verification_summary', 'crg_additional_sites', 'crg_delist', 'crg_delist_vendors', 'crg_hosting_type', 'crg_hosting_type_note', 'crg_backups', 'crg_backups_note', 'crg_ssh_accounts', 'crg_ssh_accounts_note', 'crg_hub_member', 'crg_hub_member_note' ],
-        'Defender'                 => [ 'crg_defender' ],
-        'Member next steps'        => [ 'crg_pending_actions', 'crg_followups', 'crg_reinstall_list', 'crg_replace_list' ],
-        'Member guidance'          => [ 'crg_documentation_links', 'crg_seo_note', 'crg_protect_note' ],
-        'Notes'                    => [ 'crg_author_notes', 'crg_review_notes' ],
-    ];
 
-    /** What each review step is called in the history. */
+    /** What each review step is called in the history (stored in English; translated on display by history_label()). */
     const HISTORY_STEPS = [
         'draft'          => 'Moved back to draft',
         'submitted'      => 'Submitted for review',
@@ -66,30 +57,79 @@ class Cleanup_Report_Admin {
         'complete'       => 'Marked completed',
     ];
 
+    /** STATUSES, translated: review status => label. */
+    public static function statuses() {
+        return [
+            'draft'          => __( 'Draft', 'cleanup-report-generator' ),
+            'submitted'      => __( 'Submitted for review', 'cleanup-report-generator' ),
+            'needs_revision' => __( 'Needs revision', 'cleanup-report-generator' ),
+            'approved'       => __( 'Approved', 'cleanup-report-generator' ),
+            'complete'       => __( 'Completed', 'cleanup-report-generator' ),
+        ];
+    }
+
+    /** STATUS_MESSAGES, translated: review status => [ post_updated_messages index, message ]. */
+    public static function status_messages() {
+        return [
+            'draft'          => [ self::STATUS_MESSAGES['draft'][0], __( 'Report moved back to draft.', 'cleanup-report-generator' ) ],
+            'submitted'      => [ self::STATUS_MESSAGES['submitted'][0], __( 'Report submitted for review.', 'cleanup-report-generator' ) ],
+            'needs_revision' => [ self::STATUS_MESSAGES['needs_revision'][0], __( 'Report sent back for revision. The author will see your notes.', 'cleanup-report-generator' ) ],
+            'approved'       => [ self::STATUS_MESSAGES['approved'][0], __( 'Report approved. It can now be sent to the member.', 'cleanup-report-generator' ) ],
+            'complete'       => [ self::STATUS_MESSAGES['complete'][0], __( 'Report marked completed.', 'cleanup-report-generator' ) ],
+        ];
+    }
+
+    /**
+     * A history entry's action or section as stored (in English, e.g. "Submitted for review", "Title"), translated for
+     * display. Section titles of the report types are shown as they were stored.
+     */
+    public static function history_label( $text ) {
+        $labels = [
+            'Created the report'     => __( 'Created the report', 'cleanup-report-generator' ),
+            'Edited'                 => __( 'Edited', 'cleanup-report-generator' ),
+            'Moved to Trash'         => __( 'Moved to Trash', 'cleanup-report-generator' ),
+            'Restored from Trash'    => __( 'Restored from Trash', 'cleanup-report-generator' ),
+            'Downloaded the PDF'     => __( 'Downloaded the PDF', 'cleanup-report-generator' ),
+            'Moved back to draft'    => __( 'Moved back to draft', 'cleanup-report-generator' ),
+            'Submitted for review'   => __( 'Submitted for review', 'cleanup-report-generator' ),
+            'Resubmitted for review' => __( 'Resubmitted for review', 'cleanup-report-generator' ),
+            'Sent back for revision' => __( 'Sent back for revision', 'cleanup-report-generator' ),
+            'Approved'               => __( 'Approved', 'cleanup-report-generator' ),
+            'Marked completed'       => __( 'Marked completed', 'cleanup-report-generator' ),
+            'Title'                  => __( 'Title', 'cleanup-report-generator' ),
+            'Notes'                  => __( 'Notes', 'cleanup-report-generator' ),
+        ];
+        return $labels[ (string) $text ] ?? (string) $text;
+    }
+
     /** Set when this request renamed the report (post_updated runs before save_post). */
     private static $title_changed = false;
 
     /** Set when this request created the report: its first save fills in defaults, which aren't edits. */
     private static $created = false;
 
-    /** Rich-text editor settings shared by every editor on the form (the PDF only uses these tags). */
-    const EDITOR = [
-        'media_buttons' => false,
-        'teeny'         => false,
-        'tinymce'       => [ 'toolbar1' => 'bold,italic,bullist,numlist,link,unlink,undo,redo', 'toolbar2' => '' ],
-        'quicktags'     => [ 'buttons' => 'strong,em,ul,ol,li,link,code,close' ],
-    ];
+    /** The report type's edit-screen sections: box ID (crg_box_<section>) => title. */
+    public static function sections( $post_id ) {
+        $out = [];
+        foreach ( Cleanup_Report_Types::get( Cleanup_Report_Types::of( $post_id ) )['sections'] as $key => $section ) {
+            $out[ 'crg_box_' . $key ] = $section['title'];
+        }
+        return $out;
+    }
 
-    const HELP_TAGS = [ 'code' => [], 'strong' => [], 'em' => [], 'button' => [ 'type' => [], 'class' => [], 'hidden' => [] ] ];
-
-    const SECTIONS = [
-        'crg_box_site'     => 'Member & website',
-        'crg_box_findings' => 'Findings',
-        'crg_box_work'     => 'Work done & verification',
-        'crg_box_defender' => 'Defender',
-        'crg_box_next'     => 'Member next steps',
-        'crg_box_guidance' => 'Member guidance',
-    ];
+    /** History groups of the report's type: section title => the meta its fields write (and the review notes). */
+    private static function history_fields( $post_id ) {
+        $out = [];
+        foreach ( Cleanup_Report_Types::get( Cleanup_Report_Types::of( $post_id ) )['sections'] as $section ) {
+            $keys = [];
+            foreach ( $section['fields'] as $f ) {
+                $keys = array_merge( $keys, Cleanup_Report_Fields::meta_keys( $f ) );
+            }
+            $out[ $section['title'] ] = $keys;
+        }
+        $out['Notes'] = [ 'crg_author_notes', 'crg_review_notes' ]; // stored in English in the history; translated on display
+        return $out;
+    }
 
     public static function init() {
         add_action( 'add_meta_boxes_cleanup_report', [ __CLASS__, 'register_meta_boxes' ] );
@@ -105,8 +145,10 @@ class Cleanup_Report_Admin {
         add_filter( 'display_post_states', [ __CLASS__, 'post_states' ], 10, 2 );
         if ( (int) get_option( 'crg_db_version', 0 ) < self::DB_VERSION ) { // autoloaded: no query once up to date
             add_action( 'admin_init', [ __CLASS__, 'upgrade' ] );
+            add_action( self::UPGRADE_HOOK, [ __CLASS__, 'upgrade_batch' ] ); // a large site continues in the background
         }
         add_action( 'added_option', [ __CLASS__, 'checklists_not_autoloaded' ] );
+        add_action( 'current_screen', [ __CLASS__, 'prime_options' ] );
         // History.
         add_action( 'transition_post_status', [ __CLASS__, 'history_created' ], 10, 3 );
         add_action( 'post_updated', [ __CLASS__, 'history_title' ], 10, 3 );
@@ -123,34 +165,89 @@ class Cleanup_Report_Admin {
      *  - A saved footer starting "© 2026" gets "© {year}", so it stays current (DB_VERSION 2).
      *  - Checklist items still named as before 2.1.0 take the report template's names, in the saved lists and in
      *    reports not yet approved (DB_VERSION 3; see Cleanup_Report_Checklists::rename_old_labels()).
+     *  - Every report without a type is marked a Malware cleanup report, which it already reads as (DB_VERSION 4), so
+     *    the Reports list's type filter is a plain meta query.
+     *  - An install that already had the plugin keeps the WPMU DEV defaults and the daily plugin-list re-check it has
+     *    always had; a new install starts with the Generic defaults, the re-check off and no automatic deletion
+     *    (retention 0) (DB_VERSION 4). Settings only wp-admin needs stop being autoloaded (DB_VERSION 5).
+     *  - The upgrade runs in batches of reports, and the type backfill is one query (DB_VERSION 6).
      * Every step is safe to repeat, so a version bump simply runs them all again once.
      */
+    /** Reports handled per upgrade step; the rest follow on the next admin page or WP-Cron run. */
+    const UPGRADE_BATCH  = 100;
+    const UPGRADE_CURSOR = 'crg_upgrade_cursor'; // last report ID done while an upgrade is under way
+    const UPGRADE_HOOK   = 'crg_upgrade_continue';
+
+    /** Runs (or continues) the upgrade on an admin page of someone who can write reports. */
     public static function upgrade() {
-        if ( ! current_user_can( 'edit_posts' ) || get_transient( 'crg_upgrading' ) ) {
+        if ( current_user_can( 'edit_posts' ) ) {
+            self::upgrade_batch();
+        }
+    }
+
+    /**
+     * One step of the upgrade: the site-wide fixes the first time, then the next UPGRADE_BATCH reports by ID. When a
+     * step ends with more to do, the cursor is saved and a WP-Cron event carries on; crg_db_version is set only when
+     * every report is done, so an interrupted upgrade simply continues.
+     */
+    public static function upgrade_batch() {
+        if ( (int) get_option( 'crg_db_version', 0 ) >= self::DB_VERSION || get_transient( 'crg_upgrading' ) ) {
             return;
         }
-        set_transient( 'crg_upgrading', 1, 5 * MINUTE_IN_SECONDS ); // one admin request at a time
+        set_transient( 'crg_upgrading', 1, 5 * MINUTE_IN_SECONDS ); // one request at a time
         global $wpdb;
-        // Whole posts (not just IDs) so their meta is loaded in one query, not one per report.
-        $reports = get_posts( [ 'post_type' => 'cleanup_report', 'post_status' => [ 'draft', 'pending', 'publish', 'private', 'future', 'trash' ], 'numberposts' => -1, 'no_found_rows' => true ] );
-        foreach ( $reports as $post ) {
-            $want = self::POST_STATUS[ self::status( $post->ID ) ];
-            if ( 'trash' !== $post->post_status && $post->post_status !== $want ) {
-                $wpdb->update( $wpdb->posts, [ 'post_status' => $want ], [ 'ID' => $post->ID ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time fix; wp_update_post() would change the modified date; the cache is cleared next
-                clean_post_cache( $post->ID );
+        $cursor = get_option( self::UPGRADE_CURSOR, false );
+        if ( false === $cursor ) {
+            self::upgrade_site();
+            $cursor = 0;
+        }
+        $ids = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'cleanup_report' AND post_status NOT IN ( 'auto-draft', 'inherit' ) AND ID > %d ORDER BY ID ASC LIMIT %d", (int) $cursor, self::UPGRADE_BATCH ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- upgrade cursor over report IDs
+        if ( $ids ) {
+            _prime_post_caches( $ids, false, true ); // posts and their meta in two queries, not one per report
+            foreach ( $ids as $id ) {
+                self::upgrade_report( get_post( $id ) );
             }
-            if ( ! self::is_final( $post->ID ) ) {
-                Cleanup_Report_Checklists::rename_report_labels( $post->ID );
-            }
-            $text = (string) get_post_meta( $post->ID, 'crg_verification_summary', true );
-            $new  = preg_replace( '#Front-end scan with \S+ SiteCheck and VirusTotal#i', 'Front-end scan with external malware scanners such as VirusTotal', $text );
-            if ( $new !== $text ) {
-                update_post_meta( $post->ID, 'crg_verification_summary', wp_slash( $new ) );
+            $cursor = end( $ids );
+        }
+        if ( count( $ids ) < self::UPGRADE_BATCH ) {
+            update_option( 'crg_db_version', self::DB_VERSION, true );
+            delete_option( self::UPGRADE_CURSOR );
+            wp_clear_scheduled_hook( self::UPGRADE_HOOK );
+        } else {
+            update_option( self::UPGRADE_CURSOR, (int) $cursor, false );
+            if ( ! wp_next_scheduled( self::UPGRADE_HOOK ) ) {
+                wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::UPGRADE_HOOK );
             }
         }
+        delete_transient( 'crg_upgrading' );
+    }
+
+    /** The upgrade's site-wide steps (each safe to repeat). */
+    private static function upgrade_site() {
+        global $wpdb;
+        $had_plugin = (int) get_option( 'crg_db_version', 0 ) > 0 || false !== get_option( 'crg_brand_name' )
+            || (bool) $wpdb->get_var( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'cleanup_report' AND post_status <> 'auto-draft' LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time check
+        Cleanup_Report_Presets::choose_on_upgrade( $had_plugin );
+        if ( false === get_option( 'crg_plugin_recheck' ) ) {
+            add_option( 'crg_plugin_recheck', $had_plugin ? 1 : 0, '', false );
+        }
+        if ( ! $had_plugin && false === get_option( Cleanup_Report_Retention::OPTION ) ) {
+            add_option( Cleanup_Report_Retention::OPTION, 0, '', false ); // a new install keeps reports until someone sets a retention period
+        }
+        // Every report without a type is a Malware cleanup report: one query instead of one write per report.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time backfill; the meta caches of the reports are cleared below
+        $untyped = $wpdb->get_col( $wpdb->prepare( "SELECT p.ID FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s WHERE p.post_type = 'cleanup_report' AND p.post_status <> 'auto-draft' AND m.meta_id IS NULL", Cleanup_Report_Types::META ) );
+        if ( $untyped ) {
+            $wpdb->query( $wpdb->prepare( "INSERT INTO {$wpdb->postmeta} ( post_id, meta_key, meta_value ) SELECT p.ID, %s, %s FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s WHERE p.post_type = 'cleanup_report' AND p.post_status <> 'auto-draft' AND m.meta_id IS NULL", Cleanup_Report_Types::META, Cleanup_Report_Types::DEFAULT_TYPE, Cleanup_Report_Types::META ) );
+            foreach ( $untyped as $id ) {
+                wp_cache_delete( (int) $id, 'post_meta' );
+            }
+        }
+        // phpcs:enable
         Cleanup_Report_Checklists::rename_saved_labels();
         if ( function_exists( 'wp_set_options_autoload' ) ) {
-            wp_set_options_autoload( [ Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION, Cleanup_Report_Checklists::BLOCKLIST_OPTION ], false );
+            wp_set_options_autoload( self::ADMIN_OPTIONS, false );
+            wp_set_option_autoload( Cleanup_Report_Presets::OPTION, true ); // read on every admin page (the menu labels)
         }
         $footer = get_option( 'crg_footer_text' ); // a saved "© 2026 …" froze the year: make it follow the date
         if ( is_string( $footer ) ) {
@@ -161,13 +258,56 @@ class Cleanup_Report_Admin {
         }
         delete_option( 'crg_post_status_synced' ); // flags from earlier 2.1.0 builds
         delete_option( 'crg_scanner_line_replaced' );
-        update_option( 'crg_db_version', self::DB_VERSION, true );
-        delete_transient( 'crg_upgrading' );
     }
 
-    /** The checklists are only needed in wp-admin: when first saved, keep them out of every page's autoload. */
+    /** The upgrade's steps for one report (each safe to repeat). */
+    private static function upgrade_report( $post ) {
+        global $wpdb;
+        if ( ! $post ) {
+            return;
+        }
+        $want = self::POST_STATUS[ self::status( $post->ID ) ];
+        if ( 'trash' !== $post->post_status && $post->post_status !== $want ) {
+            $wpdb->update( $wpdb->posts, [ 'post_status' => $want ], [ 'ID' => $post->ID ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time fix; wp_update_post() would change the modified date; the cache is cleared next
+            clean_post_cache( $post->ID );
+        }
+        if ( ! self::is_final( $post->ID ) ) {
+            Cleanup_Report_Checklists::rename_report_labels( $post->ID );
+        }
+        $text = (string) get_post_meta( $post->ID, 'crg_verification_summary', true );
+        $new  = preg_replace( '#Front-end scan with \S+ SiteCheck and VirusTotal#i', 'Front-end scan with external malware scanners such as VirusTotal', $text );
+        if ( $new !== $text ) {
+            update_post_meta( $post->ID, 'crg_verification_summary', wp_slash( $new ) );
+        }
+    }
+
+    /**
+     * Settings only wp-admin, WP-Cron and the PDF need: kept out of the autoload that every front-end page reads.
+     * (crg_db_version stays autoloaded: every admin page checks it.)
+     */
+    const ADMIN_OPTIONS = [
+        Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION, Cleanup_Report_Checklists::BLOCKLIST_OPTION, Cleanup_Report_Optimization::CHECKS_OPTION,
+        'crg_brand_name', 'crg_brand_logo', 'crg_brand_logo_light', 'crg_brand_primary', 'crg_report_theme', 'crg_cover_glow', 'crg_footer_text',
+        'crg_color_success', 'crg_color_warning', 'crg_color_high', 'crg_color_danger', 'crg_color_neutral', 'crg_watermark_text', 'crg_pdf_requires_approval',
+        'crg_buddyleads', 'crg_retention_days', 'crg_plugin_recheck', 'crg_delete_data', 'crg_opt_target_mobile', 'crg_opt_target_desktop',
+    ];
+
+    /** On the plugin's own screens, load its (non-autoloaded) settings in one query instead of one each. */
+    public static function prime_options( $screen ) {
+        if ( $screen && 'cleanup_report' === $screen->post_type ) {
+            self::prime_option_cache();
+        }
+    }
+
+    public static function prime_option_cache() {
+        if ( function_exists( 'wp_prime_option_caches' ) ) {
+            wp_prime_option_caches( self::ADMIN_OPTIONS );
+        }
+    }
+
+    /** When one of ADMIN_OPTIONS is first saved, keep it out of every page's autoload. */
     public static function checklists_not_autoloaded( $option ) {
-        if ( in_array( $option, [ Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION, Cleanup_Report_Checklists::BLOCKLIST_OPTION ], true ) && function_exists( 'wp_set_option_autoload' ) ) {
+        if ( in_array( $option, self::ADMIN_OPTIONS, true ) && function_exists( 'wp_set_option_autoload' ) ) {
             wp_set_option_autoload( $option, false );
         }
     }
@@ -197,7 +337,7 @@ class Cleanup_Report_Admin {
     /** Current values of every field, by section, to see what a save changed. */
     private static function history_snapshot( $post_id ) {
         $snap = [];
-        foreach ( self::HISTORY_FIELDS as $section => $keys ) {
+        foreach ( self::history_fields( $post_id ) as $section => $keys ) {
             foreach ( $keys as $key ) {
                 $snap[ $section ][ $key ] = get_post_meta( $post_id, $key, true );
             }
@@ -230,12 +370,12 @@ class Cleanup_Report_Admin {
         $history = get_post_meta( $post->ID, 'crg_history', true );
         $history = is_array( $history ) ? array_reverse( $history ) : [];
         if ( ! $history ) {
-            echo '<p class="crg-muted">Edits, review steps and PDF downloads will be noted here.</p>';
+            echo '<p class="crg-muted">' . esc_html__( 'Edits, review steps and PDF downloads will be noted here.', 'cleanup-report-generator' ) . '</p>';
             return;
         }
         $row = static function ( $e ) {
             $user = get_userdata( (int) $e['u'] );
-            $what = $e['a'] . ( ! empty( $e['s'] ) ? ' ' . implode( ', ', (array) $e['s'] ) : '' );
+            $what = self::history_label( $e['a'] ) . ( ! empty( $e['s'] ) ? ' ' . implode( ', ', array_map( [ __CLASS__, 'history_label' ], (array) $e['s'] ) ) : '' );
             echo '<li><strong>' . esc_html( $what ) . '</strong><span class="crg-muted">' . esc_html( ( $user ? $user->display_name : 'WordPress' ) . ' · ' . wp_date( 'j M Y, H:i', (int) $e['t'] ) ) . '</span>';
             if ( '' !== (string) $e['n'] ) {
                 echo '<span class="crg-history-note">' . nl2br( esc_html( $e['n'] ) ) . '</span>';
@@ -246,7 +386,9 @@ class Cleanup_Report_Admin {
         array_map( $row, array_slice( $history, 0, 8 ) );
         echo '</ul>';
         if ( count( $history ) > 8 ) {
-            echo '<details class="crg-history-more"><summary>Show ' . (int) ( count( $history ) - 8 ) . ' earlier</summary><ul class="crg-history">';
+            $more = count( $history ) - 8;
+            /* translators: %d: number of older history entries */
+            echo '<details class="crg-history-more"><summary>' . esc_html( sprintf( _n( 'Show %d earlier', 'Show %d earlier', $more, 'cleanup-report-generator' ), $more ) ) . '</summary><ul class="crg-history">';
             array_map( $row, array_slice( $history, 8 ) );
             echo '</ul></details>';
         }
@@ -262,21 +404,43 @@ class Cleanup_Report_Admin {
 
     /* ================================================================== edit screen */
 
-    public static function register_meta_boxes() {
-        foreach ( self::SECTIONS as $id => $title ) {
-            add_meta_box( $id, $title, [ __CLASS__, 'box_' . substr( $id, 8 ) ], 'cleanup_report', 'normal', 'high' );
+    public static function register_meta_boxes( $post ) {
+        foreach ( Cleanup_Report_Types::get( Cleanup_Report_Types::of( $post->ID ) )['sections'] as $key => $section ) {
+            add_meta_box( 'crg_box_' . $key, $section['title'], [ __CLASS__, 'box_section' ], 'cleanup_report', 'normal', 'high', [ 'section' => $key ] );
         }
         // The Review box saves the report, so WordPress's Publish box (its own status, visibility and publish date,
         // which mean nothing for reports) is removed. The Review box comes first, where Publish used to be.
         remove_meta_box( 'submitdiv', 'cleanup_report', 'side' );
-        add_meta_box( 'crg_review', 'Save & review', [ __CLASS__, 'box_review' ], 'cleanup_report', 'side', 'high' );
+        remove_meta_box( 'pageparentdiv', 'cleanup_report', 'side' ); // a theme's page templates mean nothing for reports
+        add_meta_box( 'crg_review', __( 'Save & review', 'cleanup-report-generator' ), [ __CLASS__, 'box_review' ], 'cleanup_report', 'side', 'high' );
         // 'core', not 'high': a saved box order moves the Review box to WordPress's 'sorted' slot, which comes after 'high'.
-        add_meta_box( 'crg_box_export', 'Report', [ __CLASS__, 'box_export' ], 'cleanup_report', 'side', 'core' );
-        add_meta_box( 'crg_history', 'History', [ __CLASS__, 'box_history' ], 'cleanup_report', 'side', 'low' );
+        add_meta_box( 'crg_box_export', __( 'Report', 'cleanup-report-generator' ), [ __CLASS__, 'box_export' ], 'cleanup_report', 'side', 'core' );
+        add_meta_box( 'crg_history', __( 'History', 'cleanup-report-generator' ), [ __CLASS__, 'box_history' ], 'cleanup_report', 'side', 'low' );
+    }
+
+    /**
+     * One section of the report type as an edit-screen box. The first box also carries the form's nonce and the
+     * report's type.
+     */
+    public static function box_section( $post, $box ) {
+        $type     = Cleanup_Report_Types::of( $post->ID );
+        $sections = Cleanup_Report_Types::get( $type )['sections'];
+        if ( array_key_first( $sections ) === $box['args']['section'] ) {
+            wp_nonce_field( 'crg_save_' . $post->ID, 'crg_nonce' );
+            echo '<input type="hidden" name="crg_report_type" value="' . esc_attr( $type ) . '">';
+        }
+        $section = $sections[ $box['args']['section'] ] ?? null;
+        if ( $section ) {
+            Cleanup_Report_Fields::render_section( $post, $section );
+        }
     }
 
     public static function title_placeholder( $text, $post ) {
-        return 'cleanup_report' === $post->post_type ? 'Report title, e.g. Acme Bakery – malware cleanup' : $text;
+        if ( 'cleanup_report' !== $post->post_type ) {
+            return $text;
+        }
+        /* translators: %s: the report type's title suffix, e.g. Malware cleanup report */
+        return sprintf( __( 'Report title, e.g. Acme Bakery – %s', 'cleanup-report-generator' ), Cleanup_Report_Types::get( Cleanup_Report_Types::of( $post->ID ) )['suffix'] );
     }
 
     /** "Jump to" links under the title, one per section. */
@@ -284,455 +448,21 @@ class Cleanup_Report_Admin {
         if ( 'cleanup_report' !== $post->post_type ) {
             return;
         }
-        echo '<nav class="crg-nav" aria-label="Report sections">';
+        $type = Cleanup_Report_Types::of( $post->ID );
+        echo '<nav class="crg-nav" aria-label="' . esc_attr__( 'Report sections', 'cleanup-report-generator' ) . '" data-title-suffix="' . esc_attr( Cleanup_Report_Types::get( $type )['suffix'] ) . '">';
+        Cleanup_Report_Types::badge( $type );
         $n = 0;
-        foreach ( self::SECTIONS as $id => $title ) {
+        foreach ( self::sections( $post->ID ) as $id => $title ) {
             printf( '<a href="#%s"><span>%d</span>%s</a>', esc_attr( $id ), (int) ++$n, esc_html( $title ) );
         }
         echo '</nav>';
-    }
-
-    private static function meta( $post, $key, $default = '' ) {
-        $value = get_post_meta( $post->ID, $key, true );
-        return '' === $value || null === $value ? $default : $value;
-    }
-
-    /** Label + input + help, the building block of the form. */
-    private static function input( $post, $key, $label, array $args = [] ) {
-        $args += [ 'type' => 'text', 'help' => '', 'placeholder' => '', 'default' => '', 'class' => '', 'attrs' => '' ];
-        $value = self::meta( $post, $key, $args['default'] );
-        ?>
-        <div class="crg-field <?php echo esc_attr( $args['class'] ); ?>">
-            <label for="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label>
-            <?php if ( 'textarea' === $args['type'] ) : ?>
-                <textarea id="<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $key ); ?>" rows="<?php echo (int) ( $args['rows'] ?? 4 ); ?>" placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"><?php echo esc_textarea( $value ); ?></textarea>
-            <?php else : ?>
-                <input type="<?php echo esc_attr( $args['type'] ); ?>" id="<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>" placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>" <?php echo $args['attrs']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed attribute strings from this class ?>>
-            <?php endif; ?>
-            <?php if ( $args['help'] ) : ?><p class="description"><?php echo wp_kses( $args['help'], self::HELP_TAGS ); ?></p><?php endif; ?>
-        </div>
-        <?php
-    }
-
-    private static function editor( $post, $key, $label, $help = '', $rows = 6, $default = '' ) {
-        ?>
-        <div class="crg-field crg-field-editor">
-            <label for="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label>
-            <?php if ( $help ) : ?><p class="description"><?php echo wp_kses( $help, self::HELP_TAGS ); ?></p><?php endif; ?>
-            <?php wp_editor( (string) self::meta( $post, $key, $default ), $key, [ 'textarea_name' => $key, 'textarea_rows' => $rows ] + self::EDITOR ); ?>
-        </div>
-        <?php
-    }
-
-    /* ---------- 1. Member & website */
-
-    public static function box_site( $post ) {
-        wp_nonce_field( 'crg_save_' . $post->ID, 'crg_nonce' );
-        ?>
-        <div class="crg-cols crg-cols-2">
-            <?php
-            self::input( $post, 'crg_client_name', 'Prepared for', [ 'placeholder' => 'Member or business name', 'help' => 'Optional. The cover shows the website as its headline, with "Prepared for …" under it.' ] );
-            self::input( $post, 'crg_site_url', 'Website URL', [ 'type' => 'url', 'placeholder' => 'https://example.com', 'help' => 'Paste any page or wp-admin link; it\'s trimmed to the site address.', 'attrs' => 'data-crg-url="site" autocomplete="off"' ] );
-            self::input( $post, 'crg_report_date', 'Report date', [ 'type' => 'date', 'default' => wp_date( 'Y-m-d' ) ] );
-            self::input( $post, 'crg_request_link', 'Support request link', [ 'type' => 'url', 'placeholder' => 'https://wpmudev.com/…', 'help' => 'The member\'s ticket or forum thread. The report ends with "Reply on your support request" linking here.', 'attrs' => 'data-crg-url="link" autocomplete="off"' ] );
-            self::input( $post, 'crg_task_url', 'Task URL', [ 'type' => 'url', 'placeholder' => 'https://…', 'help' => 'Internal: our task for this cleanup. Not shown in the report.', 'attrs' => 'data-crg-url="link" autocomplete="off"', 'class' => 'crg-col-right' ] );
-            ?>
-        </div>
-        <?php
-    }
-
-    /* ---------- 2. Findings */
-
-    public static function box_findings( $post ) {
-        $screenshots = get_post_meta( $post->ID, 'crg_screenshots', true );
-        if ( ! is_array( $screenshots ) ) {
-            $screenshots = [];
-            foreach ( [ 'before' => 'crg_ss_before', 'after' => 'crg_ss_after' ] as $type => $key ) { // reports from 1.x
-                if ( self::meta( $post, $key ) ) {
-                    $screenshots[] = [ 'url' => self::meta( $post, $key ), 'title' => 'Security scan – ' . $type . ' cleanup', 'type' => $type ];
-                }
-            }
-        }
-        if ( ! $screenshots && 'auto-draft' === $post->post_status ) {
-            $screenshots = [
-                [ 'url' => '', 'title' => 'Security scan – before cleanup', 'type' => 'before' ],
-                [ 'url' => '', 'title' => 'Security scan – after cleanup', 'type' => 'after' ],
-            ];
-        }
-        ?>
-        <div class="crg-field">
-            <span class="crg-field-label">Screenshots</span>
-            <p class="description">Scan results before and after the cleanup, plus any evidence. Shown in the report in this order; drag to reorder.</p>
-            <div class="crg-shots" data-next="<?php echo count( $screenshots ); ?>">
-                <?php foreach ( array_values( $screenshots ) as $i => $shot ) { self::screenshot_row( $i, $shot ); } ?>
-            </div>
-            <template class="crg-shot-template"><?php self::screenshot_row( '__i__', [ 'type' => 'evidence' ] ); ?></template>
-            <button type="button" class="button crg-shot-add"><span class="dashicons dashicons-format-image"></span> Add screenshot</button>
-        </div>
-
-        <?php
-        // Reports saved before this field existed showed the summary's first sentence: start from it so saving keeps it.
-        $auto = Cleanup_Report_Render::auto_key_finding( (string) self::meta( $post, 'crg_infection_summary' ) );
-        $kf   = metadata_exists( 'post', $post->ID, 'crg_key_finding' ) ? (string) get_post_meta( $post->ID, 'crg_key_finding', true ) : $auto;
-        ?>
-        <div class="crg-field">
-            <label for="crg_key_finding">Key finding</label>
-            <input type="text" id="crg_key_finding" name="crg_key_finding" value="<?php echo esc_attr( $kf ); ?>" maxlength="300" placeholder="<?php echo esc_attr( $auto ?: 'e.g. A self-healing backdoor was hidden in the theme and re-created deleted files on every page load.' ); ?>">
-            <p class="description">One line, shown as <strong>Key finding</strong> on the summary page. Leave empty to leave it out.</p>
-        </div>
-
-        <?php self::editor( $post, 'crg_infection_summary', 'Infection summary', 'What was found and how the site was compromised.', 8 ); ?>
-
-        <div class="crg-field">
-            <span class="crg-field-label">Issues found</span>
-            <p class="description">The numbers on the summary page.</p>
-            <div class="crg-cols crg-cols-3 crg-counts">
-                <?php
-                self::input( $post, 'crg_summary_critical', 'Critical', [ 'type' => 'number', 'default' => 0, 'help' => 'Malware and backdoors removed', 'attrs' => 'min="0" step="1"' ] );
-                self::input( $post, 'crg_summary_medium', 'Medium', [ 'type' => 'number', 'default' => 0, 'help' => 'Vulnerable components <button type="button" class="button-link crg-count-components" hidden>use the table below</button>', 'attrs' => 'min="0" step="1"' ] );
-                self::input( $post, 'crg_summary_low', 'Low', [ 'type' => 'number', 'default' => 0, 'help' => 'Hardening issues', 'attrs' => 'min="0" step="1"' ] );
-                ?>
-            </div>
-        </div>
-
-        <?php self::plugin_check_panel( $post ); ?>
-
-        <div class="crg-field crg-components">
-            <span class="crg-field-label">Vulnerable &amp; outdated components</span>
-            <p class="description">Plugins and themes with known vulnerabilities or no longer maintained.</p>
-            <table class="crg-table hide-if-no-js">
-                <thead><tr><th class="crg-col-drag"></th><th class="crg-col-name">Plugin / theme</th><th class="crg-col-version">Version</th><th>Issue</th><th class="crg-col-sev">Severity</th><th class="crg-col-x"></th></tr></thead>
-                <tbody class="crg-components-rows"></tbody>
-            </table>
-            <p class="crg-components-empty hide-if-no-js description">No components listed.</p>
-            <div class="crg-components-warn notice notice-warning inline" hidden><p></p></div>
-            <div class="crg-components-text">
-                <textarea id="crg_components" name="crg_components" rows="5" class="code" placeholder="Slider Revolution | 6.8.1 | 5 known vulnerabilities; update to 7.1.0+ | critical"><?php echo esc_textarea( self::meta( $post, 'crg_components' ) ); ?></textarea>
-                <p class="description">One per line: <code>Name | Version | Issue | Severity</code> (critical, high, medium or low).</p>
-            </div>
-            <p class="hide-if-no-js">
-                <button type="button" class="button crg-component-add"><span class="dashicons dashicons-plus-alt2"></span> Add component</button>
-                <button type="button" class="button-link crg-components-toggle">Edit as text</button>
-            </p>
-        </div>
-
-        <?php self::editor( $post, 'crg_improvements', 'Suggested improvements & hardening', 'Optional: changes that would make the site harder to attack (fewer plugins, replacing risky ones…).', 5 ); ?>
-        <?php
-    }
-
-    /** "Check plugins & themes": paste `wp plugin list` output, see what's abandoned or vulnerable, add it to the report. */
-    private static function plugin_check_panel( $post ) {
-        $saved = (string) self::meta( $post, 'crg_plugin_list' );
-        ?>
-        <details class="crg-pc crg-field hide-if-no-js" data-post="<?php echo (int) $post->ID; ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'crg_check_plugins' ) ); ?>" data-ajax="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>"<?php echo $saved ? '' : ' open'; ?>>
-            <summary><span class="dashicons dashicons-search"></span> <strong>Check plugins &amp; themes</strong> <span class="crg-pc-sub">Find what's abandoned, vulnerable or out of date, and add it to the report.</span></summary>
-            <ol class="crg-pc-steps">
-                <li>On the member's server, in the WordPress folder, run:
-                    <div class="crg-pc-cmd"><code><?php echo esc_html( Cleanup_Report_Plugin_Check::COMMAND ); ?></code><button type="button" class="button button-small crg-pc-copy">Copy</button></div>
-                </li>
-                <li><label for="crg_plugin_list">Paste the output here</label> (the default table from <code>wp plugin list</code> works too):
-                    <textarea id="crg_plugin_list" name="crg_plugin_list" rows="4" class="code" placeholder="name,title,version,update_version,status&#10;revslider,&quot;Slider Revolution&quot;,6.8.1,,active"><?php echo esc_textarea( $saved ); ?></textarea>
-                </li>
-            </ol>
-            <p class="crg-pc-bar">
-                <button type="button" class="button button-primary crg-pc-run">Check</button>
-                <span class="spinner"></span>
-                <span class="crg-pc-msg" aria-live="polite"></span>
-            </p>
-            <div class="crg-pc-results"></div>
-            <p class="description">Each folder name is looked up on WordPress.org (closed, last release, "Tested up to") and WPVulnerability.net (known vulnerabilities in the installed version); results are cached for 12 hours. Everything checked is added to the <?php echo isset( Cleanup_Report_Settings::tabs()['plugins'] ) ? '<a href="' . esc_url( Cleanup_Report_Settings::url( 'plugins' ) ) . '">plugin list</a>' : 'team\'s plugin list'; ?>, where premium items are marked as maintained or not.</p>
-        </details>
-        <?php
-    }
-
-    private static function screenshot_row( $i, array $shot ) {
-        $name = 'crg_screenshots[' . $i . ']';
-        $url  = $shot['url'] ?? '';
-        ?>
-        <div class="crg-shot">
-            <span class="crg-drag dashicons dashicons-menu" title="Drag to reorder"></span>
-            <button type="button" class="crg-shot-thumb crg-media" data-target="<?php echo esc_attr( '[name="' . $name . '[url]"]' ); ?>" title="Choose from the media library">
-                <?php if ( $url ) : ?><img src="<?php echo esc_url( $url ); ?>" alt=""><?php else : ?><span class="dashicons dashicons-format-image"></span><?php endif; ?>
-            </button>
-            <div class="crg-shot-fields">
-                <input type="text" name="<?php echo esc_attr( $name . '[title]' ); ?>" value="<?php echo esc_attr( $shot['title'] ?? '' ); ?>" placeholder="Caption, e.g. Defender scan after cleanup" class="crg-shot-title" aria-label="Caption">
-                <div class="crg-shot-line">
-                    <select name="<?php echo esc_attr( $name . '[type]' ); ?>" aria-label="Type">
-                        <?php foreach ( [ 'before' => 'Before', 'after' => 'After', 'evidence' => 'Evidence', 'other' => 'Other' ] as $value => $label ) : ?>
-                            <option value="<?php echo esc_attr( $value ); ?>" <?php selected( $shot['type'] ?? 'other', $value ); ?>><?php echo esc_html( $label ); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <input type="url" name="<?php echo esc_attr( $name . '[url]' ); ?>" value="<?php echo esc_attr( $url ); ?>" placeholder="Image URL, or choose from the media library" class="crg-shot-url" aria-label="Image URL">
-                    <button type="button" class="button crg-media" data-target="<?php echo esc_attr( '[name="' . $name . '[url]"]' ); ?>">Choose</button>
-                </div>
-            </div>
-            <button type="button" class="button-link crg-remove" title="Remove"><span class="dashicons dashicons-no-alt"></span><span class="screen-reader-text">Remove screenshot</span></button>
-        </div>
-        <?php
-    }
-
-    /* ---------- 3. Work done & verification */
-
-    public static function box_work( $post ) {
-        $default = 'auto-draft' === $post->post_status ? Cleanup_Report_Render::default_texts()['verification'] : '';
-        self::editor( $post, 'crg_highlights', 'Work carried out', 'What we did to clean the site. Shown under <strong>Actions taken</strong>, before the list of standard steps every cleanup includes.', 6 );
-        self::editor( $post, 'crg_verification_summary', 'Verification', 'How the site was checked after the cleanup, and anything still showing.', 6, $default );
-        self::input( $post, 'crg_additional_sites', 'Additional sites on this hosting account', [ 'type' => 'textarea', 'rows' => 2, 'placeholder' => 'No problem identified', 'help' => 'Other sites found and what was done about them, one per line. Leave empty for "No problem identified".' ] );
-        self::site_checks( $post );
-        self::delist_field( $post );
-    }
-
-    /** Hosting & access: the four checks from the team's report template, each an answer plus a note. */
-    private static function site_checks( $post ) {
-        ?>
-        <div class="crg-field crg-site-checks">
-            <span class="crg-field-label">Hosting &amp; access</span>
-            <p class="description">Shown in the report's Verification table. Leave a question unanswered to leave it out.</p>
-            <?php foreach ( Cleanup_Report_Render::SITE_CHECKS as $key => [ $question, , $answers ] ) :
-                $id = 'crg_' . $key; ?>
-                <div class="crg-site-check">
-                    <label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $question ); ?></label>
-                    <select id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $id ); ?>">
-                        <option value="">—</option>
-                        <?php foreach ( $answers as $value => $label ) : ?>
-                            <option value="<?php echo esc_attr( $value ); ?>" <?php selected( self::meta( $post, $id ), $value ); ?>><?php echo esc_html( $label ); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <input type="text" name="<?php echo esc_attr( $id . '_note' ); ?>" value="<?php echo esc_attr( self::meta( $post, $id . '_note' ) ); ?>" placeholder="<?php echo esc_attr( [ 'hosting_type' => 'Note, e.g. the host or plan', 'backups' => 'Link to the backups, e.g. in the Hub', 'ssh_accounts' => 'Which accounts, and what was done', 'hub_member' => 'Note' ][ $key ] ?? 'Note' ); ?>" aria-label="<?php echo esc_attr( 'Note: ' . $question ); ?>">
-                </div>
-            <?php endforeach; ?>
-        </div>
-        <?php
-    }
-
-    /** Security blocklists: tick the vendors still flagging the site; the report lists them with where to request delisting. */
-    private static function delist_field( $post ) {
-        $ticked = Cleanup_Report_Checklists::report_blocklists( $post->ID );
-        $items  = [];
-        foreach ( Cleanup_Report_Checklists::blocklist_items() as $item ) {
-            if ( ! empty( $item['enabled'] ) || isset( $ticked[ $item['key'] ] ) ) {
-                $items[ $item['key'] ] = $item;
-            }
-        }
-        $items += $ticked; // ticked earlier, since removed from settings
-        ?>
-        <div class="crg-field crg-delist">
-            <span class="crg-field-label">Security blocklists (delist request)</span>
-            <p class="description">Tick each vendor that still flags the site, e.g. on VirusTotal<span class="crg-vt-wrap" hidden> (<a href="#" class="crg-vt" target="_blank" rel="noopener">check this site on VirusTotal</a>)</span>. The report lists them with where to request delisting. Nothing ticked and no note: "No problem identified".</p>
-            <?php if ( $items ) : ?>
-                <div class="crg-delist-bar hide-if-no-js">
-                    <input type="search" class="crg-delist-filter" placeholder="Filter vendors…" aria-label="Filter vendors">
-                    <span class="crg-delist-count" aria-live="polite"></span>
-                </div>
-                <div class="crg-delist-grid">
-                    <?php foreach ( $items as $key => $item ) :
-                        $contact = implode( ' · ', array_filter( [ preg_replace( '#^https?://#', '', (string) ( $item['url'] ?? '' ) ), (string) ( $item['email'] ?? '' ) ] ) ); ?>
-                        <label title="<?php echo esc_attr( $contact ); ?>"><input type="checkbox" name="crg_delist_vendors[]" value="<?php echo esc_attr( $key ); ?>" <?php checked( isset( $ticked[ $key ] ) ); ?>> <?php echo esc_html( $item['label'] ); ?></label>
-                    <?php endforeach; ?>
-                </div>
-            <?php else : ?>
-                <p class="crg-empty">No blocklists are set up. <?php self::settings_link( 'blocklists', 'Add them in Settings' ); ?></p>
-            <?php endif; ?>
-            <input type="hidden" name="crg_delist_vendors[]" value="">
-            <label for="crg_delist" class="crg-sub-label">Other blocklists or notes</label>
-            <textarea id="crg_delist" name="crg_delist" rows="2" placeholder="e.g. Delist requested from Norton Safe Web on 6 November"><?php echo esc_textarea( self::meta( $post, 'crg_delist' ) ); ?></textarea>
-            <p class="crg-checklist-foot"><?php self::settings_link( 'blocklists', 'Edit the blocklists' ); ?></p>
-        </div>
-        <?php
-    }
-
-    /* ---------- 4. Defender */
-
-    public static function box_defender( $post ) {
-        $answers = Cleanup_Report_Checklists::report_defender( $post->ID );
-        $items   = Cleanup_Report_Checklists::form_items( Cleanup_Report_Checklists::defender_items(), $answers );
-        $groups  = [ 'agent' => [], 'member' => [] ];
-        foreach ( $items as $key => $item ) {
-            $groups[ Cleanup_Report_Checklists::owner( $item ) ][ $key ] = $item;
-        }
-        if ( ! $items ) : ?>
-            <p class="crg-empty">No Defender settings are set up. <?php self::settings_link( 'defender', 'Add them in Settings' ); ?></p>
-        <?php endif;
-        $parts = [
-            'agent'  => [
-                'title'   => 'To be done by agent',
-                'help'    => '<strong>Applied</strong>: we configured it. <strong>Pending</strong>: not configured yet. <strong>Member to do</strong>: we couldn\'t, so the member has to.',
-                'all'     => [ 'applied', 'Mark all applied' ],
-                'choices' => [ '' => 'Leave out', 'applied' => 'Applied', 'in_progress' => 'Pending', 'pending' => 'Member to do' ],
-            ],
-            'member' => [
-                'title'   => 'To be done by member',
-                'help'    => 'Settings that need the site owner. <strong>Member to do</strong>: listed for the member. <strong>Applied</strong>: already set up.',
-                'all'     => [ 'pending', 'Mark all member to do' ],
-                'choices' => [ '' => 'Leave out', 'pending' => 'Member to do', 'applied' => 'Applied' ],
-            ],
-        ];
-        foreach ( $parts as $owner => $part ) {
-            if ( ! $groups[ $owner ] ) {
-                continue;
-            }
-            ?>
-            <div class="crg-checklist crg-def-part" data-kind="defender">
-                <h3 class="crg-def-title"><?php echo esc_html( $part['title'] ); ?></h3>
-                <div class="crg-checklist-bar">
-                    <p class="description"><?php echo wp_kses( $part['help'], self::HELP_TAGS ); ?> Click a selected button again to leave the setting out of the report.</p>
-                    <span class="crg-checklist-count" aria-live="polite"></span>
-                    <button type="button" class="button button-small crg-set-all" data-status="<?php echo esc_attr( $part['all'][0] ); ?>"><?php echo esc_html( $part['all'][1] ); ?></button>
-                    <button type="button" class="button-link crg-set-all" data-status="">Clear</button>
-                </div>
-                <?php
-                foreach ( $groups[ $owner ] as $key => $item ) {
-                    $answer  = $answers[ $key ] ?? [];
-                    $choices = $part['choices'];
-                    if ( ! empty( $answer['status'] ) && ! isset( $choices[ $answer['status'] ] ) ) {
-                        $choices[ $answer['status'] ] = $parts['agent']['choices'][ $answer['status'] ] ?? $answer['status']; // keep an answer given before the item moved part
-                    }
-                    self::check_row( 'crg_defender', $key, $item, $answer['status'] ?? '', $answer['notes'] ?? '', 'notes', $choices, [
-                        ''            => 'Not in the report',
-                        'applied'     => ( $item['applied_note'] ?? '' ) ?: 'Configured to recommended settings.',
-                        'in_progress' => ( $item['progress_note'] ?? '' ) ?: Cleanup_Report_Checklists::PROGRESS_FALLBACK,
-                        'pending'     => ( $item['pending_note'] ?? '' ) ?: 'Note for the member: what they need to do',
-                    ], true );
-                }
-                ?>
-            </div>
-            <?php
-        }
-        ?>
-        <p class="crg-checklist-foot"><?php self::settings_link( 'defender', 'Edit the Defender checklist' ); ?></p>
-        <?php
-    }
-
-    /* ---------- 5. Member next steps */
-
-    public static function box_next( $post ) {
-        $answers = Cleanup_Report_Checklists::report_followups( $post->ID );
-        $items   = Cleanup_Report_Checklists::form_items( Cleanup_Report_Checklists::followup_items(), $answers );
-        $pending = (string) self::meta( $post, 'crg_pending_actions' );
-        if ( '' !== trim( $pending ) && ! preg_match( '/<[a-z]/i', $pending ) ) {
-            $pending = Cleanup_Report_Render::text_to_html( $pending ); // plain lines from before 2.1.0
-        }
-        ?>
-        <div class="crg-field crg-field-editor">
-            <label for="crg_pending_actions">Pending actions</label>
-            <p class="description">Anything the member must still do, as a bulleted or numbered list. Leave empty if nothing is pending.</p>
-            <?php wp_editor( $pending, 'crg_pending_actions', [ 'textarea_name' => 'crg_pending_actions', 'textarea_rows' => 5 ] + self::EDITOR ); ?>
-        </div>
-        <?php
-        ?>
-        <div class="crg-field">
-            <span class="crg-field-label">Follow-ups</span>
-            <div class="crg-checklist" data-kind="followups">
-                <div class="crg-checklist-bar">
-                    <p class="description">Shown as <em>Recommended actions</em>. <strong>Already configured</strong>: in place before the cleanup. <strong>Done</strong>: we did it during the cleanup. <strong>Member to do</strong>: the member needs to act. Click a selected button again to leave the item out of the report.</p>
-                    <span class="crg-checklist-count" aria-live="polite"></span>
-                </div>
-                <?php if ( ! $items ) : ?>
-                    <p class="crg-empty">No follow-ups are set up. <?php self::settings_link( 'followups', 'Add them in Settings' ); ?></p>
-                <?php endif; ?>
-                <?php
-                foreach ( $items as $key => $item ) {
-                    $answer = $answers[ $key ] ?? [];
-                    self::check_row( 'crg_followups', $key, $item, $answer['status'] ?? '', $answer['note'] ?? '', 'note', [
-                        ''             => 'Leave out', // hidden: click the selected button again to clear
-                        'not_required' => 'Already configured',
-                        'fixed'        => 'Done',
-                        'required'     => 'Member to do',
-                    ], [
-                        ''             => 'Not in the report',
-                        'not_required' => $item['done'] ?? '',
-                        'fixed'        => ( $item['fixed'] ?? '' ) ?: ( Cleanup_Report_Checklists::DEFAULT_FIXED[ $key ] ?? Cleanup_Report_Checklists::FIXED_FALLBACK ),
-                        'required'     => $item['todo'] ?? '',
-                    ], true );
-                }
-                ?>
-                <p class="crg-checklist-foot"><?php self::settings_link( 'followups', 'Edit the follow-ups list' ); ?></p>
-            </div>
-        </div>
-
-        <?php
-            $list_help = 'A bulleted list, one per item. Put the folder in brackets and a reason after a dash, e.g. <em>Slider Revolution (revslider) – no licence provided</em>.';
-            self::editor( $post, 'crg_reinstall_list', 'Reinstall: premium plugins & themes not provided', $list_help, 4 );
-            self::editor( $post, 'crg_replace_list', 'Replace: plugins & themes no longer maintained', $list_help, 4 );
-    }
-
-    /**
-     * One checklist row: name and hint, a segmented status control, and a note whose placeholder shows what the
-     * report will say for the chosen status.
-     */
-    private static function check_row( $field, $key, array $item, $status, $note, $note_field, array $choices, array $previews, $hide_none = false ) {
-        $name = $field . '[' . $key . ']';
-        ?>
-        <div class="crg-check<?php echo $status ? ' is-' . esc_attr( $status ) : ''; ?>" data-previews="<?php echo esc_attr( wp_json_encode( $previews ) ); ?>">
-            <div class="crg-check-name">
-                <strong><?php echo esc_html( $item['label'] ); ?></strong>
-                <?php if ( 'recommended' === ( $item['tone'] ?? '' ) ) : ?><span class="crg-tag" title="Shown in the report as Recommended rather than Required">Recommended</span><?php endif; ?>
-                <?php if ( ! empty( $item['orphan'] ) ) : ?><span class="crg-tag" title="Kept because this report already uses it"><?php echo esc_html( 'off' === $item['orphan'] ? 'Switched off in settings' : 'Removed from settings' ); ?></span><?php endif; ?>
-                <?php if ( ! empty( $item['hint'] ) ) : ?><span class="crg-check-hint"><?php echo esc_html( $item['hint'] ); ?></span><?php endif; ?>
-                <?php if ( ! empty( $item['docs'] ) ) : ?><a class="crg-check-docs" href="<?php echo esc_url( $item['docs'] ); ?>" target="_blank" rel="noopener">Docs<span class="screen-reader-text"> (opens in a new tab)</span></a><?php endif; ?>
-                <?php if ( ! empty( $item['link'] ) ) : ?><a class="crg-check-docs crg-check-link" data-link="<?php echo esc_attr( $item['link'] ); ?>" href="#" target="_blank" rel="noopener" hidden>Open on site<span class="screen-reader-text"> (opens in a new tab)</span></a><?php endif; ?>
-            </div>
-            <div class="crg-seg" role="radiogroup" aria-label="<?php echo esc_attr( $item['label'] ); ?>">
-                <?php foreach ( $choices as $value => $label ) : ?>
-                    <label class="crg-seg-<?php echo esc_attr( $value ?: 'none' ); ?>"<?php echo ( $hide_none && '' === $value ) ? ' hidden' : ''; ?>><input type="radio" name="<?php echo esc_attr( $name . '[status]' ); ?>" value="<?php echo esc_attr( $value ); ?>" <?php checked( $status, $value ); ?>><span><?php echo esc_html( $label ); ?></span></label>
-                <?php endforeach; ?>
-            </div>
-            <input type="text" class="crg-check-note" name="<?php echo esc_attr( $name . '[' . $note_field . ']' ); ?>" value="<?php echo esc_attr( $note ); ?>" placeholder="<?php echo esc_attr( $previews[ $status ] ?? '' ); ?>" aria-label="<?php echo esc_attr( 'Note for ' . $item['label'] ); ?>">
-        </div>
-        <?php
-    }
-
-    private static function settings_link( $tab, $text ) {
-        if ( isset( Cleanup_Report_Settings::tabs()[ $tab ] ) ) {
-            printf( '<a href="%s">%s</a>', esc_url( Cleanup_Report_Settings::url( $tab ) ), esc_html( $text ) );
-        }
-    }
-
-    /* ---------- 6. Member guidance */
-
-    public static function box_guidance( $post ) {
-        $host     = wp_parse_url( (string) self::meta( $post, 'crg_site_url' ), PHP_URL_HOST ) ?: '';
-        $defaults = Cleanup_Report_Render::default_texts( $host );
-        self::input( $post, 'crg_documentation_links', 'Helpful links', [
-            'type'        => 'textarea',
-            'rows'        => 3,
-            'placeholder' => "Supported PHP versions: https://www.php.net/supported-versions.php",
-            'help'        => 'One per line as <code>Title: https://…</code>. Links to the Defender docs, 2FA and Hide Login URL are always added.',
-        ] );
-        ?>
-        <?php
-        self::note_editor( $post, 'crg_seo_note', 'Search engines (SEO)', 'What to check in Google and how to clean up search results. Leave empty to use the standard text.', $defaults['seo'] );
-        self::note_editor( $post, 'crg_protect_note', 'Staying protected', 'How to keep the site safe from now on. Leave empty to use the standard text.', $defaults['protect'] );
-    }
-
-    /**
-     * A rich-text note with the standard text (used when it's left empty) shown underneath, ready to copy in.
-     * Notes saved before 2.1 are plain text; they're converted so their lists and headings carry over.
-     */
-    private static function note_editor( $post, $key, $label, $help, $standard ) {
-        $value = (string) self::meta( $post, $key );
-        if ( '' !== trim( $value ) && ! preg_match( '/<[a-z]/i', $value ) ) {
-            $value = Cleanup_Report_Render::text_to_html( $value );
-        }
-        ?>
-        <div class="crg-field crg-field-editor">
-            <label for="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label>
-            <p class="description"><?php echo esc_html( $help ); ?></p>
-            <?php wp_editor( $value, $key, [ 'textarea_name' => $key, 'textarea_rows' => 6 ] + self::EDITOR ); ?>
-            <details class="crg-std">
-                <summary>Standard text, used when this is empty</summary>
-                <div class="crg-std-text"><?php echo wp_kses_post( Cleanup_Report_Render::note_html( $standard ) ); ?></div>
-                <button type="button" class="button button-small crg-use-std" data-editor="<?php echo esc_attr( $key ); ?>">Copy into the editor to change it</button>
-            </details>
-        </div>
-        <?php
     }
 
     /* ---------- side: preview / PDF */
 
     public static function box_export( $post ) {
         if ( 'auto-draft' === $post->post_status ) {
-            echo '<p class="crg-muted">Save the report to preview it or download the PDF.</p>';
+            echo '<p class="crg-muted">' . esc_html__( 'Save the report to preview it or download the PDF.', 'cleanup-report-generator' ) . '</p>';
             return;
         }
         $view = wp_nonce_url( admin_url( 'admin-post.php?action=crg_view_report&post=' . $post->ID ), 'crg_view_' . $post->ID );
@@ -740,32 +470,64 @@ class Cleanup_Report_Admin {
         ?>
         <div class="crg-export">
             <?php if ( self::can_download( $post->ID ) ) : ?>
-                <a class="button button-primary crg-export-pdf" href="<?php echo esc_url( $pdf ); ?>"><span class="dashicons dashicons-pdf"></span> Download PDF</a>
+                <a class="button button-primary crg-export-pdf" href="<?php echo esc_url( $pdf ); ?>"><span class="dashicons dashicons-pdf"></span> <?php esc_html_e( 'Download PDF', 'cleanup-report-generator' ); ?></a>
             <?php else : ?>
-                <span class="button button-primary crg-export-pdf disabled" aria-disabled="true"><span class="dashicons dashicons-pdf"></span> Download PDF</span>
+                <span class="button button-primary crg-export-pdf disabled" aria-disabled="true"><span class="dashicons dashicons-pdf"></span> <?php esc_html_e( 'Download PDF', 'cleanup-report-generator' ); ?></span>
             <?php endif; ?>
-            <a class="button" href="<?php echo esc_url( $view ); ?>" target="_blank" rel="noopener">Preview in browser</a>
+            <a class="button" href="<?php echo esc_url( $view ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Preview in browser', 'cleanup-report-generator' ); ?></a>
         </div>
         <?php if ( ! self::can_download( $post->ID ) ) : ?>
-            <p class="crg-muted crg-export-locked">The PDF can be downloaded once the report is approved. Until then the preview is marked <strong><?php echo esc_html( self::watermark() ); ?></strong>.</p>
+            <p class="crg-muted crg-export-locked">
+                <?php
+                echo wp_kses(
+                    sprintf(
+                        /* translators: %s: the mark on reports that aren't approved yet, e.g. NOT FINAL */
+                        __( 'The PDF can be downloaded once the report is approved. Until then the preview is marked <strong>%s</strong>.', 'cleanup-report-generator' ),
+                        esc_html( self::watermark() )
+                    ),
+                    [ 'strong' => [] ]
+                );
+                ?>
+            </p>
         <?php endif; ?>
-        <p class="crg-muted crg-export-note">Uses the last saved version.</p>
-        <p class="crg-dirty" hidden><span class="dashicons dashicons-warning"></span> You have unsaved changes. Save to include them.</p>
+        <p class="crg-muted crg-export-note"><?php esc_html_e( 'Uses the last saved version.', 'cleanup-report-generator' ); ?></p>
+        <p class="crg-dirty" hidden><span class="dashicons dashicons-warning"></span> <?php esc_html_e( 'You have unsaved changes. Save to include them.', 'cleanup-report-generator' ); ?></p>
         <?php
     }
 
     /* ---------- side: review */
 
     private static function status_badge( $status ) {
-        printf( '<span class="crg-status-badge crg-status-%s">%s</span>', esc_attr( $status ), esc_html( self::STATUSES[ $status ] ?? $status ) );
+        printf( '<span class="crg-status-badge crg-status-%s">%s</span>', esc_attr( $status ), esc_html( self::statuses()[ $status ] ?? $status ) );
     }
 
     private static function review_dates( $post ) {
-        foreach ( [ 'submitted' => 'Submitted', 'reviewed' => 'Approved', 'completed' => 'Completed' ] as $key => $label ) {
+        $labels = [
+            'submitted' => [
+                /* translators: %s: date and time */
+                __( 'Submitted %s', 'cleanup-report-generator' ),
+                /* translators: 1: a person's name, 2: date and time */
+                __( 'Submitted by %1$s, %2$s', 'cleanup-report-generator' ),
+            ],
+            'reviewed'  => [
+                /* translators: %s: date and time */
+                __( 'Approved %s', 'cleanup-report-generator' ),
+                /* translators: 1: a person's name, 2: date and time */
+                __( 'Approved by %1$s, %2$s', 'cleanup-report-generator' ),
+            ],
+            'completed' => [
+                /* translators: %s: date and time */
+                __( 'Completed %s', 'cleanup-report-generator' ),
+                /* translators: 1: a person's name, 2: date and time */
+                __( 'Completed by %1$s, %2$s', 'cleanup-report-generator' ),
+            ],
+        ];
+        foreach ( $labels as $key => $label ) {
             $date = get_post_meta( $post->ID, 'crg_' . $key . '_date', true );
             $by   = get_userdata( (int) get_post_meta( $post->ID, 'crg_' . $key . '_by', true ) );
             if ( $date && strtotime( $date ) ) {
-                printf( '<p class="crg-muted">%s %s%s</p>', esc_html( $label ), $by ? 'by ' . esc_html( $by->display_name ) . ', ' : '', esc_html( mysql2date( 'j M Y, H:i', $date ) ) );
+                $when = mysql2date( 'j M Y, H:i', $date );
+                printf( '<p class="crg-muted">%s</p>', esc_html( $by ? sprintf( $label[1], $by->display_name, $when ) : sprintf( $label[0], $when ) ) );
             }
         }
     }
@@ -788,7 +550,7 @@ class Cleanup_Report_Admin {
 
     /** The mark on reports that aren't approved yet (Settings › Review; administrators). */
     public static function watermark() {
-        return trim( (string) get_option( 'crg_watermark_text', 'NOT FINAL' ) ) ?: 'NOT FINAL';
+        return trim( (string) get_option( 'crg_watermark_text', __( 'NOT FINAL', 'cleanup-report-generator' ) ) ) ?: __( 'NOT FINAL', 'cleanup-report-generator' );
     }
 
     /** User IDs of the Buddyleads: the only people who can approve reports or send them back. */
@@ -828,16 +590,16 @@ class Cleanup_Report_Admin {
     /** The Save button's label for moving from $current to $target. */
     public static function save_label( $target, $current ) {
         if ( $target === $current ) {
-            return 'draft' === $current ? 'Save draft' : 'Save';
+            return 'draft' === $current ? __( 'Save draft', 'cleanup-report-generator' ) : __( 'Save', 'cleanup-report-generator' );
         }
         $labels = [
-            'draft'          => 'Move back to draft',
-            'submitted'      => 'needs_revision' === $current ? 'Resubmit for review' : 'Submit for review',
-            'needs_revision' => 'Send back for revision',
-            'approved'       => 'Approve',
-            'complete'       => 'Mark completed',
+            'draft'          => __( 'Move back to draft', 'cleanup-report-generator' ),
+            'submitted'      => 'needs_revision' === $current ? __( 'Resubmit for review', 'cleanup-report-generator' ) : __( 'Submit for review', 'cleanup-report-generator' ),
+            'needs_revision' => __( 'Send back for revision', 'cleanup-report-generator' ),
+            'approved'       => __( 'Approve', 'cleanup-report-generator' ),
+            'complete'       => __( 'Mark completed', 'cleanup-report-generator' ),
         ];
-        return $labels[ $target ] ?? 'Save';
+        return $labels[ $target ] ?? __( 'Save', 'cleanup-report-generator' );
     }
 
     /** Keeps WordPress's post status in step with the review status on every save (see POST_STATUS). */
@@ -871,38 +633,45 @@ class Cleanup_Report_Admin {
             <p><?php self::status_badge( $status ); ?></p>
             <?php self::review_dates( $post ); ?>
             <?php if ( $review_notes ) : ?>
-                <div class="crg-note-box is-review"><strong>Buddylead's notes</strong><br><?php echo nl2br( esc_html( $review_notes ) ); ?></div>
+                <div class="crg-note-box is-review"><strong><?php esc_html_e( 'Buddylead\'s notes', 'cleanup-report-generator' ); ?></strong><br><?php echo nl2br( esc_html( $review_notes ) ); ?></div>
             <?php endif; ?>
             <?php if ( $author_notes && $lead ) : ?>
-                <div class="crg-note-box"><strong>Notes from the author</strong><br><?php echo nl2br( esc_html( $author_notes ) ); ?></div>
+                <div class="crg-note-box"><strong><?php esc_html_e( 'Notes from the author', 'cleanup-report-generator' ); ?></strong><br><?php echo nl2br( esc_html( $author_notes ) ); ?></div>
             <?php endif; ?>
             <p>
-                <label for="crg_review_status"><strong>Status</strong></label>
+                <label for="crg_review_status"><strong><?php esc_html_e( 'Status', 'cleanup-report-generator' ); ?></strong></label>
                 <select id="crg_review_status" name="crg_review_status" class="widefat" data-current="<?php echo esc_attr( $status ); ?>">
                     <?php foreach ( $allowed as $value ) : ?>
-                        <option value="<?php echo esc_attr( $value ); ?>" data-label="<?php echo esc_attr( self::save_label( $value, $status ) ); ?>" data-post-status="<?php echo esc_attr( self::POST_STATUS[ $value ] ); ?>" <?php selected( $status, $value ); ?>><?php echo esc_html( self::STATUSES[ $value ] ); ?></option>
+                        <option value="<?php echo esc_attr( $value ); ?>" data-label="<?php echo esc_attr( self::save_label( $value, $status ) ); ?>" data-post-status="<?php echo esc_attr( self::POST_STATUS[ $value ] ); ?>" <?php selected( $status, $value ); ?>><?php echo esc_html( self::statuses()[ $value ] ); ?></option>
                     <?php endforeach; ?>
                 </select>
             </p>
             <p class="crg-muted">
                 <?php if ( 'approved' === $status ) : ?>
-                    Approved. Once the report is sent to the member, mark it Completed.
+                    <?php esc_html_e( 'Approved. Once the report is sent to the member, mark it Completed.', 'cleanup-report-generator' ); ?>
+                <?php elseif ( $lead && current_user_can( 'manage_options' ) ) : ?>
+                    <?php esc_html_e( 'As an administrator, you can approve this report or send it back for changes.', 'cleanup-report-generator' ); ?>
                 <?php elseif ( $lead ) : ?>
-                    <?php echo current_user_can( 'manage_options' ) ? 'As an administrator' : 'As a Buddylead'; ?>, you can approve this report or send it back for changes.
+                    <?php esc_html_e( 'As a Buddylead, you can approve this report or send it back for changes.', 'cleanup-report-generator' ); ?>
+                <?php elseif ( $names ) : ?>
+                    <?php
+                    /* translators: %s: names of the Buddyleads, e.g. "Ana, Ben" */
+                    echo esc_html( sprintf( __( 'Buddyleads (%s) and administrators approve reports. Submit it for review when it\'s ready.', 'cleanup-report-generator' ), implode( ', ', $names ) ) );
+                    ?>
                 <?php else : ?>
-                    Buddyleads<?php echo $names ? ' (' . esc_html( implode( ', ', $names ) ) . ')' : ''; ?> and administrators approve reports. Submit it for review when it's ready.
+                    <?php esc_html_e( 'Buddyleads and administrators approve reports. Submit it for review when it\'s ready.', 'cleanup-report-generator' ); ?>
                 <?php endif; ?>
             </p>
             <?php if ( $lead ) : ?>
                 <p>
-                    <label for="crg_review_notes"><strong>Notes for the author</strong></label>
-                    <textarea id="crg_review_notes" name="crg_review_notes" rows="3" class="widefat" placeholder="What needs changing, or why it's approved"><?php echo esc_textarea( $review_notes ); ?></textarea>
+                    <label for="crg_review_notes"><strong><?php esc_html_e( 'Notes for the author', 'cleanup-report-generator' ); ?></strong></label>
+                    <textarea id="crg_review_notes" name="crg_review_notes" rows="3" class="widefat" placeholder="<?php esc_attr_e( 'What needs changing, or why it\'s approved', 'cleanup-report-generator' ); ?>"><?php echo esc_textarea( $review_notes ); ?></textarea>
                 </p>
             <?php endif; ?>
             <?php if ( in_array( $status, [ 'draft', 'needs_revision' ], true ) ) : ?>
                 <p>
-                    <label for="crg_author_notes"><strong>Notes for the Buddylead</strong></label>
-                    <textarea id="crg_author_notes" name="crg_author_notes" rows="2" class="widefat" placeholder="Anything they should check"><?php echo esc_textarea( $author_notes ); ?></textarea>
+                    <label for="crg_author_notes"><strong><?php esc_html_e( 'Notes for the Buddylead', 'cleanup-report-generator' ); ?></strong></label>
+                    <textarea id="crg_author_notes" name="crg_author_notes" rows="2" class="widefat" placeholder="<?php esc_attr_e( 'Anything they should check', 'cleanup-report-generator' ); ?>"><?php echo esc_textarea( $author_notes ); ?></textarea>
                 </p>
             <?php endif; ?>
             <div class="crg-save">
@@ -913,7 +682,7 @@ class Cleanup_Report_Admin {
                     <button type="button" class="button button-large crg-submit-review"><?php echo esc_html( self::save_label( 'submitted', $status ) ); ?></button>
                 <?php endif; ?>
                 <?php if ( 'auto-draft' !== $post->post_status && current_user_can( 'delete_post', $post->ID ) ) : ?>
-                    <a class="crg-trash" href="<?php echo esc_url( get_delete_post_link( $post->ID ) ); ?>">Move to Trash</a>
+                    <a class="crg-trash" href="<?php echo esc_url( get_delete_post_link( $post->ID ) ); ?>"><?php esc_html_e( 'Move to Trash', 'cleanup-report-generator' ); ?></a>
                 <?php endif; ?>
             </div>
         </div>
@@ -955,6 +724,8 @@ class Cleanup_Report_Admin {
         if ( Cleanup_Report_Access::locked( $post_id ) ) {
             return;
         }
+        Cleanup_Report_Types::save( $post_id, sanitize_key( wp_unslash( $_POST['crg_report_type'] ?? '' ) ) ); // only sets a missing type
+        $type = Cleanup_Report_Types::of( $post_id );
         if ( isset( $_POST['crg_author_notes'] ) ) {
             update_post_meta( $post_id, 'crg_author_notes', wp_slash( sanitize_textarea_field( wp_unslash( $_POST['crg_author_notes'] ) ) ) );
         }
@@ -962,72 +733,15 @@ class Cleanup_Report_Admin {
             update_post_meta( $post_id, 'crg_review_notes', wp_slash( sanitize_textarea_field( wp_unslash( $_POST['crg_review_notes'] ) ) ) );
         }
 
-        // Screenshots.
-        if ( isset( $_POST['crg_screenshots'] ) && is_array( $_POST['crg_screenshots'] ) ) {
-            $screenshots = [];
-            // Each part is sanitised below; wp_unslash() first, wp_slash() before saving (update_post_meta() unslashes).
-            foreach ( wp_unslash( $_POST['crg_screenshots'] ) as $shot ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-                if ( is_array( $shot ) && ! empty( $shot['url'] ) ) {
-                    $type          = sanitize_key( $shot['type'] ?? 'other' );
-                    $screenshots[] = [
-                        'url'   => esc_url_raw( $shot['url'] ),
-                        'title' => sanitize_text_field( $shot['title'] ?? '' ),
-                        'type'  => in_array( $type, [ 'before', 'after', 'evidence', 'other' ], true ) ? $type : 'other',
-                    ];
-                }
+        // The report type's fields, each sanitised by its field type (Cleanup_Report_Fields::save()).
+        $definition = Cleanup_Report_Types::get( $type );
+        foreach ( $definition['sections'] as $section ) {
+            foreach ( $section['fields'] as $f ) {
+                Cleanup_Report_Fields::save( $post_id, $f );
             }
-            update_post_meta( $post_id, 'crg_screenshots', wp_slash( $screenshots ) );
-        } elseif ( isset( $_POST['crg_client_name'] ) ) {
-            update_post_meta( $post_id, 'crg_screenshots', [] ); // the form was submitted with every screenshot removed
         }
-
-        // Checklists (wording comes from settings, not from the request).
-        Cleanup_Report_Checklists::save_report(
-            $post_id,
-            isset( $_POST['crg_followups'] ) ? map_deep( wp_unslash( $_POST['crg_followups'] ), 'sanitize_text_field' ) : null,
-            isset( $_POST['crg_defender'] ) ? map_deep( wp_unslash( $_POST['crg_defender'] ), 'sanitize_text_field' ) : null
-        );
-
-        if ( isset( $_POST['crg_delist_vendors'] ) && is_array( $_POST['crg_delist_vendors'] ) ) {
-            Cleanup_Report_Checklists::save_report_blocklists( $post_id, array_filter( array_map( 'sanitize_key', wp_unslash( $_POST['crg_delist_vendors'] ) ) ) );
-        }
-
-        $fields = [
-            'text'  => [ 'crg_client_name', 'crg_report_date', 'crg_key_finding', 'crg_hosting_type_note', 'crg_backups_note', 'crg_ssh_accounts_note', 'crg_hub_member_note' ],
-            'pick'  => array_map( static function ( $k ) { return 'crg_' . $k; }, array_keys( Cleanup_Report_Render::SITE_CHECKS ) ),
-            'url'   => [ 'crg_site_url', 'crg_request_link', 'crg_task_url' ],
-            'int'   => [ 'crg_summary_critical', 'crg_summary_medium', 'crg_summary_low' ],
-            'plain' => [ 'crg_plugin_list', 'crg_components', 'crg_documentation_links', 'crg_delist', 'crg_additional_sites' ],
-            'html'  => [ 'crg_pending_actions', 'crg_infection_summary', 'crg_highlights', 'crg_improvements', 'crg_verification_summary', 'crg_reinstall_list', 'crg_replace_list', 'crg_seo_note', 'crg_protect_note' ],
-        ];
-        foreach ( $fields as $type => $keys ) {
-            foreach ( $keys as $key ) {
-                if ( ! isset( $_POST[ $key ] ) ) {
-                    continue;
-                }
-                $raw = wp_unslash( $_POST[ $key ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitised by type below
-                switch ( $type ) {
-                    case 'int':
-                        $value = max( 0, (int) $raw );
-                        break;
-                    case 'pick': // one of the check's answers, or none
-                        $value = sanitize_key( $raw );
-                        $value = isset( Cleanup_Report_Render::SITE_CHECKS[ substr( $key, 4 ) ][2][ $value ] ) ? $value : '';
-                        break;
-                    case 'url':
-                        $value = esc_url_raw( self::normalize_url( sanitize_text_field( $raw ), 'crg_site_url' === $key ) );
-                        break;
-                    case 'plain':
-                        $value = sanitize_textarea_field( $raw );
-                        break;
-                    case 'html':
-                        $value = wp_kses_post( $raw );
-                        break;
-                    default:
-                        $value = sanitize_text_field( $raw );
-                }
-                update_post_meta( $post_id, $key, wp_slash( $value ) );
-            }
+        if ( isset( $definition['on_save'] ) && is_callable( $definition['on_save'] ) ) {
+            call_user_func( $definition['on_save'], $post_id );
         }
 
         // History: which sections this save changed (notes that went with a review step are already noted with it).
@@ -1068,19 +782,23 @@ class Cleanup_Report_Admin {
     /* ================================================================== Reports list */
 
     public static function columns( $columns ) {
-        $date = $columns['date'] ?? 'Date';
+        $date = $columns['date'] ?? __( 'Date', 'cleanup-report-generator' );
         unset( $columns['date'] );
         return $columns + [
-            'crg_client' => 'Prepared for',
-            'crg_site'   => 'Website',
-            'crg_review' => 'Review',
-            'crg_date'   => 'Report date',
+            'crg_type'   => __( 'Type', 'cleanup-report-generator' ),
+            'crg_client' => __( 'Prepared for', 'cleanup-report-generator' ),
+            'crg_site'   => __( 'Website', 'cleanup-report-generator' ),
+            'crg_review' => __( 'Review', 'cleanup-report-generator' ),
+            'crg_date'   => __( 'Report date', 'cleanup-report-generator' ),
             'date'       => $date,
         ];
     }
 
     public static function column( $column, $post_id ) {
         switch ( $column ) {
+            case 'crg_type':
+                Cleanup_Report_Types::badge( Cleanup_Report_Types::of( $post_id ) );
+                break;
             case 'crg_client':
                 echo esc_html( get_post_meta( $post_id, 'crg_client_name', true ) ?: '—' );
                 break;

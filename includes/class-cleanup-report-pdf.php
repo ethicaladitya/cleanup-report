@@ -18,14 +18,17 @@ class Cleanup_Report_PDF {
         $data = Cleanup_Report_Render::get_data( $post_id );
 
         if ( ! self::is_available() ) {
-            self::output_print_view( $data, 'PDF export needs ' . self::missing_text() . ' on this server' );
+            /* translators: %s: what the server is missing, e.g. "the PHP gd extension and the PHP dom extension" */
+            self::output_print_view( $data, sprintf( __( 'PDF export needs %s on this server', 'cleanup-report-generator' ), self::missing_text() ) );
         }
 
         try {
             $dompdf = self::build( $data );
         } catch ( \Throwable $e ) {
-            error_log( 'Cleanup Report Generator: PDF generation failed for report ' . $post_id . ': ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- record why the PDF fell back to print view
-            self::output_print_view( $data, 'The PDF couldn\'t be generated (the reason is in the PHP error log)' );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'Handover: PDF generation failed for report ' . $post_id . ': ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- with WP_DEBUG on: why the PDF fell back to the print view
+            }
+            self::output_print_view( $data, __( 'The PDF couldn\'t be generated (the reason is in the PHP error log)', 'cleanup-report-generator' ) );
         }
 
         $dompdf->stream( self::filename( $data ), [ 'Attachment' => true ] );
@@ -53,8 +56,8 @@ class Cleanup_Report_PDF {
         $options->set( 'allowedRemoteHosts', self::allowed_hosts( $data ) );
         $options->set( 'chroot', array_filter( [ CLEANUP_REPORT_PATH, $uploads['basedir'] ?? '' ] ) );
         $options->set( 'tempDir', get_temp_dir() );
-        $options->set( 'fontCache', get_temp_dir() );
         $font_dir = self::font_dir();
+        $options->set( 'fontCache', $font_dir ?: get_temp_dir() ); // with the fonts, so uninstall clears both
         if ( $font_dir ) {
             $options->set( 'fontDir', $font_dir ); // not Dompdf's default inside the plugin: may be read-only, and updates wipe it
         }
@@ -63,11 +66,11 @@ class Cleanup_Report_PDF {
         $dompdf = new \CleanupReportGenerator\Vendor\Dompdf\Dompdf( $options );
         $dompdf->getOptions()->setHttpContext( stream_context_create( [
             // No redirects: an allowed host could otherwise bounce the request somewhere else.
-            'http' => [ 'timeout' => 15, 'follow_location' => 0, 'user_agent' => 'Cleanup Report Generator/' . CLEANUP_REPORT_VERSION ],
+            'http' => [ 'timeout' => 15, 'follow_location' => 0, 'user_agent' => 'Handover/' . CLEANUP_REPORT_VERSION ],
         ] ) );
         $dompdf->loadHtml( $html, 'UTF-8' );
         $dompdf->setPaper( 'A4', 'portrait' );
-        $dompdf->addInfo( 'Title', ( $data['title'] ?: 'Cleanup Report' ) );
+        $dompdf->addInfo( 'Title', ( $data['title'] ?: ucfirst( strtolower( $data['type_info']['title'] ?? __( 'Report', 'cleanup-report-generator' ) ) ) ) );
         $dompdf->addInfo( 'Author', $data['brand']['name'] ?? '' );
         $dompdf->render();
 
@@ -97,13 +100,20 @@ class Cleanup_Report_PDF {
 
         $host   = $data['site'] ? ( wp_parse_url( $data['site'], PHP_URL_HOST ) ?: '' ) : '';
         $client = $host ?: $data['client']; // running header: the website, like the cover
-        $right  = 'Report #' . (int) $data['post_id'] . ( $host && $data['client'] ? '  ·  Prepared for ' . $data['client'] : '' );
+        /* translators: %d: report ID */
+        $right  = sprintf( __( 'Report #%d', 'cleanup-report-generator' ), (int) $data['post_id'] );
+        if ( $host && $data['client'] ) {
+            /* translators: %s: client name */
+            $right .= '  ·  ' . sprintf( __( 'Prepared for %s', 'cleanup-report-generator' ), $data['client'] );
+        }
         $footer = (string) $data['brand']['footer'];
-        $title  = 'MALWARE CLEANUP REPORT';
+        $title  = (string) ( $data['type_info']['title'] ?? __( 'MALWARE CLEANUP REPORT', 'cleanup-report-generator' ) );
         $draft  = empty( $data['final'] ); // not approved yet: the watermark across every page, cover included
-        $mark   = (string) ( $data['watermark'] ?? 'NOT FINAL' );
+        $mark   = (string) ( $data['watermark'] ?? __( 'NOT FINAL', 'cleanup-report-generator' ) );
+        /* translators: 1: page number, 2: number of pages */
+        $page_of = __( 'Page %1$d of %2$d', 'cleanup-report-generator' );
 
-        $canvas->page_script( static function ( $page, $count, $c ) use ( $metrics, $regular, $bold, $w, $h, $x0, $x1, $grey, $rule, $primary, $client, $right, $footer, $title, $draft, $mark ) {
+        $canvas->page_script( static function ( $page, $count, $c ) use ( $metrics, $regular, $bold, $w, $h, $x0, $x1, $grey, $rule, $primary, $client, $right, $footer, $title, $draft, $mark, $page_of ) {
             if ( $draft ) {
                 // Diagonal, bottom-left to top-right, centred on the page; faint so the report stays readable.
                 // 92pt, or smaller for long text: at 35° the page width is the limit (keep 10% clear each side).
@@ -135,7 +145,7 @@ class Cleanup_Report_PDF {
             $y = $h - 40;
             $c->line( $x0, $y - 8, $x1, $y - 8, $rule, 0.6 );
             $c->text( $x0, $y, $fit( $footer, $regular, 6.8, ( $x1 - $x0 ) * 0.36 ), $regular, 6.8, $grey );
-            $pg = 'Page ' . $page . ' of ' . $count;
+            $pg = sprintf( $page_of, $page, $count );
             $c->text( ( $w - $metrics->getTextWidth( $pg, $regular, 6.8 ) ) / 2, $y, $pg, $regular, 6.8, $grey );
             $r = $fit( $right, $regular, 6.8, ( $x1 - $x0 ) * 0.36 );
             $c->text( $x1 - $metrics->getTextWidth( $r, $regular, 6.8 ), $y, $r, $regular, 6.8, $grey );
@@ -157,7 +167,18 @@ class Cleanup_Report_PDF {
                 $images['logo']['src'] = $logo;
             }
         }
-        foreach ( (array) $data['screenshots'] as $shot ) {
+        $shots = (array) $data['screenshots'];
+        foreach ( (array) ( $data['opt']['shots'] ?? [] ) as $phase_shots ) {
+            $shots = array_merge( $shots, (array) $phase_shots ); // Website optimization: pre-work and post-work screenshots
+        }
+        foreach ( (array) ( $data['generic'] ?? [] ) as $section ) { // a report type drawn by the generic template
+            foreach ( $section['blocks'] as $block ) {
+                if ( 'shots' === $block['kind'] ) {
+                    $shots = array_merge( $shots, $block['shots'] );
+                }
+            }
+        }
+        foreach ( $shots as $shot ) {
             $images[ $shot['url'] ] = self::image_box( $shot['url'], self::CONTENT_W, self::SHOT_MAX_H, $data );
             if ( $web && $images[ $shot['url'] ] ) {
                 $images[ $shot['url'] ]['src'] = $shot['url'];
@@ -302,16 +323,16 @@ class Cleanup_Report_PDF {
     public static function missing() {
         $missing = [];
         if ( ! class_exists( '\CleanupReportGenerator\Vendor\Dompdf\Dompdf' ) ) {
-            $missing['library'] = 'the bundled Dompdf library';
+            $missing['library'] = __( 'the bundled Dompdf library', 'cleanup-report-generator' );
         }
         if ( ! function_exists( 'mb_convert_encoding' ) ) { // WordPress polyfills a few mb_* functions, not this one
-            $missing['mbstring'] = 'the PHP mbstring extension';
+            $missing['mbstring'] = __( 'the PHP mbstring extension', 'cleanup-report-generator' );
         }
         if ( ! class_exists( 'DOMDocument' ) ) {
-            $missing['dom'] = 'the PHP dom extension';
+            $missing['dom'] = __( 'the PHP dom extension', 'cleanup-report-generator' );
         }
         if ( ! function_exists( 'imagecreatefrompng' ) ) {
-            $missing['gd'] = 'the PHP gd extension';
+            $missing['gd'] = __( 'the PHP gd extension', 'cleanup-report-generator' );
         }
         return $missing;
     }
@@ -339,7 +360,8 @@ class Cleanup_Report_PDF {
     private static function missing_text() {
         $parts = array_values( self::missing() );
         $last  = array_pop( $parts );
-        return $parts ? implode( ', ', $parts ) . ' and ' . $last : (string) $last;
+        /* translators: 1: a list of missing things, comma-separated, 2: the last missing thing */
+        return $parts ? sprintf( __( '%1$s and %2$s', 'cleanup-report-generator' ), implode( ', ', $parts ), $last ) : (string) $last;
     }
 
     public static function filename( array $data ) {
@@ -348,7 +370,7 @@ class Cleanup_Report_PDF {
         $slug = trim( preg_replace( '/[^a-z0-9]+/', '-', strtolower( remove_accents( $name ) ) ), '-' );
         $slug = substr( $slug, 0, 60 ) ?: 'report-' . (int) $data['post_id'];
         $ts   = $data['date'] ? strtotime( $data['date'] ) : false;
-        return $slug . '-cleanup-report-' . gmdate( 'Y-m-d', $ts ?: time() ) . '.pdf';
+        return $slug . '-' . ( $data['type_info']['file'] ?? 'cleanup-report' ) . '-' . gmdate( 'Y-m-d', $ts ?: time() ) . '.pdf';
     }
 
     /**
@@ -427,11 +449,17 @@ class Cleanup_Report_PDF {
         }
         $missing = self::missing();
         $fix     = isset( $missing['library'] )
-            ? 'Install the plugin from its release zip, or run <code>composer install --no-dev</code> in the plugin folder.'
-            : ( count( $missing ) > 1 ? 'Ask your host to enable them.' : 'Ask your host to enable it.' );
+            /* translators: %s: a command, composer install --no-dev */
+            ? sprintf( __( 'Install the plugin from its release zip, or run %s in the plugin folder.', 'cleanup-report-generator' ), '<code>composer install --no-dev</code>' )
+            : _n( 'Ask your host to enable it.', 'Ask your host to enable them.', count( $missing ), 'cleanup-report-generator' );
         if ( isset( $missing['library'] ) && count( $missing ) > 1 ) {
-            $fix .= ' Then ask your host to enable the PHP extensions.';
+            $fix .= ' ' . __( 'Then ask your host to enable the PHP extensions.', 'cleanup-report-generator' );
         }
-        echo '<div class="notice notice-warning"><p><strong>PDF export unavailable:</strong> it needs ' . esc_html( self::missing_text() ) . ', so "Download PDF" opens the print view instead (use the browser\'s Save as PDF). ' . wp_kses( $fix, [ 'code' => [] ] ) . '</p></div>';
+        $message = sprintf(
+            /* translators: %s: what the server is missing, e.g. "the PHP gd extension and the PHP dom extension" */
+            __( '<strong>PDF export unavailable:</strong> it needs %s, so "Download PDF" opens the print view instead (use the browser\'s Save as PDF).', 'cleanup-report-generator' ),
+            esc_html( self::missing_text() )
+        );
+        echo '<div class="notice notice-warning"><p>' . wp_kses( $message, [ 'strong' => [] ] ) . ' ' . wp_kses( $fix, [ 'code' => [] ] ) . '</p></div>';
     }
 }

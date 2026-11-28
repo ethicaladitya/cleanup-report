@@ -17,7 +17,7 @@ class Cleanup_Report_Retention {
 
     public static function init() {
         add_action( self::CRON_HOOK, [ __CLASS__, 'run' ] ); // daily run: no argument; a follow-up run passes true
-        add_action( 'init', [ __CLASS__, 'schedule' ] );
+        add_action( 'admin_init', [ __CLASS__, 'schedule' ] ); // wp-admin only: no cron lookup on front-end pages
     }
 
     public static function schedule() {
@@ -100,16 +100,38 @@ class Cleanup_Report_Retention {
         delete_transient( 'crg_retention_running' );
     }
 
-    /** The report's screenshots that are files in this site's Media Library: attachment ID => URL used in the report. */
+    /** Screenshot lists of every report type (meta keys of their screenshots fields). */
+    private static function shot_keys() {
+        $keys = [ 'crg_screenshots' ];
+        foreach ( array_keys( Cleanup_Report_Types::definitions() ) as $type ) {
+            foreach ( Cleanup_Report_Types::get( $type )['sections'] as $section ) {
+                foreach ( $section['fields'] as $f ) {
+                    if ( 'screenshots' === ( $f['type'] ?? '' ) && ! empty( $f['key'] ) ) {
+                        $keys[] = $f['key'];
+                    }
+                }
+            }
+        }
+        return array_values( array_unique( $keys ) );
+    }
+
+    /**
+     * The report's own screenshots: Media Library files uploaded to this report (their parent is the report) and used
+     * in it, attachment ID => URL. A file picked from the library that belongs to something else is never included,
+     * so the cleanup can't delete media it doesn't own. Read before the report is deleted (deleting it detaches them).
+     */
     private static function screenshots( $post_id ) {
-        $shots = get_post_meta( $post_id, 'crg_screenshots', true );
-        $urls  = is_array( $shots ) ? wp_list_pluck( array_filter( $shots, 'is_array' ), 'url' ) : [];
+        $urls = [];
+        foreach ( self::shot_keys() as $key ) {
+            $shots = get_post_meta( $post_id, $key, true );
+            $urls  = array_merge( $urls, is_array( $shots ) ? wp_list_pluck( array_filter( $shots, 'is_array' ), 'url' ) : [] );
+        }
         $urls[] = get_post_meta( $post_id, 'crg_ss_before', true ); // reports from 1.x
         $urls[] = get_post_meta( $post_id, 'crg_ss_after', true );
         $out    = [];
         foreach ( array_filter( array_map( 'strval', $urls ) ) as $url ) {
             $id = attachment_url_to_postid( $url );
-            if ( $id ) {
+            if ( $id && (int) wp_get_post_parent_id( $id ) === (int) $post_id ) {
                 $out[ $id ] = $url;
             }
         }
@@ -128,12 +150,11 @@ class Cleanup_Report_Retention {
             'posts_per_page' => 1,
             'no_found_rows'  => true,
             // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- daily cron, once per deleted screenshot
-            'meta_query'     => [
-                'relation' => 'OR',
-                [ 'key' => 'crg_screenshots', 'value' => $url, 'compare' => 'LIKE' ],
-                [ 'key' => 'crg_ss_before', 'value' => $url ],
-                [ 'key' => 'crg_ss_after', 'value' => $url ],
-            ],
+            'meta_query'     => array_merge(
+                [ 'relation' => 'OR' ],
+                array_map( static function ( $key ) use ( $url ) { return [ 'key' => $key, 'value' => $url, 'compare' => 'LIKE' ]; }, self::shot_keys() ),
+                [ [ 'key' => 'crg_ss_before', 'value' => $url ], [ 'key' => 'crg_ss_after', 'value' => $url ] ]
+            ),
         ] );
         return (bool) $q->posts;
     }
