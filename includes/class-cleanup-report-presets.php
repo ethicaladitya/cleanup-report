@@ -58,9 +58,12 @@ class Cleanup_Report_Presets {
             case 'request_placeholder':
                 return $wpmudev ? 'https://wpmudev.com/…' : 'https://…';
             case 'hosting_answers':
-                return $wpmudev
-                    ? [ 'wpmudev' => __( 'WPMU DEV hosting', 'cleanup-report-generator' ), 'third_party' => __( 'Third-party hosting', 'cleanup-report-generator' ) ]
-                    : [ 'ours' => __( 'Our hosting', 'cleanup-report-generator' ), 'third_party' => __( 'Third-party hosting', 'cleanup-report-generator' ) ];
+                // One stored value for "our own hosting" in both presets ('wpmudev', as 2.1 saved it), so switching the
+                // preset only changes the label and never loses an answer.
+                return [
+                    'wpmudev'     => $wpmudev ? __( 'WPMU DEV hosting', 'cleanup-report-generator' ) : __( 'Our hosting', 'cleanup-report-generator' ),
+                    'third_party' => __( 'Third-party hosting', 'cleanup-report-generator' ),
+                ];
             case 'product_items': // the Defender checklist and the Automate follow-up start switched on
                 return $wpmudev;
         }

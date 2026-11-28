@@ -304,8 +304,15 @@ class Cleanup_Report_Types {
         foreach ( self::definitions() as $key => $type ) {
             add_submenu_page( $parent, $type['add'], $type['add'], 'edit_posts', 'post-new.php?post_type=cleanup_report&crg_type=' . $key );
         }
-        add_submenu_page( $parent, __( 'Add report', 'cleanup-report-generator' ), __( 'Add report', 'cleanup-report-generator' ), 'edit_posts', self::CHOOSER, [ __CLASS__, 'chooser' ] );
+        $hook = add_submenu_page( $parent, __( 'Add report', 'cleanup-report-generator' ), __( 'Add report', 'cleanup-report-generator' ), 'edit_posts', self::CHOOSER, [ __CLASS__, 'chooser' ] );
         remove_submenu_page( $parent, self::CHOOSER ); // reachable by URL, not listed
+        if ( $hook ) {
+            // A page removed from the menu has no admin title; WordPress's header would pass null to strip_tags().
+            add_action( 'load-' . $hook, static function () {
+                global $title;
+                $title = __( 'Add report', 'cleanup-report-generator' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- the admin page title WordPress reads for this hidden page
+            } );
+        }
     }
 
     /** Keeps the right "Add … report" item highlighted on the new report screen. */

@@ -16,9 +16,9 @@ function cleanup_report_uninstall_site() {
         return;
     }
     global $wpdb;
-    $ids = get_posts( [ 'post_type' => 'cleanup_report', 'post_status' => 'any', 'numberposts' => -1, 'fields' => 'ids', 'no_found_rows' => true ] );
-    $ids = array_merge( $ids, get_posts( [ 'post_type' => 'cleanup_report', 'post_status' => 'trash', 'numberposts' => -1, 'fields' => 'ids', 'no_found_rows' => true ] ) );
-    foreach ( array_unique( $ids ) as $id ) {
+    // Every status, including the Trash and the auto-drafts WordPress makes when "Add report" is opened.
+    $ids = get_posts( [ 'post_type' => 'cleanup_report', 'post_status' => array_values( get_post_stati() ), 'numberposts' => -1, 'fields' => 'ids', 'no_found_rows' => true ] );
+    foreach ( $ids as $id ) {
         wp_delete_post( $id, true ); // with its meta (report fields, history) and revisions
     }
     foreach ( [ 'crg_refresh_plugin_list', 'crg_retention_cleanup' ] as $hook ) {
