@@ -49,8 +49,8 @@ class Cleanup_Report_Settings {
         register_setting( 'crg_settings', 'crg_brand_name', [ 'sanitize_callback' => 'sanitize_text_field' ] );
         register_setting( 'crg_settings', 'crg_brand_logo', [ 'sanitize_callback' => 'esc_url_raw' ] );
         register_setting( 'crg_settings', 'crg_brand_logo_light', [ 'sanitize_callback' => 'esc_url_raw' ] );
-        foreach ( Cleanup_Report_Render::COLORS as $key => $c ) {
-            register_setting( 'crg_settings', 'crg_color_' . $key, [ 'default' => $c[2], 'sanitize_callback' => static function ( $v ) use ( $c ) { return sanitize_hex_color( $v ) ?: $c[2]; } ] );
+        foreach ( Cleanup_Report_Render::COLORS as $key => $default ) {
+            register_setting( 'crg_settings', 'crg_color_' . $key, [ 'default' => $default, 'sanitize_callback' => static function ( $v ) use ( $default ) { return sanitize_hex_color( $v ) ?: $default; } ] );
         }
         register_setting( 'crg_settings', 'crg_brand_primary', [ 'default' => '#0059FF', 'sanitize_callback' => [ __CLASS__, 'sanitize_primary' ] ] ); // wpmudev.com blue
         register_setting( 'crg_settings', 'crg_report_theme', [ 'default' => 'light', 'sanitize_callback' => static function ( $v ) { return 'dark' === $v ? 'dark' : 'light'; } ] );
@@ -204,10 +204,10 @@ class Cleanup_Report_Settings {
                 <tr>
                     <th scope="row"><?php esc_html_e( 'Colour presets', 'cleanup-report-generator' ); ?></th>
                     <td>
-                        <?php foreach ( Cleanup_Report_Render::PRESETS as $key => [ $label, $preset ] ) : ?>
+                        <?php foreach ( Cleanup_Report_Render::PRESETS as $key => $preset ) : ?>
                             <button type="button" class="button crg-preset" data-preset="<?php echo esc_attr( (string) wp_json_encode( $preset ) ); ?>">
                                 <?php foreach ( [ 'primary', 'danger', 'warning', 'success' ] as $swatch ) : ?><span class="crg-preset-swatch" style="background:<?php echo esc_attr( $preset[ $swatch ] ); ?>"></span><?php endforeach; ?>
-                                <?php echo esc_html( Cleanup_Report_Render::preset_labels()[ $key ] ?? $label ); ?>
+                                <?php echo esc_html( Cleanup_Report_Render::preset_labels()[ $key ] ?? $key ); ?>
                             </button>
                         <?php endforeach; ?>
                         <p class="description"><?php esc_html_e( 'Fills the colours and cover gradient below in one click. Nothing changes until you save; you can still adjust any colour afterwards. Bold is the original look.', 'cleanup-report-generator' ); ?></p>
@@ -221,10 +221,10 @@ class Cleanup_Report_Settings {
                 <tr>
                     <th scope="row"><?php esc_html_e( 'Status colours', 'cleanup-report-generator' ); ?></th>
                     <td class="crg-colors">
-                        <?php foreach ( Cleanup_Report_Render::COLORS as $key => [ $label, $use, $default ] ) : ?>
+                        <?php foreach ( Cleanup_Report_Render::COLORS as $key => $default ) : ?>
                             <div class="crg-color-row">
                                 <input type="text" id="crg_color_<?php echo esc_attr( $key ); ?>" name="crg_color_<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( get_option( 'crg_color_' . $key, $default ) ); ?>" class="crg-color" data-default-color="<?php echo esc_attr( $default ); ?>">
-                                <?php [ $label, $use ] = Cleanup_Report_Render::color_labels()[ $key ] ?? [ $label, $use ]; ?>
+                                <?php [ $label, $use ] = Cleanup_Report_Render::color_labels()[ $key ] ?? [ $key, '' ]; ?>
                                 <label for="crg_color_<?php echo esc_attr( $key ); ?>"><strong><?php echo esc_html( $label ); ?></strong> <span class="crg-muted"><?php echo esc_html( $use ); ?></span></label>
                             </div>
                         <?php endforeach; ?>
@@ -720,7 +720,7 @@ class Cleanup_Report_Settings {
                 <?php self::field( $name, $i, 'label', __( 'Name', 'cleanup-report-generator' ), $item['label'] ?? '', __( 'Shown in the report and on the edit screen.', 'cleanup-report-generator' ) ); ?>
                 <?php self::field( $name, $i, 'hint', __( 'Hint for staff', 'cleanup-report-generator' ), $item['hint'] ?? '', __( 'Edit screen only: when to mark it.', 'cleanup-report-generator' ) ); ?>
                 <?php self::field( $name, $i, 'done', __( 'Report text when already configured', 'cleanup-report-generator' ), $item['done'] ?? '', __( 'It was in place before the cleanup, or nothing was needed.', 'cleanup-report-generator' ), 'textarea', __( 'e.g. Your site already has SSL.', 'cleanup-report-generator' ) ); ?>
-                <?php self::field( $name, $i, 'fixed', __( 'Report text when done', 'cleanup-report-generator' ), ( $item['fixed'] ?? '' ) ?: ( Cleanup_Report_Checklists::DEFAULT_FIXED[ $item['key'] ?? '' ] ?? '' ), __( 'We did it during the cleanup.', 'cleanup-report-generator' ), 'textarea', __( 'e.g. We installed an SSL certificate.', 'cleanup-report-generator' ) ); ?>
+                <?php self::field( $name, $i, 'fixed', __( 'Report text when done', 'cleanup-report-generator' ), ( $item['fixed'] ?? '' ) ?: ( in_array( $item['key'] ?? '', Cleanup_Report_Checklists::DEFAULT_FIXED, true ) ? Cleanup_Report_Checklists::fixed_text( $item['key'] ) : '' ), __( 'We did it during the cleanup.', 'cleanup-report-generator' ), 'textarea', __( 'e.g. We installed an SSL certificate.', 'cleanup-report-generator' ) ); ?>
                 <?php self::field( $name, $i, 'todo', __( 'Report text when the member needs to act', 'cleanup-report-generator' ), $item['todo'] ?? '', '', 'textarea', __( 'e.g. Install an SSL certificate so all traffic is encrypted.', 'cleanup-report-generator' ) ); ?>
                 <?php self::field( $name, $i, 'link', __( 'Link on the member\'s site', 'cleanup-report-generator' ), $item['link'] ?? '', __( 'Optional. Shown in the report so the member can open the right screen. {wp_admin} is filled in from the report\'s website URL.', 'cleanup-report-generator' ), 'text', '{wp_admin}/users.php' ); ?>
                 <?php self::field( $name, $i, 'docs', __( 'Documentation link for staff', 'cleanup-report-generator' ), $item['docs'] ?? '', __( 'Optional. Shown next to the item on the edit screen.', 'cleanup-report-generator' ), 'url', 'https://' ); ?>

@@ -42,7 +42,7 @@ class Cleanup_Report_Admin {
     ];
 
     /** Bump to run upgrade() once more on every site (stored in the autoloaded option crg_db_version). */
-    const DB_VERSION = 5;
+    const DB_VERSION = 6;
 
     /** The review status this request changed the report to, for the "saved" message. */
     private static $changed_to = '';
@@ -145,8 +145,10 @@ class Cleanup_Report_Admin {
         add_filter( 'display_post_states', [ __CLASS__, 'post_states' ], 10, 2 );
         if ( (int) get_option( 'crg_db_version', 0 ) < self::DB_VERSION ) { // autoloaded: no query once up to date
             add_action( 'admin_init', [ __CLASS__, 'upgrade' ] );
+            add_action( self::UPGRADE_HOOK, [ __CLASS__, 'upgrade_batch' ] ); // a large site continues in the background
         }
         add_action( 'added_option', [ __CLASS__, 'checklists_not_autoloaded' ] );
+        add_action( 'current_screen', [ __CLASS__, 'prime_options' ] );
         // History.
         add_action( 'transition_post_status', [ __CLASS__, 'history_created' ], 10, 3 );
         add_action( 'post_updated', [ __CLASS__, 'history_title' ], 10, 3 );
@@ -168,46 +170,84 @@ class Cleanup_Report_Admin {
      *  - An install that already had the plugin keeps the WPMU DEV defaults and the daily plugin-list re-check it has
      *    always had; a new install starts with the Generic defaults, the re-check off and no automatic deletion
      *    (retention 0) (DB_VERSION 4). Settings only wp-admin needs stop being autoloaded (DB_VERSION 5).
+     *  - The upgrade runs in batches of reports, and the type backfill is one query (DB_VERSION 6).
      * Every step is safe to repeat, so a version bump simply runs them all again once.
      */
+    /** Reports handled per upgrade step; the rest follow on the next admin page or WP-Cron run. */
+    const UPGRADE_BATCH  = 100;
+    const UPGRADE_CURSOR = 'crg_upgrade_cursor'; // last report ID done while an upgrade is under way
+    const UPGRADE_HOOK   = 'crg_upgrade_continue';
+
+    /** Runs (or continues) the upgrade on an admin page of someone who can write reports. */
     public static function upgrade() {
-        if ( ! current_user_can( 'edit_posts' ) || get_transient( 'crg_upgrading' ) ) {
+        if ( current_user_can( 'edit_posts' ) ) {
+            self::upgrade_batch();
+        }
+    }
+
+    /**
+     * One step of the upgrade: the site-wide fixes the first time, then the next UPGRADE_BATCH reports by ID. When a
+     * step ends with more to do, the cursor is saved and a WP-Cron event carries on; crg_db_version is set only when
+     * every report is done, so an interrupted upgrade simply continues.
+     */
+    public static function upgrade_batch() {
+        if ( (int) get_option( 'crg_db_version', 0 ) >= self::DB_VERSION || get_transient( 'crg_upgrading' ) ) {
             return;
         }
-        set_transient( 'crg_upgrading', 1, 5 * MINUTE_IN_SECONDS ); // one admin request at a time
+        set_transient( 'crg_upgrading', 1, 5 * MINUTE_IN_SECONDS ); // one request at a time
         global $wpdb;
-        $had_plugin = (int) get_option( 'crg_db_version', 0 ) > 0 || false !== get_option( 'crg_brand_name' );
-        // Whole posts (not just IDs) so their meta is loaded in one query, not one per report.
-        $reports = get_posts( [ 'post_type' => 'cleanup_report', 'post_status' => [ 'draft', 'pending', 'publish', 'private', 'future', 'trash' ], 'numberposts' => -1, 'no_found_rows' => true ] );
-        $had_plugin = $had_plugin || (bool) $reports;
+        $cursor = get_option( self::UPGRADE_CURSOR, false );
+        if ( false === $cursor ) {
+            self::upgrade_site();
+            $cursor = 0;
+        }
+        $ids = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'cleanup_report' AND post_status NOT IN ( 'auto-draft', 'inherit' ) AND ID > %d ORDER BY ID ASC LIMIT %d", (int) $cursor, self::UPGRADE_BATCH ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- upgrade cursor over report IDs
+        if ( $ids ) {
+            _prime_post_caches( $ids, false, true ); // posts and their meta in two queries, not one per report
+            foreach ( $ids as $id ) {
+                self::upgrade_report( get_post( $id ) );
+            }
+            $cursor = end( $ids );
+        }
+        if ( count( $ids ) < self::UPGRADE_BATCH ) {
+            update_option( 'crg_db_version', self::DB_VERSION, true );
+            delete_option( self::UPGRADE_CURSOR );
+            wp_clear_scheduled_hook( self::UPGRADE_HOOK );
+        } else {
+            update_option( self::UPGRADE_CURSOR, (int) $cursor, false );
+            if ( ! wp_next_scheduled( self::UPGRADE_HOOK ) ) {
+                wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::UPGRADE_HOOK );
+            }
+        }
+        delete_transient( 'crg_upgrading' );
+    }
+
+    /** The upgrade's site-wide steps (each safe to repeat). */
+    private static function upgrade_site() {
+        global $wpdb;
+        $had_plugin = (int) get_option( 'crg_db_version', 0 ) > 0 || false !== get_option( 'crg_brand_name' )
+            || (bool) $wpdb->get_var( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'cleanup_report' AND post_status <> 'auto-draft' LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time check
         Cleanup_Report_Presets::choose_on_upgrade( $had_plugin );
         if ( false === get_option( 'crg_plugin_recheck' ) ) {
-            add_option( 'crg_plugin_recheck', $had_plugin ? 1 : 0 );
+            add_option( 'crg_plugin_recheck', $had_plugin ? 1 : 0, '', false );
         }
         if ( ! $had_plugin && false === get_option( Cleanup_Report_Retention::OPTION ) ) {
             add_option( Cleanup_Report_Retention::OPTION, 0, '', false ); // a new install keeps reports until someone sets a retention period
         }
-        foreach ( $reports as $post ) {
-            $want = self::POST_STATUS[ self::status( $post->ID ) ];
-            if ( 'trash' !== $post->post_status && $post->post_status !== $want ) {
-                $wpdb->update( $wpdb->posts, [ 'post_status' => $want ], [ 'ID' => $post->ID ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time fix; wp_update_post() would change the modified date; the cache is cleared next
-                clean_post_cache( $post->ID );
-            }
-            if ( ! self::is_final( $post->ID ) ) {
-                Cleanup_Report_Checklists::rename_report_labels( $post->ID );
-            }
-            if ( ! metadata_exists( 'post', $post->ID, Cleanup_Report_Types::META ) ) {
-                update_post_meta( $post->ID, Cleanup_Report_Types::META, Cleanup_Report_Types::DEFAULT_TYPE );
-            }
-            $text = (string) get_post_meta( $post->ID, 'crg_verification_summary', true );
-            $new  = preg_replace( '#Front-end scan with \S+ SiteCheck and VirusTotal#i', 'Front-end scan with external malware scanners such as VirusTotal', $text );
-            if ( $new !== $text ) {
-                update_post_meta( $post->ID, 'crg_verification_summary', wp_slash( $new ) );
+        // Every report without a type is a Malware cleanup report: one query instead of one write per report.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time backfill; the meta caches of the reports are cleared below
+        $untyped = $wpdb->get_col( $wpdb->prepare( "SELECT p.ID FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s WHERE p.post_type = 'cleanup_report' AND p.post_status <> 'auto-draft' AND m.meta_id IS NULL", Cleanup_Report_Types::META ) );
+        if ( $untyped ) {
+            $wpdb->query( $wpdb->prepare( "INSERT INTO {$wpdb->postmeta} ( post_id, meta_key, meta_value ) SELECT p.ID, %s, %s FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s WHERE p.post_type = 'cleanup_report' AND p.post_status <> 'auto-draft' AND m.meta_id IS NULL", Cleanup_Report_Types::META, Cleanup_Report_Types::DEFAULT_TYPE, Cleanup_Report_Types::META ) );
+            foreach ( $untyped as $id ) {
+                wp_cache_delete( (int) $id, 'post_meta' );
             }
         }
+        // phpcs:enable
         Cleanup_Report_Checklists::rename_saved_labels();
         if ( function_exists( 'wp_set_options_autoload' ) ) {
             wp_set_options_autoload( self::ADMIN_OPTIONS, false );
+            wp_set_option_autoload( Cleanup_Report_Presets::OPTION, true ); // read on every admin page (the menu labels)
         }
         $footer = get_option( 'crg_footer_text' ); // a saved "© 2026 …" froze the year: make it follow the date
         if ( is_string( $footer ) ) {
@@ -218,8 +258,27 @@ class Cleanup_Report_Admin {
         }
         delete_option( 'crg_post_status_synced' ); // flags from earlier 2.1.0 builds
         delete_option( 'crg_scanner_line_replaced' );
-        update_option( 'crg_db_version', self::DB_VERSION, true );
-        delete_transient( 'crg_upgrading' );
+    }
+
+    /** The upgrade's steps for one report (each safe to repeat). */
+    private static function upgrade_report( $post ) {
+        global $wpdb;
+        if ( ! $post ) {
+            return;
+        }
+        $want = self::POST_STATUS[ self::status( $post->ID ) ];
+        if ( 'trash' !== $post->post_status && $post->post_status !== $want ) {
+            $wpdb->update( $wpdb->posts, [ 'post_status' => $want ], [ 'ID' => $post->ID ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time fix; wp_update_post() would change the modified date; the cache is cleared next
+            clean_post_cache( $post->ID );
+        }
+        if ( ! self::is_final( $post->ID ) ) {
+            Cleanup_Report_Checklists::rename_report_labels( $post->ID );
+        }
+        $text = (string) get_post_meta( $post->ID, 'crg_verification_summary', true );
+        $new  = preg_replace( '#Front-end scan with \S+ SiteCheck and VirusTotal#i', 'Front-end scan with external malware scanners such as VirusTotal', $text );
+        if ( $new !== $text ) {
+            update_post_meta( $post->ID, 'crg_verification_summary', wp_slash( $new ) );
+        }
     }
 
     /**
@@ -228,10 +287,23 @@ class Cleanup_Report_Admin {
      */
     const ADMIN_OPTIONS = [
         Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION, Cleanup_Report_Checklists::BLOCKLIST_OPTION, Cleanup_Report_Optimization::CHECKS_OPTION,
-        'crg_defaults', 'crg_brand_name', 'crg_brand_logo', 'crg_brand_logo_light', 'crg_brand_primary', 'crg_report_theme', 'crg_cover_glow', 'crg_footer_text',
+        'crg_brand_name', 'crg_brand_logo', 'crg_brand_logo_light', 'crg_brand_primary', 'crg_report_theme', 'crg_cover_glow', 'crg_footer_text',
         'crg_color_success', 'crg_color_warning', 'crg_color_high', 'crg_color_danger', 'crg_color_neutral', 'crg_watermark_text', 'crg_pdf_requires_approval',
         'crg_buddyleads', 'crg_retention_days', 'crg_plugin_recheck', 'crg_delete_data', 'crg_opt_target_mobile', 'crg_opt_target_desktop',
     ];
+
+    /** On the plugin's own screens, load its (non-autoloaded) settings in one query instead of one each. */
+    public static function prime_options( $screen ) {
+        if ( $screen && 'cleanup_report' === $screen->post_type ) {
+            self::prime_option_cache();
+        }
+    }
+
+    public static function prime_option_cache() {
+        if ( function_exists( 'wp_prime_option_caches' ) ) {
+            wp_prime_option_caches( self::ADMIN_OPTIONS );
+        }
+    }
 
     /** When one of ADMIN_OPTIONS is first saved, keep it out of every page's autoload. */
     public static function checklists_not_autoloaded( $option ) {
@@ -627,8 +699,6 @@ class Cleanup_Report_Admin {
             return;
         }
 
-        Cleanup_Report_Types::save( $post_id, sanitize_key( wp_unslash( $_POST['crg_report_type'] ?? '' ) ) );
-        $type   = Cleanup_Report_Types::of( $post_id );
         $before = self::history_snapshot( $post_id );
 
         // Review status: checked against what this user may do (only Buddyleads approve; completing needs approval).
@@ -654,6 +724,8 @@ class Cleanup_Report_Admin {
         if ( Cleanup_Report_Access::locked( $post_id ) ) {
             return;
         }
+        Cleanup_Report_Types::save( $post_id, sanitize_key( wp_unslash( $_POST['crg_report_type'] ?? '' ) ) ); // only sets a missing type
+        $type = Cleanup_Report_Types::of( $post_id );
         if ( isset( $_POST['crg_author_notes'] ) ) {
             update_post_meta( $post_id, 'crg_author_notes', wp_slash( sanitize_textarea_field( wp_unslash( $_POST['crg_author_notes'] ) ) ) );
         }

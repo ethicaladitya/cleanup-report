@@ -103,8 +103,8 @@ class Cleanup_Report_Retention {
     /** Screenshot lists of every report type (meta keys of their screenshots fields). */
     private static function shot_keys() {
         $keys = [ 'crg_screenshots' ];
-        foreach ( Cleanup_Report_Types::definitions() as $def ) {
-            foreach ( $def['sections'] as $section ) {
+        foreach ( array_keys( Cleanup_Report_Types::definitions() ) as $type ) {
+            foreach ( Cleanup_Report_Types::get( $type )['sections'] as $section ) {
                 foreach ( $section['fields'] as $f ) {
                     if ( 'screenshots' === ( $f['type'] ?? '' ) && ! empty( $f['key'] ) ) {
                         $keys[] = $f['key'];

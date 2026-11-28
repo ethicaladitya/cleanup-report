@@ -61,6 +61,7 @@ class Cleanup_Report_Fields {
             return;
         }
         $default = ( null !== $f['default_new'] && 'auto-draft' === $post->post_status ) ? $f['default_new'] : $f['default'];
+        $default = is_callable( $default ) && ! is_string( $default ) ? call_user_func( $default ) : $default; // built only when shown
         switch ( $f['type'] ) {
             case 'text':
             case 'url':

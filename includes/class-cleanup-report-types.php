@@ -53,7 +53,8 @@ class Cleanup_Report_Types {
      *  - label, add (menu item), about and icon (chooser card; a Dashicons name), eyebrow (cover), title (running header), file (PDF file name part),
      *    suffix (suggested title), prepared_by (cover card: "<brand> <prepared_by>")
      *  - sections: key => [ title, fields => [ field, … ], columns (optional) ]; box ID crg_box_<key>. Fields are
-     *    described in Cleanup_Report_Fields.
+     *    described in Cleanup_Report_Fields. May be a callable returning them, so they're only built when needed
+     *    (definitions() runs on every admin page for the menu; get() builds a type's sections).
      *  - settings: Settings tabs of this type, tab key => label (built-in tabs) or [ label, render callable ].
      *  - template: one of TEMPLATES ('generic' when left out).
      *  - on_save: optional callable( $post_id ), after the fields are saved.
@@ -99,10 +100,21 @@ class Cleanup_Report_Types {
         return self::$definitions;
     }
 
-    /** One type's definition (the default type's for an unknown key). */
+    /** @var array resolved definitions (sections built), by type */
+    private static $resolved = [];
+
+    /** One type's definition with its sections (the default type's for an unknown key). */
     public static function get( $type ) {
         $defs = self::definitions();
-        return $defs[ $type ] ?? $defs[ self::DEFAULT_TYPE ];
+        $type = isset( $defs[ $type ] ) ? $type : self::DEFAULT_TYPE;
+        if ( ! isset( self::$resolved[ $type ] ) ) {
+            $def = $defs[ $type ];
+            if ( is_callable( $def['sections'] ) ) {
+                $def['sections'] = (array) call_user_func( $def['sections'] );
+            }
+            self::$resolved[ $type ] = $def;
+        }
+        return self::$resolved[ $type ];
     }
 
     public static function exists( $type ) {
@@ -143,16 +155,6 @@ class Cleanup_Report_Types {
     }
 
     private static function malware_cleanup() {
-        $list_help = __( 'A bulleted list, one per item. Put the folder in brackets and a reason after a dash, e.g. <em>Slider Revolution (revslider) – no licence provided</em>.', 'cleanup-report-generator' );
-        $questions = [];
-        $notes     = [
-            'hosting_type' => __( 'Note, e.g. the host or plan', 'cleanup-report-generator' ),
-            'backups'      => __( 'Link to the backups, e.g. in the Hub', 'cleanup-report-generator' ),
-            'ssh_accounts' => __( 'Which accounts, and what was done', 'cleanup-report-generator' ),
-        ];
-        foreach ( Cleanup_Report_Render::site_checks_config() as $key => $check ) {
-            $questions[ $key ] = [ $check[0], $check[1], $check[2], $notes[ $key ] ?? __( 'Note', 'cleanup-report-generator' ) ];
-        }
         return [
             'label'       => __( 'Malware cleanup', 'cleanup-report-generator' ),
             'icon'        => 'shield',
@@ -165,64 +167,74 @@ class Cleanup_Report_Types {
             'prepared_by' => __( 'security team', 'cleanup-report-generator' ),
             'template'    => 'malware-cleanup',
             'settings'    => [ 'followups' => __( 'Follow-ups', 'cleanup-report-generator' ), 'defender' => __( 'Defender checklist', 'cleanup-report-generator' ), 'blocklists' => __( 'Blocklists', 'cleanup-report-generator' ) ],
-            'sections'    => [
-                'site'     => self::site_section(),
-                'findings' => [
-                    'title'  => __( 'Findings', 'cleanup-report-generator' ),
-                    'fields' => [
-                        [ 'key' => 'crg_screenshots', 'type' => 'screenshots', 'typed' => true, 'label' => __( 'Screenshots', 'cleanup-report-generator' ), 'help' => __( 'Scan results before and after the cleanup, plus any evidence. Shown in the report in this order; drag to reorder.', 'cleanup-report-generator' ), 'default_rows' => [
-                            [ 'url' => '', 'title' => __( 'Security scan – before cleanup', 'cleanup-report-generator' ), 'type' => 'before' ],
-                            [ 'url' => '', 'title' => __( 'Security scan – after cleanup', 'cleanup-report-generator' ), 'type' => 'after' ],
-                        ] ],
-                        [ 'key' => 'crg_key_finding', 'type' => 'key_finding' ],
-                        [ 'key' => 'crg_infection_summary', 'type' => 'editor', 'rows' => 8, 'label' => __( 'Infection summary', 'cleanup-report-generator' ), 'help' => __( 'What was found and how the site was compromised.', 'cleanup-report-generator' ) ],
-                        [ 'key' => 'crg_summary_counts', 'type' => 'severity_counts' ],
-                        [ 'key' => 'crg_plugin_list', 'type' => 'plugin_check' ],
-                        [ 'key' => 'crg_components', 'type' => 'components' ],
-                        [ 'key' => 'crg_improvements', 'type' => 'editor', 'rows' => 5, 'label' => __( 'Suggested improvements & hardening', 'cleanup-report-generator' ), 'help' => __( 'Optional: changes that would make the site harder to attack (fewer plugins, replacing risky ones…).', 'cleanup-report-generator' ) ],
-                    ],
+            'sections'    => [ __CLASS__, 'malware_sections' ], // built when needed, not on every admin page
+        ];
+    }
+
+    /** The malware cleanup report's sections (see definitions()). */
+    public static function malware_sections() {
+        $list_help = __( 'A bulleted list, one per item. Put the folder in brackets and a reason after a dash, e.g. <em>Slider Revolution (revslider) – no licence provided</em>.', 'cleanup-report-generator' );
+        $questions = [];
+        $notes     = [
+            'hosting_type' => __( 'Note, e.g. the host or plan', 'cleanup-report-generator' ),
+            'backups'      => __( 'Link to the backups, e.g. in the Hub', 'cleanup-report-generator' ),
+            'ssh_accounts' => __( 'Which accounts, and what was done', 'cleanup-report-generator' ),
+        ];
+        foreach ( Cleanup_Report_Render::site_checks_config() as $key => $check ) {
+            $questions[ $key ] = [ $check[0], $check[1], $check[2], $notes[ $key ] ?? __( 'Note', 'cleanup-report-generator' ) ];
+        }
+        return [
+            'site'     => self::site_section(),
+            'findings' => [
+                'title'  => __( 'Findings', 'cleanup-report-generator' ),
+                'fields' => [
+                    [ 'key' => 'crg_screenshots', 'type' => 'screenshots', 'typed' => true, 'label' => __( 'Screenshots', 'cleanup-report-generator' ), 'help' => __( 'Scan results before and after the cleanup, plus any evidence. Shown in the report in this order; drag to reorder.', 'cleanup-report-generator' ), 'default_rows' => [
+                        [ 'url' => '', 'title' => __( 'Security scan – before cleanup', 'cleanup-report-generator' ), 'type' => 'before' ],
+                        [ 'url' => '', 'title' => __( 'Security scan – after cleanup', 'cleanup-report-generator' ), 'type' => 'after' ],
+                    ] ],
+                    [ 'key' => 'crg_key_finding', 'type' => 'key_finding' ],
+                    [ 'key' => 'crg_infection_summary', 'type' => 'editor', 'rows' => 8, 'label' => __( 'Infection summary', 'cleanup-report-generator' ), 'help' => __( 'What was found and how the site was compromised.', 'cleanup-report-generator' ) ],
+                    [ 'key' => 'crg_summary_counts', 'type' => 'severity_counts' ],
+                    [ 'key' => 'crg_plugin_list', 'type' => 'plugin_check' ],
+                    [ 'key' => 'crg_components', 'type' => 'components' ],
+                    [ 'key' => 'crg_improvements', 'type' => 'editor', 'rows' => 5, 'label' => __( 'Suggested improvements & hardening', 'cleanup-report-generator' ), 'help' => __( 'Optional: changes that would make the site harder to attack (fewer plugins, replacing risky ones…).', 'cleanup-report-generator' ) ],
                 ],
-                'work'     => [
-                    'title'  => __( 'Work done & verification', 'cleanup-report-generator' ),
-                    'fields' => [
-                        [ 'key' => 'crg_highlights', 'type' => 'editor', 'rows' => 6, 'label' => __( 'Work carried out', 'cleanup-report-generator' ), 'help' => __( 'What we did to clean the site. Shown under <strong>Actions taken</strong>, before the list of standard steps every cleanup includes.', 'cleanup-report-generator' ) ],
-                        [ 'key' => 'crg_verification_summary', 'type' => 'editor', 'rows' => 6, 'label' => __( 'Verification', 'cleanup-report-generator' ), 'help' => __( 'How the site was checked after the cleanup, and anything still showing.', 'cleanup-report-generator' ), 'default_new' => Cleanup_Report_Render::default_texts()['verification'] ],
-                        [ 'key' => 'crg_additional_sites', 'type' => 'textarea', 'rows' => 2, 'label' => __( 'Additional sites on this hosting account', 'cleanup-report-generator' ), 'placeholder' => __( 'No problem identified', 'cleanup-report-generator' ), 'help' => __( 'Other sites found and what was done about them, one per line. Leave empty for "No problem identified".', 'cleanup-report-generator' ) ],
-                        [ 'key' => 'crg_site_checks', 'type' => 'questions', 'label' => __( 'Hosting & access', 'cleanup-report-generator' ), 'help' => __( 'Shown in the report\'s Verification table. Leave a question unanswered to leave it out.', 'cleanup-report-generator' ), 'questions' => $questions ],
-                        [ 'key' => 'crg_delist_vendors', 'type' => 'blocklists' ],
-                    ],
+            ],
+            'work'     => [
+                'title'  => __( 'Work done & verification', 'cleanup-report-generator' ),
+                'fields' => [
+                    [ 'key' => 'crg_highlights', 'type' => 'editor', 'rows' => 6, 'label' => __( 'Work carried out', 'cleanup-report-generator' ), 'help' => __( 'What we did to clean the site. Shown under <strong>Actions taken</strong>, before the list of standard steps every cleanup includes.', 'cleanup-report-generator' ) ],
+                    [ 'key' => 'crg_verification_summary', 'type' => 'editor', 'rows' => 6, 'label' => __( 'Verification', 'cleanup-report-generator' ), 'help' => __( 'How the site was checked after the cleanup, and anything still showing.', 'cleanup-report-generator' ), 'default_new' => static function () { return Cleanup_Report_Render::default_texts()['verification']; } ],
+                    [ 'key' => 'crg_additional_sites', 'type' => 'textarea', 'rows' => 2, 'label' => __( 'Additional sites on this hosting account', 'cleanup-report-generator' ), 'placeholder' => __( 'No problem identified', 'cleanup-report-generator' ), 'help' => __( 'Other sites found and what was done about them, one per line. Leave empty for "No problem identified".', 'cleanup-report-generator' ) ],
+                    [ 'key' => 'crg_site_checks', 'type' => 'questions', 'label' => __( 'Hosting & access', 'cleanup-report-generator' ), 'help' => __( 'Shown in the report\'s Verification table. Leave a question unanswered to leave it out.', 'cleanup-report-generator' ), 'questions' => $questions ],
+                    [ 'key' => 'crg_delist_vendors', 'type' => 'blocklists' ],
                 ],
-                'defender' => [
-                    'title'  => __( 'Defender', 'cleanup-report-generator' ),
-                    'fields' => [ [ 'key' => 'crg_defender', 'type' => 'defender' ] ],
+            ],
+            'defender' => [
+                'title'  => __( 'Defender', 'cleanup-report-generator' ),
+                'fields' => [ [ 'key' => 'crg_defender', 'type' => 'defender' ] ],
+            ],
+            'next'     => [
+                'title'  => __( 'Member next steps', 'cleanup-report-generator' ),
+                'fields' => [
+                    [ 'key' => 'crg_pending_actions', 'type' => 'editor', 'legacy_text' => true, 'rows' => 5, 'label' => __( 'Pending actions', 'cleanup-report-generator' ), 'help' => __( 'Anything the member must still do, as a bulleted or numbered list. Leave empty if nothing is pending.', 'cleanup-report-generator' ) ],
+                    [ 'key' => 'crg_followups', 'type' => 'followups' ],
+                    [ 'key' => 'crg_reinstall_list', 'type' => 'editor', 'rows' => 4, 'label' => __( 'Reinstall: premium plugins & themes not provided', 'cleanup-report-generator' ), 'help' => $list_help ],
+                    [ 'key' => 'crg_replace_list', 'type' => 'editor', 'rows' => 4, 'label' => __( 'Replace: plugins & themes no longer maintained', 'cleanup-report-generator' ), 'help' => $list_help ],
                 ],
-                'next'     => [
-                    'title'  => __( 'Member next steps', 'cleanup-report-generator' ),
-                    'fields' => [
-                        [ 'key' => 'crg_pending_actions', 'type' => 'editor', 'legacy_text' => true, 'rows' => 5, 'label' => __( 'Pending actions', 'cleanup-report-generator' ), 'help' => __( 'Anything the member must still do, as a bulleted or numbered list. Leave empty if nothing is pending.', 'cleanup-report-generator' ) ],
-                        [ 'key' => 'crg_followups', 'type' => 'followups' ],
-                        [ 'key' => 'crg_reinstall_list', 'type' => 'editor', 'rows' => 4, 'label' => __( 'Reinstall: premium plugins & themes not provided', 'cleanup-report-generator' ), 'help' => $list_help ],
-                        [ 'key' => 'crg_replace_list', 'type' => 'editor', 'rows' => 4, 'label' => __( 'Replace: plugins & themes no longer maintained', 'cleanup-report-generator' ), 'help' => $list_help ],
-                    ],
-                ],
-                'guidance' => [
-                    'title'  => __( 'Member guidance', 'cleanup-report-generator' ),
-                    'fields' => [
-                        [ 'key' => 'crg_documentation_links', 'type' => 'textarea', 'rows' => 3, 'label' => __( 'Helpful links', 'cleanup-report-generator' ), 'placeholder' => __( 'Supported PHP versions: https://www.php.net/supported-versions.php', 'cleanup-report-generator' ), 'help' => __( 'One per line as <code>Title: https://…</code>. Links to the Defender docs, 2FA and Hide Login URL are always added.', 'cleanup-report-generator' ) ],
-                        [ 'key' => 'crg_seo_note', 'type' => 'note', 'label' => __( 'Search engines (SEO)', 'cleanup-report-generator' ), 'help' => __( 'What to check in Google and how to clean up search results. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function ( $post ) { return Cleanup_Report_Render::default_texts( self::host( $post ) )['seo']; } ],
-                        [ 'key' => 'crg_protect_note', 'type' => 'note', 'label' => __( 'Staying protected', 'cleanup-report-generator' ), 'help' => __( 'How to keep the site safe from now on. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function () { return Cleanup_Report_Render::default_texts()['protect']; } ],
-                    ],
+            ],
+            'guidance' => [
+                'title'  => __( 'Member guidance', 'cleanup-report-generator' ),
+                'fields' => [
+                    [ 'key' => 'crg_documentation_links', 'type' => 'textarea', 'rows' => 3, 'label' => __( 'Helpful links', 'cleanup-report-generator' ), 'placeholder' => __( 'Supported PHP versions: https://www.php.net/supported-versions.php', 'cleanup-report-generator' ), 'help' => __( 'One per line as <code>Title: https://…</code>. Links to the Defender docs, 2FA and Hide Login URL are always added.', 'cleanup-report-generator' ) ],
+                    [ 'key' => 'crg_seo_note', 'type' => 'note', 'label' => __( 'Search engines (SEO)', 'cleanup-report-generator' ), 'help' => __( 'What to check in Google and how to clean up search results. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function ( $post ) { return Cleanup_Report_Render::default_texts( self::host( $post ) )['seo']; } ],
+                    [ 'key' => 'crg_protect_note', 'type' => 'note', 'label' => __( 'Staying protected', 'cleanup-report-generator' ), 'help' => __( 'How to keep the site safe from now on. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function () { return Cleanup_Report_Render::default_texts()['protect']; } ],
                 ],
             ],
         ];
     }
 
     private static function site_optimization() {
-        $shots_help = static function ( $phase ) {
-            /* translators: %s: "pre-work" or "post-work" */
-            return sprintf( __( 'What the %s checklist found worth showing, e.g. a layout shift. None: the report says "No relevant screenshots."', 'cleanup-report-generator' ), $phase );
-        };
-        $checklist  = [ 'type' => 'checklist', 'items' => [ 'Cleanup_Report_Optimization', 'check_items' ], 'settings' => 'optimization' ];
         return [
             'label'       => __( 'Website optimization', 'cleanup-report-generator' ),
             'icon'        => 'performance',
@@ -236,43 +248,53 @@ class Cleanup_Report_Types {
             'template'    => 'site-optimization',
             'settings'    => [ 'optimization' => __( 'Checklist & targets', 'cleanup-report-generator' ) ],
             'on_save'     => [ 'Cleanup_Report_Optimization', 'save_targets' ],
-            'sections'    => [
-                'site'     => self::site_section(),
-                'scores'   => [
-                    'title'  => __( 'Scores', 'cleanup-report-generator' ),
-                    'fields' => [
-                        [ 'key' => 'crg_opt_scores', 'type' => 'scores' ],
-                        [ 'key' => 'crg_opt_json_link', 'type' => 'url', 'label' => __( 'Lighthouse JSON (before)', 'cleanup-report-generator' ), 'placeholder' => 'https://drive.google.com/…', 'help' => __( 'Optional: a link to the shared JSON of the tests before the work. The report says it opens in the Lighthouse viewer.', 'cleanup-report-generator' ) ],
-                    ],
+            'sections'    => [ __CLASS__, 'optimization_sections' ], // built when needed, not on every admin page
+        ];
+    }
+
+    /** The site optimization report's sections (see definitions()). */
+    public static function optimization_sections() {
+        $shots_help = static function ( $phase ) {
+            /* translators: %s: "pre-work" or "post-work" */
+            return sprintf( __( 'What the %s checklist found worth showing, e.g. a layout shift. None: the report says "No relevant screenshots."', 'cleanup-report-generator' ), $phase );
+        };
+        $checklist  = [ 'type' => 'checklist', 'items' => [ 'Cleanup_Report_Optimization', 'check_items' ], 'settings' => 'optimization' ];
+        return [
+            'site'     => self::site_section(),
+            'scores'   => [
+                'title'  => __( 'Scores', 'cleanup-report-generator' ),
+                'fields' => [
+                    [ 'key' => 'crg_opt_scores', 'type' => 'scores' ],
+                    [ 'key' => 'crg_opt_json_link', 'type' => 'url', 'label' => __( 'Lighthouse JSON (before)', 'cleanup-report-generator' ), 'placeholder' => 'https://drive.google.com/…', 'help' => __( 'Optional: a link to the shared JSON of the tests before the work. The report says it opens in the Lighthouse viewer.', 'cleanup-report-generator' ) ],
                 ],
-                'prework'  => [
-                    'title'  => __( 'Pre-work checklist', 'cleanup-report-generator' ),
-                    'fields' => [
-                        [ 'key' => 'crg_opt_pre_checks', 'phase' => 'pre', 'note_from' => 'pre_note', 'help' => __( 'Test the site before changing anything.', 'cleanup-report-generator' ) ] + $checklist,
-                        [ 'key' => 'crg_opt_pre_shots', 'type' => 'screenshots', 'label' => __( 'Relevant screenshots', 'cleanup-report-generator' ), 'help' => $shots_help( __( 'pre-work', 'cleanup-report-generator' ) ) ],
-                    ],
+            ],
+            'prework'  => [
+                'title'  => __( 'Pre-work checklist', 'cleanup-report-generator' ),
+                'fields' => [
+                    [ 'key' => 'crg_opt_pre_checks', 'phase' => 'pre', 'note_from' => 'pre_note', 'help' => __( 'Test the site before changing anything.', 'cleanup-report-generator' ) ] + $checklist,
+                    [ 'key' => 'crg_opt_pre_shots', 'type' => 'screenshots', 'label' => __( 'Relevant screenshots', 'cleanup-report-generator' ), 'help' => $shots_help( __( 'pre-work', 'cleanup-report-generator' ) ) ],
                 ],
-                'optwork'  => [
-                    'title'  => __( 'Optimization work', 'cleanup-report-generator' ),
-                    'fields' => [
-                        [ 'key' => 'crg_opt_steps', 'type' => 'editor', 'rows' => 10, 'label' => __( 'Optimization steps', 'cleanup-report-generator' ), 'help' => __( 'What was changed, grouped by plugin or tool (e.g. Elementor, Hummingbird, Smush, Hosting). Shown after "For the site optimization, the following steps were taken:".', 'cleanup-report-generator' ) ],
-                        [ 'key' => 'crg_opt_code', 'type' => 'code', 'rows' => 8, 'path_key' => 'crg_opt_code_path', 'path_placeholder' => 'wp-content/mu-plugins/optimization-wpmu.php', 'label' => __( 'Code added', 'cleanup-report-generator' ), 'help' => __( 'Optional: custom code added to the site, e.g. an mu-plugin. Shown in full at the end of the report, so it doesn\'t break up the steps.', 'cleanup-report-generator' ) ],
-                        [ 'key' => 'crg_opt_summary', 'type' => 'editor', 'rows' => 5, 'label' => __( 'Optimization summary', 'cleanup-report-generator' ), 'help' => __( 'Shown under <strong>Optimization result</strong>, after whether the mobile and desktop targets were reached (worked out from the scores).', 'cleanup-report-generator' ) ],
-                    ],
+            ],
+            'optwork'  => [
+                'title'  => __( 'Optimization work', 'cleanup-report-generator' ),
+                'fields' => [
+                    [ 'key' => 'crg_opt_steps', 'type' => 'editor', 'rows' => 10, 'label' => __( 'Optimization steps', 'cleanup-report-generator' ), 'help' => __( 'What was changed, grouped by plugin or tool (e.g. Elementor, Hummingbird, Smush, Hosting). Shown after "For the site optimization, the following steps were taken:".', 'cleanup-report-generator' ) ],
+                    [ 'key' => 'crg_opt_code', 'type' => 'code', 'rows' => 8, 'path_key' => 'crg_opt_code_path', 'path_placeholder' => 'wp-content/mu-plugins/site-tweaks.php', 'label' => __( 'Code added', 'cleanup-report-generator' ), 'help' => __( 'Optional: custom code added to the site, e.g. an mu-plugin. Shown in full at the end of the report, so it doesn\'t break up the steps.', 'cleanup-report-generator' ) ],
+                    [ 'key' => 'crg_opt_summary', 'type' => 'editor', 'rows' => 5, 'label' => __( 'Optimization summary', 'cleanup-report-generator' ), 'help' => __( 'Shown under <strong>Optimization result</strong>, after whether the mobile and desktop targets were reached (worked out from the scores).', 'cleanup-report-generator' ) ],
                 ],
-                'postwork' => [
-                    'title'  => __( 'Post-work checklist', 'cleanup-report-generator' ),
-                    'fields' => [
-                        [ 'key' => 'crg_opt_post_checks', 'phase' => 'post', 'note_from' => 'post_note', 'copy_from' => 'pre', 'copy_label' => __( 'Same answers as pre-work', 'cleanup-report-generator' ), 'help' => __( 'Test the site again once the work is done.', 'cleanup-report-generator' ) ] + $checklist,
-                        [ 'key' => 'crg_opt_post_shots', 'type' => 'screenshots', 'label' => __( 'Relevant screenshots', 'cleanup-report-generator' ), 'help' => $shots_help( __( 'post-work', 'cleanup-report-generator' ) ) ],
-                    ],
+            ],
+            'postwork' => [
+                'title'  => __( 'Post-work checklist', 'cleanup-report-generator' ),
+                'fields' => [
+                    [ 'key' => 'crg_opt_post_checks', 'phase' => 'post', 'note_from' => 'post_note', 'copy_from' => 'pre', 'copy_label' => __( 'Same answers as pre-work', 'cleanup-report-generator' ), 'help' => __( 'Test the site again once the work is done.', 'cleanup-report-generator' ) ] + $checklist,
+                    [ 'key' => 'crg_opt_post_shots', 'type' => 'screenshots', 'label' => __( 'Relevant screenshots', 'cleanup-report-generator' ), 'help' => $shots_help( __( 'post-work', 'cleanup-report-generator' ) ) ],
                 ],
-                'optguide' => [
-                    'title'  => __( 'Member guidance', 'cleanup-report-generator' ),
-                    'fields' => [
-                        [ 'key' => 'crg_opt_info', 'type' => 'note', 'label' => __( 'Helpful information about the performance', 'cleanup-report-generator' ), 'help' => __( 'How the score is measured and how to keep it. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function () { return Cleanup_Report_Optimization::default_texts()['info']; } ],
-                        [ 'key' => 'crg_opt_faq', 'type' => 'note', 'label' => __( 'Questions about the score', 'cleanup-report-generator' ), 'help' => __( 'Why mobile is lower, why the target is 80, why scores differ, Core Web Vitals. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function () { return Cleanup_Report_Optimization::default_texts()['faq']; } ],
-                    ],
+            ],
+            'optguide' => [
+                'title'  => __( 'Member guidance', 'cleanup-report-generator' ),
+                'fields' => [
+                    [ 'key' => 'crg_opt_info', 'type' => 'note', 'label' => __( 'Helpful information about the performance', 'cleanup-report-generator' ), 'help' => __( 'How the score is measured and how to keep it. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function () { return Cleanup_Report_Optimization::default_texts()['info']; } ],
+                    [ 'key' => 'crg_opt_faq', 'type' => 'note', 'label' => __( 'Questions about the score', 'cleanup-report-generator' ), 'help' => __( 'Why mobile is lower, why the target is 80, why scores differ, Core Web Vitals. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function () { return Cleanup_Report_Optimization::default_texts()['faq']; } ],
                 ],
             ],
         ];
@@ -363,6 +385,17 @@ class Cleanup_Report_Types {
         }
     }
 
+    /**
+     * Any report saved without a type (made by code, an import or WP-CLI rather than the edit screen) gets the default
+     * one, so every report has its type stored and the type filters can match on the value alone. New reports from the
+     * edit screen (auto-drafts) are left to store_new_type() and save().
+     */
+    public static function ensure_type( $post_id, $post ) {
+        if ( 'cleanup_report' === $post->post_type && ! in_array( $post->post_status, [ 'auto-draft', 'inherit' ], true ) && ! metadata_exists( 'post', $post_id, self::META ) ) {
+            add_post_meta( $post_id, self::META, self::DEFAULT_TYPE, true );
+        }
+    }
+
     /** On save: a report that has no type yet takes the posted one (the form's hidden field); a type never changes. */
     public static function save( $post_id, $posted ) {
         $posted = sanitize_key( (string) $posted );
@@ -439,10 +472,9 @@ class Cleanup_Report_Types {
         return $views;
     }
 
-    /** Meta query clause for reports of a type (Malware cleanup includes reports saved before types existed). */
+    /** Meta query clause for reports of a type (the upgrade gives every older report its type, so a value match does). */
     private static function meta_match( $type ) {
-        $match = [ 'key' => self::META, 'value' => $type ];
-        return self::DEFAULT_TYPE === $type ? [ 'relation' => 'OR', $match, [ 'key' => self::META, 'compare' => 'NOT EXISTS' ] ] : $match;
+        return [ 'key' => self::META, 'value' => $type ];
     }
 
     public static function filter_list( $query ) {
@@ -453,6 +485,6 @@ class Cleanup_Report_Types {
         if ( ! $type ) {
             return;
         }
-        $query->set( 'meta_query', [ self::meta_match( $type ) ] ); // Malware cleanup also matches reports the upgrade hasn't marked yet // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- admin list filter only
+        $query->set( 'meta_query', [ self::meta_match( $type ) ] ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- admin list filter only
     }
 }

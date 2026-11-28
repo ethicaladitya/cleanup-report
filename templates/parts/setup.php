@@ -44,7 +44,7 @@ if ( $host ) {
 } else {
     $h1_size = $len <= 24 ? 38 : ( $len <= 40 ? 32 : ( $len <= 64 ? 26 : 21 ) );
 }
-$brand_short  = $clip( preg_replace( '/\s+Services$/i', '', (string) $data['brand']['name'] ) ?: 'WPMU DEV', 40 );
+$brand_short  = $clip( preg_replace( '/\s+Services$/i', '', (string) $data['brand']['name'] ) ?: __( 'Our team', 'cleanup-report-generator' ), 40 );
 $glow         = $glow_k > 0 ? $asset( 'assets/cover-glow.png' ) : ''; // not loaded when the cover gradient is off
 $has     = static function ( $html ) { return '' !== trim( wp_strip_all_tags( (string) $html ) ); };
 

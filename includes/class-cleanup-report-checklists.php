@@ -74,18 +74,10 @@ class Cleanup_Report_Checklists {
 
 
 
-    const DEFAULT_FIXED = [
-        'ssl'             => 'We installed an SSL certificate; all traffic is now encrypted.',
-        'cloudflare'      => 'We set up Cloudflare to cache and protect your site.',
-        'php_update'      => 'We moved the site to a supported PHP version.',
-        'check_admins'    => 'We reviewed the administrators and removed accounts that weren\'t yours.',
-        'reset_passwords' => 'We reset the passwords of all users.',
-        'mask_login'      => 'We set a custom login URL in Defender.',
-        'automate'        => 'We enabled WPMU DEV Automate to keep plugins and themes updated.',
-        'review_content'  => 'We reviewed posts and comments and removed the spam.',
-    ];
+    /** Follow-ups with a report text of their own for "Done" (fixed_text() has the wording). */
+    const DEFAULT_FIXED = [ 'ssl', 'cloudflare', 'php_update', 'check_admins', 'reset_passwords', 'mask_login', 'automate', 'review_content' ];
 
-    /** The report text for a follow-up we did during the cleanup (DEFAULT_FIXED, translated), or the general one. */
+    /** The report text for a follow-up we did during the cleanup, or the general one. */
     public static function fixed_text( $key ) {
         $texts = [
             'ssl'             => __( 'We installed an SSL certificate; all traffic is now encrypted.', 'cleanup-report-generator' ),
@@ -193,7 +185,7 @@ class Cleanup_Report_Checklists {
     public static function default_followups() {
         // done = report text when already configured; fixed = when we did it during the cleanup; todo = when the member must.
         $f = static function ( $key, $label, $hint, $todo, $done, $tone = 'required', $docs = '', $enabled = true ) {
-            return compact( 'key', 'label', 'hint', 'docs', 'todo', 'done', 'tone' ) + [ 'fixed' => isset( self::DEFAULT_FIXED[ $key ] ) ? self::fixed_text( $key ) : '', 'link' => self::FOLLOWUP_LINKS[ $key ] ?? '', 'enabled' => $enabled ];
+            return compact( 'key', 'label', 'hint', 'docs', 'todo', 'done', 'tone' ) + [ 'fixed' => in_array( $key, self::DEFAULT_FIXED, true ) ? self::fixed_text( $key ) : '', 'link' => self::FOLLOWUP_LINKS[ $key ] ?? '', 'enabled' => $enabled ];
         };
         // Names as in the team's report template.
         return [
@@ -269,7 +261,8 @@ class Cleanup_Report_Checklists {
      * alone), and gives Defender items their owner and docs link. $kind: 'defender' or 'followups'.
      */
     private static function renamed( array $items, $kind ) {
-        $defaults = self::keyed( 'defender' === $kind ? self::default_defender() : self::default_followups() );
+        static $cache = [];
+        $defaults = $cache[ $kind ] ?? ( $cache[ $kind ] = self::keyed( 'defender' === $kind ? self::default_defender() : self::default_followups() ) );
         foreach ( $items as $i => $item ) {
             $key = $item['key'] ?? '';
             if ( ! isset( $defaults[ $key ] ) ) {

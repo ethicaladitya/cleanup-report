@@ -1,19 +1,19 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-cpt.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-presets.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-fields.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-types.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-optimization.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-access.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-checklists.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-settings.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-plugin-check.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-plugin-registry.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-retention.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-admin.php';
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-render.php';
+/**
+ * Classes load when first used (Cleanup_Report_Foo_Bar → includes/class-cleanup-report-foo-bar.php), so a front-end
+ * page only loads the few the post type, the access rules and the scheduled jobs need.
+ */
+spl_autoload_register( static function ( $class ) {
+    if ( 0 !== strpos( $class, 'Cleanup_Report_' ) ) {
+        return;
+    }
+    $file = CLEANUP_REPORT_PATH . 'includes/class-' . str_replace( '_', '-', strtolower( $class ) ) . '.php';
+    if ( is_readable( $file ) ) {
+        require_once $file;
+    }
+} );
 
 class Cleanup_Report_Generator {
 
@@ -23,13 +23,19 @@ class Cleanup_Report_Generator {
         add_filter( 'post_row_actions', [ __CLASS__, 'row_actions' ], 10, 2 );
         add_action( 'admin_post_crg_view_report', [ __CLASS__, 'handle_view_report' ] );
         add_action( 'admin_post_crg_export_pdf', [ __CLASS__, 'handle_export_pdf' ] );
-        Cleanup_Report_Types::init();
+        // Everywhere: who may do what, and the scheduled jobs (their hooks only; the work runs in WP-Cron).
         Cleanup_Report_Access::init();
-        Cleanup_Report_Admin::init();
-        Cleanup_Report_Settings::init();
-        Cleanup_Report_Plugin_Check::init();
+        add_action( 'wp_insert_post', [ 'Cleanup_Report_Types', 'ensure_type' ], 20, 2 ); // every saved report has a type
         Cleanup_Report_Plugin_Registry::init();
         Cleanup_Report_Retention::init();
+        // Where reports are edited, saved or upgraded: wp-admin (including AJAX, the preview and the PDF), WP-Cron,
+        // WP-CLI and XML-RPC. Front-end pages skip them.
+        if ( is_admin() || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) || ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) ) {
+            Cleanup_Report_Types::init();
+            Cleanup_Report_Admin::init();
+            Cleanup_Report_Settings::init();
+            Cleanup_Report_Plugin_Check::init();
+        }
 
         // Review workflow hooks
         add_action( 'admin_notices', [ __CLASS__, 'review_admin_notices' ] );
@@ -111,6 +117,7 @@ class Cleanup_Report_Generator {
         if ( 'cleanup_report' !== get_post_type( $post_id ) ) {
             wp_die( esc_html__( 'Report not found.', 'cleanup-report-generator' ), esc_html__( 'Not found', 'cleanup-report-generator' ), [ 'response' => 404, 'back_link' => true ] );
         }
+        Cleanup_Report_Admin::prime_option_cache(); // the branding settings, in one query
         // Editors (Writers, Buddyleads) and up may preview or download any report (handovers); editing is separate.
         // Lower roles that can write posts (Authors, Contributors) only see reports they can edit, i.e. their own.
         if ( ! current_user_can( 'edit_others_posts' ) && ! current_user_can( 'edit_post', $post_id ) ) {

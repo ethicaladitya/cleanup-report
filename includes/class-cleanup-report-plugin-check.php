@@ -20,6 +20,7 @@ class Cleanup_Report_Plugin_Check {
     const CACHE_TTL      = 43200; // 12 hours
     const FAIL_TTL       = 600;
     const MAX_ITEMS      = 150;
+    const SEQUENTIAL_BUDGET = 20; // seconds of one-by-one requests per check (when the site shapes HTTP requests)
 
     const COMMAND = 'wp plugin list --fields=name,title,version,update_version,status --format=csv; echo THEMES; wp theme list --fields=name,title,version,update_version,status --format=csv';
 
@@ -112,7 +113,7 @@ class Cleanup_Report_Plugin_Check {
             }
         }
         // A plain user agent: WordPress's default one names this site, which these services don't need.
-        $headers = [ 'User-Agent' => 'Cleanup-Report-Generator/' . CLEANUP_REPORT_VERSION, 'Accept' => 'application/json' ];
+        $headers = [ 'User-Agent' => 'Handover/' . CLEANUP_REPORT_VERSION, 'Accept' => 'application/json' ];
         $bodies  = [];
         // In parallel when nothing on this site shapes outgoing requests; otherwise through the WordPress HTTP API, so
         // WP_HTTP_BLOCK_EXTERNAL, a proxy and pre_http_request filters apply.
@@ -130,8 +131,18 @@ class Cleanup_Report_Plugin_Check {
                 }
             }
         } else {
-            foreach ( $todo as $url ) {
-                $response       = wp_remote_get( $url, [ 'timeout' => 15, 'headers' => $headers ] );
+            // One by one through the WordPress HTTP API: short timeouts and a time budget, so a long list can't run into
+            // the request's own time limit. What doesn't fit isn't cached: checking again picks up where this stopped.
+            $deadline = microtime( true ) + self::SEQUENTIAL_BUDGET;
+            foreach ( $todo as $i => $url ) {
+                if ( microtime( true ) > $deadline ) {
+                    foreach ( array_slice( $todo, $i ) as $late ) {
+                        $out[ $late ] = null;
+                    }
+                    $todo = array_slice( $todo, 0, $i );
+                    break;
+                }
+                $response       = wp_remote_get( $url, [ 'timeout' => 5, 'headers' => $headers ] );
                 $code           = wp_remote_retrieve_response_code( $response );
                 $bodies[ $url ] = in_array( $code, [ 200, 404 ], true ) ? wp_remote_retrieve_body( $response ) : null;
             }
@@ -464,7 +475,8 @@ class Cleanup_Report_Plugin_Check {
         check_ajax_referer( 'crg_check_plugins', 'nonce' );
         $post_id = absint( $_POST['post_id'] ?? 0 );
         // Only from a report this user may edit: the results are recorded against it on the plugin list.
-        if ( 'cleanup_report' !== get_post_type( $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
+        // Not on a report that's read-only for this user (approved, for a Writer): nothing may be recorded against it.
+        if ( 'cleanup_report' !== get_post_type( $post_id ) || ! current_user_can( 'edit_post', $post_id ) || Cleanup_Report_Access::locked( $post_id ) ) {
             wp_send_json_error( [ 'message' => __( 'You are not allowed to do this.', 'cleanup-report-generator' ) ], 403 );
         }
         // At most 10 checks per person in 10 minutes: each one can send a few hundred requests to the two services.

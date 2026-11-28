@@ -43,7 +43,7 @@ class Cleanup_Report_Presets {
      */
     public static function choose_on_upgrade( $had_plugin ) {
         if ( false === get_option( self::OPTION ) ) {
-            add_option( self::OPTION, $had_plugin ? 'wpmudev' : 'generic', '', false );
+            add_option( self::OPTION, $had_plugin ? 'wpmudev' : 'generic', '', true ); // autoloaded: every admin page reads it
         }
     }
 

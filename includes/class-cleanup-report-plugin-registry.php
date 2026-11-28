@@ -24,7 +24,9 @@ class Cleanup_Report_Plugin_Registry {
 
     public static function init() {
         add_action( self::CRON_HOOK, [ __CLASS__, 'refresh' ] );
-        add_action( 'admin_init', [ __CLASS__, 'schedule' ] );
+        // The daily re-check is (un)scheduled when its setting changes, not checked on every page.
+        add_action( 'add_option_crg_plugin_recheck', [ __CLASS__, 'schedule' ] );
+        add_action( 'update_option_crg_plugin_recheck', [ __CLASS__, 'schedule' ] );
         add_action( 'admin_post_crg_save_plugin_list', [ __CLASS__, 'handle_save' ] );
         add_action( 'admin_post_crg_refresh_plugin_list', [ __CLASS__, 'handle_refresh' ] );
         add_action( 'admin_post_crg_export_plugin_list', [ __CLASS__, 'handle_export' ] );
@@ -174,14 +176,15 @@ class Cleanup_Report_Plugin_Registry {
     /**
      * @param bool $force   Re-check every undecided item now ("Re-check WordPress.org now").
      * @param bool $by_user Run because someone just did something (not WP-Cron), even when the daily re-check is off.
+     * @param string[] $only Only these items (list keys), e.g. the one just added.
      */
-    public static function refresh( $force = false, $by_user = false ) {
+    public static function refresh( $force = false, $by_user = false, array $only = [] ) {
         if ( ! $force && ! $by_user && ! get_option( 'crg_plugin_recheck', 0 ) ) {
             return; // the daily run was turned off since it was scheduled
         }
         $list  = self::all();
-        $stale = array_filter( $list, static function ( $e ) use ( $force ) {
-            return '' === $e['decision'] && ( $force || $e['checked'] < time() - self::REFRESH_DAYS * DAY_IN_SECONDS );
+        $stale = array_filter( $only ? array_intersect_key( $list, array_flip( $only ) ) : $list, static function ( $e ) use ( $force, $only ) {
+            return '' === $e['decision'] && ( $force || $only || $e['checked'] < time() - self::REFRESH_DAYS * DAY_IN_SECONDS );
         } );
         uasort( $stale, static function ( $a, $b ) { return $a['checked'] <=> $b['checked']; } );
         $stale = array_slice( $stale, 0, self::REFRESH_BATCH, true );
@@ -267,7 +270,7 @@ class Cleanup_Report_Plugin_Registry {
         }
         self::save( $list );
         if ( '' !== $slug ) {
-            self::refresh( false, true ); // a new undecided item gets looked up straight away
+            self::refresh( false, true, [ $key ] ); // the item just added is looked up straight away (only that one)
         }
         self::back( [ 'saved' => 1 ] );
     }

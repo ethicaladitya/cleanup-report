@@ -17,7 +17,8 @@
  *  - parts/head.php        stylesheet, and the browser preview's bar (shared)
  *  - parts/cover.php       the cover (shared; filled from $cover)
  *  - types/<type>-body.php the summary page and the numbered sections
- * <type> is the report type's template (Cleanup_Report_Types::TYPES): malware-cleanup or site-optimization.
+ * <type> is the report type's template (Cleanup_Report_Types::TEMPLATES): malware-cleanup, site-optimization or
+ * generic (any type defined without a template of its own).
  *
  * Available: $data (Cleanup_Report_Render::get_data()), $images (Cleanup_Report_PDF::image_box() results keyed by URL, plus 'logo').
  *
@@ -26,7 +27,7 @@
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- see above: method scope, not global.
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-$type_info = Cleanup_Report_Types::get( $data['type'] ?? '' ); // a fixed list: the template name never comes from input
+$type_info = $data['type_info']; // from Cleanup_Report_Types::get(): its template is one of TEMPLATES, never input
 $type_file = __DIR__ . '/types/' . $type_info['template'];
 
 require __DIR__ . '/parts/setup.php';

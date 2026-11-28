@@ -632,7 +632,6 @@
 	background: var(--crg-blue);
 	color: #fff;
 }
-.crg-status-reviewed,
 .crg-status-approved {
 	background: var(--crg-green);
 	color: #fff;

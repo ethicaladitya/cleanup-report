@@ -305,23 +305,18 @@ class Cleanup_Report_Render {
     }
 
 
-    /** Status colours (Settings › Branding): key => [ label, what it's used for, default ]. */
-    const COLORS = [
-        'success' => [ 'Success', 'Done, Applied, Low', '#067647' ],
-        'warning' => [ 'Warning', 'Recommended, Medium, Pending actions box', '#FDB022' ],
-        'high'    => [ 'High', 'High severity', '#C4320A' ],
-        'danger'  => [ 'Danger', 'Required, Pending, Critical', '#D92D20' ],
-        'neutral' => [ 'Neutral', 'In place', '#667085' ],
-    ];
+    /** Status colours (Settings › Branding): key => default; names and uses in color_labels(). */
+    const COLORS = [ 'success' => '#067647', 'warning' => '#FDB022', 'high' => '#C4320A', 'danger' => '#D92D20', 'neutral' => '#667085' ];
 
     /**
      * Colour presets (Settings › Branding): one click fills the primary colour, the status colours and the cover gradient;
-     * nothing changes until the settings are saved. Bold is the plugin's original look (the defaults above).
+     * nothing changes until the settings are saved. Bold is the plugin's original look (the defaults above). Names:
+     * preset_labels().
      */
     const PRESETS = [
-        'subtle'   => [ 'Subtle', [ 'primary' => '#3366CC', 'success' => '#ABEFC6', 'warning' => '#FEDF89', 'high' => '#F9DBAF', 'danger' => '#FECDCA', 'neutral' => '#EAECF0', 'glow' => 60 ] ],
-        'balanced' => [ 'Balanced', [ 'primary' => '#2F64D6', 'success' => '#47CD89', 'warning' => '#FDC94B', 'high' => '#F79A5C', 'danger' => '#F97066', 'neutral' => '#D0D5DD', 'glow' => 80 ] ],
-        'bold'     => [ 'Bold', [ 'primary' => '#0059FF', 'success' => '#067647', 'warning' => '#FDB022', 'high' => '#C4320A', 'danger' => '#D92D20', 'neutral' => '#667085', 'glow' => 100 ] ],
+        'subtle'   => [ 'primary' => '#3366CC', 'success' => '#ABEFC6', 'warning' => '#FEDF89', 'high' => '#F9DBAF', 'danger' => '#FECDCA', 'neutral' => '#EAECF0', 'glow' => 60 ],
+        'balanced' => [ 'primary' => '#2F64D6', 'success' => '#47CD89', 'warning' => '#FDC94B', 'high' => '#F79A5C', 'danger' => '#F97066', 'neutral' => '#D0D5DD', 'glow' => 80 ],
+        'bold'     => [ 'primary' => '#0059FF', 'success' => '#067647', 'warning' => '#FDB022', 'high' => '#C4320A', 'danger' => '#D92D20', 'neutral' => '#667085', 'glow' => 100 ],
     ];
 
     /** Translated names for Settings › Branding: status colour key => [ label, what it's used for ], preset key => label. */
@@ -356,8 +351,8 @@ class Cleanup_Report_Render {
     /** The status colours in use: key => hex. */
     public static function colors() {
         $out = [];
-        foreach ( self::COLORS as $key => $c ) {
-            $out[ $key ] = sanitize_hex_color( get_option( 'crg_color_' . $key, '' ) ) ?: $c[2];
+        foreach ( self::COLORS as $key => $default ) {
+            $out[ $key ] = sanitize_hex_color( get_option( 'crg_color_' . $key, '' ) ) ?: $default;
         }
         return $out;
     }

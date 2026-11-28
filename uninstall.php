@@ -17,11 +17,15 @@ function cleanup_report_uninstall_site() {
     }
     global $wpdb;
     // Every status, including the Trash and the auto-drafts WordPress makes when "Add report" is opened.
-    $ids = get_posts( [ 'post_type' => 'cleanup_report', 'post_status' => array_values( get_post_stati() ), 'numberposts' => -1, 'fields' => 'ids', 'no_found_rows' => true ] );
-    foreach ( $ids as $id ) {
-        wp_delete_post( $id, true ); // with its meta (report fields, history) and revisions
-    }
-    foreach ( [ 'crg_refresh_plugin_list', 'crg_retention_cleanup' ] as $hook ) {
+    // In batches of 200, so a large site never holds every report in memory at once.
+    do {
+        $ids = get_posts( [ 'post_type' => 'cleanup_report', 'post_status' => array_values( get_post_stati() ), 'numberposts' => 200, 'fields' => 'ids', 'no_found_rows' => true ] );
+        $deleted = 0;
+        foreach ( $ids as $id ) {
+            $deleted += wp_delete_post( $id, true ) ? 1 : 0; // with its meta (report fields, history) and revisions
+        }
+    } while ( $ids && $deleted ); // stop if a batch can't be deleted, rather than loop on it
+    foreach ( [ 'crg_refresh_plugin_list', 'crg_retention_cleanup', 'crg_upgrade_continue' ] as $hook ) {
         wp_unschedule_hook( $hook );
     }
     // This plugin's options, by name (another plugin may use names starting with crg_ too).
@@ -30,7 +34,7 @@ function cleanup_report_uninstall_site() {
         'crg_report_theme', 'crg_cover_glow', 'crg_footer_text', 'crg_watermark_text', 'crg_pdf_requires_approval',
         'crg_buddyleads', 'crg_retention_days', 'crg_retention_last_run', 'crg_plugin_recheck', 'crg_delete_data',
         'crg_followup_items', 'crg_defender_items', 'crg_blocklists', 'crg_opt_checks', 'crg_opt_target_mobile',
-        'crg_opt_target_desktop', 'crg_plugin_registry', 'crg_premium_items', 'crg_post_status_synced', 'crg_scanner_line_replaced',
+        'crg_opt_target_desktop', 'crg_plugin_registry', 'crg_premium_items', 'crg_post_status_synced', 'crg_scanner_line_replaced', 'crg_upgrade_cursor',
     ];
     foreach ( [ 'success', 'warning', 'high', 'danger', 'neutral' ] as $color ) {
         $options[] = 'crg_color_' . $color;

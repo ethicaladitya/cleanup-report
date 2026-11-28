@@ -25,7 +25,9 @@ class Cleanup_Report_PDF {
         try {
             $dompdf = self::build( $data );
         } catch ( \Throwable $e ) {
-            error_log( 'Handover: PDF generation failed for report ' . $post_id . ': ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- record why the PDF fell back to print view
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'Handover: PDF generation failed for report ' . $post_id . ': ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- with WP_DEBUG on: why the PDF fell back to the print view
+            }
             self::output_print_view( $data, __( 'The PDF couldn\'t be generated (the reason is in the PHP error log)', 'cleanup-report-generator' ) );
         }
 
@@ -54,8 +56,8 @@ class Cleanup_Report_PDF {
         $options->set( 'allowedRemoteHosts', self::allowed_hosts( $data ) );
         $options->set( 'chroot', array_filter( [ CLEANUP_REPORT_PATH, $uploads['basedir'] ?? '' ] ) );
         $options->set( 'tempDir', get_temp_dir() );
-        $options->set( 'fontCache', get_temp_dir() );
         $font_dir = self::font_dir();
+        $options->set( 'fontCache', $font_dir ?: get_temp_dir() ); // with the fonts, so uninstall clears both
         if ( $font_dir ) {
             $options->set( 'fontDir', $font_dir ); // not Dompdf's default inside the plugin: may be read-only, and updates wipe it
         }

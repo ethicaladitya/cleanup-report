@@ -23,14 +23,14 @@ define( 'CLEANUP_REPORT_VERSION', '2.2.0' );
 define( 'CLEANUP_REPORT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CLEANUP_REPORT_URL', plugin_dir_url( __FILE__ ) );
 
-// Include the PDF classes
-require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-pdf.php';
-// Main plugin class will include the other classes
+// The main class; it registers an autoloader for the others.
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-plugin.php';
 
 // Initialize the plugin
 Cleanup_Report_Generator::init();
 
+// Activation: the plugin list's daily re-check (when it's turned on) is scheduled again.
+register_activation_hook( __FILE__, [ 'Cleanup_Report_Plugin_Registry', 'schedule' ] );
 // The plugin list's daily refresh (WP-Cron) stops when the plugin is deactivated.
 register_deactivation_hook( __FILE__, [ 'Cleanup_Report_Plugin_Registry', 'unschedule' ] );
 // So does the daily retention cleanup (Settings › Review › Data retention).
