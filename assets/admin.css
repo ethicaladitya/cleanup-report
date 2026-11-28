@@ -1372,8 +1372,7 @@
 .crg-type-more {
 	margin: 0 0 16px;
 }
-.crg-type-more summary,
-.crg-type-field summary {
+.crg-type-more summary {
 	cursor: pointer;
 }
 .crg-type-more summary {
@@ -1432,11 +1431,10 @@
 .crg-type-tools .crg-type-remove:focus {
 	color: var(--crg-red);
 }
-.crg-type-section:first-child > .crg-type-section-head .crg-type-up,
-.crg-type-section:last-child > .crg-type-section-head .crg-type-down,
-.crg-type-field:first-child > summary .crg-type-up,
-.crg-type-field:last-child > summary .crg-type-down {
-	visibility: hidden;
+.crg-type-tools .button-link:disabled {
+	opacity: 0.3;
+	background: none;
+	cursor: default;
 }
 .crg-type-fields {
 	display: flex;
@@ -1448,26 +1446,43 @@
 	border-radius: 4px;
 	background: #f6f7f7;
 }
-.crg-type-field[open] {
+.crg-type-field.is-open {
 	background: #fff;
 }
-.crg-type-field summary {
+.crg-type-field-head {
 	display: flex;
 	align-items: center;
+	gap: 6px;
+	padding: 4px;
+}
+.crg-type-toggle {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	align-items: center;
 	gap: 10px;
-	padding: 4px 4px 4px 12px;
-	list-style: none;
+	padding: 4px 8px;
+	border: 0;
+	border-radius: 4px;
+	background: none;
+	color: #1d2327;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
 }
-.crg-type-field summary::-webkit-details-marker {
-	display: none;
+.crg-type-toggle:hover {
+	background: var(--crg-line-soft);
 }
-.crg-type-field summary::before {
-	content: "\f345";
-	font: normal 16px/1 dashicons;
+.crg-type-toggle:focus {
+	outline: 2px solid var(--crg-blue);
+	outline-offset: 0;
+}
+.crg-type-toggle .dashicons {
+	flex-shrink: 0;
 	color: var(--crg-muted);
 	transition: transform 0.1s;
 }
-.crg-type-field[open] summary::before {
+.crg-type-field.is-open .crg-type-toggle .dashicons {
 	transform: rotate(90deg);
 }
 .crg-type-kind {
@@ -1488,6 +1503,9 @@
 .crg-type-field-body {
 	padding: 12px 16px 16px;
 	border-top: 1px solid var(--crg-line-soft);
+}
+.crg-type-field-body[hidden] {
+	display: none;
 }
 .crg-type-field-body .crg-field {
 	margin-bottom: 14px;
@@ -1517,6 +1535,8 @@
 }
 .crg-orphans td {
 	vertical-align: top;
+	overflow-wrap: anywhere;
+	word-break: break-word;
 }
 @media (max-width: 782px) {
 	.crg-types-table thead {
@@ -1547,10 +1567,9 @@
 	.crg-types-actions {
 		white-space: normal;
 	}
-	.crg-type-field summary {
+	.crg-type-toggle {
 		flex-wrap: wrap;
-		gap: 6px;
-		padding-left: 8px;
+		gap: 4px 8px;
 	}
 	.crg-type-kind {
 		min-width: 0;
@@ -1561,8 +1580,6 @@
 	}
 	.crg-type-field-title {
 		flex: 1 1 100%;
-		order: 3;
-		padding-bottom: 6px;
 	}
 	.crg-type-tools .button-link {
 		width: 36px;

@@ -343,7 +343,8 @@ class Cleanup_Report_Types {
         $parent = 'edit.php?post_type=cleanup_report';
         remove_submenu_page( $parent, 'post-new.php?post_type=cleanup_report' );
         foreach ( self::addable() as $key => $type ) {
-            add_submenu_page( $parent, $type['add'], $type['add'], 'edit_posts', 'post-new.php?post_type=cleanup_report&crg_type=' . $key );
+            // WordPress prints menu titles as they are: escape them (a custom type's name is the admin's text).
+            add_submenu_page( $parent, esc_html( $type['add'] ), esc_html( $type['add'] ), 'edit_posts', 'post-new.php?post_type=cleanup_report&crg_type=' . $key );
         }
         $hook = add_submenu_page( $parent, __( 'Add report', 'cleanup-report-generator' ), __( 'Add report', 'cleanup-report-generator' ), 'edit_posts', self::CHOOSER, [ __CLASS__, 'chooser' ] );
         remove_submenu_page( $parent, self::CHOOSER ); // reachable by URL, not listed

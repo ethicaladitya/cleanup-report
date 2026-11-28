@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-28T05:11:58+00:00\n"
+"POT-Creation-Date: 2026-11-28T05:21:27+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: cleanup-report-generator\n"
@@ -278,7 +278,7 @@ msgstr ""
 
 #: includes/class-cleanup-report-admin.php:648
 #: includes/class-cleanup-report-settings.php:570
-#: includes/class-cleanup-report-type-builder.php:540
+#: includes/class-cleanup-report-type-builder.php:664
 #: templates/types/malware-cleanup-body.php:169
 #: templates/types/malware-cleanup-body.php:201
 #: assets/admin.js:652
@@ -328,7 +328,7 @@ msgid "Move to Trash"
 msgstr ""
 
 #: includes/class-cleanup-report-admin.php:791
-#: includes/class-cleanup-report-type-builder.php:34
+#: includes/class-cleanup-report-type-builder.php:37
 msgid "Date"
 msgstr ""
 
@@ -641,8 +641,8 @@ msgstr ""
 
 #: includes/class-cleanup-report-cpt.php:8
 #: includes/class-cleanup-report-cpt.php:10
-#: includes/class-cleanup-report-type-builder.php:540
-#: includes/class-cleanup-report-type-builder.php:555
+#: includes/class-cleanup-report-type-builder.php:664
+#: includes/class-cleanup-report-type-builder.php:678
 msgid "Reports"
 msgstr ""
 
@@ -652,9 +652,9 @@ msgstr ""
 
 #: includes/class-cleanup-report-cpt.php:12
 #: includes/class-cleanup-report-cpt.php:13
-#: includes/class-cleanup-report-types.php:348
-#: includes/class-cleanup-report-types.php:354
-#: includes/class-cleanup-report-types.php:431
+#: includes/class-cleanup-report-types.php:349
+#: includes/class-cleanup-report-types.php:355
+#: includes/class-cleanup-report-types.php:432
 msgid "Add report"
 msgstr ""
 
@@ -695,7 +695,7 @@ msgstr ""
 #: includes/class-cleanup-report-fields.php:182
 #: includes/class-cleanup-report-settings.php:570
 #: includes/class-cleanup-report-settings.php:646
-#: includes/class-cleanup-report-type-builder.php:130
+#: includes/class-cleanup-report-type-builder.php:138
 #: includes/class-cleanup-report-types.php:201
 msgid "Note"
 msgstr ""
@@ -794,7 +794,7 @@ msgid "Choose"
 msgstr ""
 
 #: includes/class-cleanup-report-fields.php:286
-#: includes/class-cleanup-report-type-builder.php:451
+#: includes/class-cleanup-report-type-builder.php:572
 #: assets/admin.js:270
 #: assets/admin.js:449
 msgid "Remove"
@@ -805,7 +805,7 @@ msgid "Remove screenshot"
 msgstr ""
 
 #: includes/class-cleanup-report-fields.php:298
-#: includes/class-cleanup-report-type-builder.php:580
+#: includes/class-cleanup-report-type-builder.php:703
 msgid "Key finding"
 msgstr ""
 
@@ -1081,7 +1081,7 @@ msgid "Edit the Defender checklist"
 msgstr ""
 
 #: includes/class-cleanup-report-fields.php:531
-#: includes/class-cleanup-report-type-builder.php:586
+#: includes/class-cleanup-report-type-builder.php:709
 #: includes/class-cleanup-report-types.php:186
 msgid "Follow-ups"
 msgstr ""
@@ -1214,7 +1214,7 @@ msgid "File"
 msgstr ""
 
 #: includes/class-cleanup-report-fields.php:650
-#: includes/class-cleanup-report-type-builder.php:41
+#: includes/class-cleanup-report-type-builder.php:44
 msgid "Code"
 msgstr ""
 
@@ -1241,7 +1241,7 @@ msgstr ""
 #: includes/class-cleanup-report-fields.php:697
 #: includes/class-cleanup-report-render.php:261
 #: includes/class-cleanup-report-settings.php:334
-#: includes/class-cleanup-report-type-builder.php:289
+#: includes/class-cleanup-report-type-builder.php:387
 #: templates/types/site-optimization-body.php:185
 msgid "Yes"
 msgstr ""
@@ -1250,7 +1250,7 @@ msgstr ""
 #: includes/class-cleanup-report-render.php:261
 #: includes/class-cleanup-report-render.php:264
 #: includes/class-cleanup-report-settings.php:334
-#: includes/class-cleanup-report-type-builder.php:289
+#: includes/class-cleanup-report-type-builder.php:387
 #: templates/types/site-optimization-body.php:185
 msgid "No"
 msgstr ""
@@ -2515,7 +2515,7 @@ msgstr ""
 #. translators: %s: report type
 #: includes/class-cleanup-report-settings.php:570
 #: includes/class-cleanup-report-settings.php:692
-#: includes/class-cleanup-report-type-builder.php:561
+#: includes/class-cleanup-report-type-builder.php:684
 msgid "Delete"
 msgstr ""
 
@@ -2541,7 +2541,7 @@ msgstr ""
 
 #: includes/class-cleanup-report-settings.php:586
 #: includes/class-cleanup-report-settings.php:720
-#: includes/class-cleanup-report-type-builder.php:664
+#: includes/class-cleanup-report-type-builder.php:787
 msgid "Name"
 msgstr ""
 
@@ -2793,444 +2793,453 @@ msgstr ""
 msgid "Optional. Shown in the report as \"Public doc\", like the team's report template."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:29
+#: includes/class-cleanup-report-type-builder.php:32
 msgid "Short text"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:30
+#: includes/class-cleanup-report-type-builder.php:33
 msgid "Plain text (several lines)"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:31
+#: includes/class-cleanup-report-type-builder.php:34
 msgid "Rich text"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:32
+#: includes/class-cleanup-report-type-builder.php:35
 msgid "Rich text with a standard text"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:33
+#: includes/class-cleanup-report-type-builder.php:36
 msgid "Web address"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:35
+#: includes/class-cleanup-report-type-builder.php:38
 msgid "Number"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:36
+#: includes/class-cleanup-report-type-builder.php:39
 msgid "Choice from a list"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:37
+#: includes/class-cleanup-report-type-builder.php:40
 msgid "Questions with answers"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:38
+#: includes/class-cleanup-report-type-builder.php:41
 msgid "Checklist (Yes / No / N/A)"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:39
+#: includes/class-cleanup-report-type-builder.php:42
 msgid "Table"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:40
+#: includes/class-cleanup-report-type-builder.php:43
 #: includes/class-cleanup-report-types.php:208
 #: templates/types/generic.php:44
 msgid "Screenshots"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:439
+#: includes/class-cleanup-report-type-builder.php:560
 msgid "Fields no longer in this type"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:447
+#: includes/class-cleanup-report-type-builder.php:568
 msgid "These fields were removed from the report type after this report was filled in. Their values are kept. An approved report still shows them, as it was approved; a draft leaves them out."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:448
+#: includes/class-cleanup-report-type-builder.php:569
 msgid "Tick a field to remove its value from this report when you save."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:451
+#: includes/class-cleanup-report-type-builder.php:572
 msgid "Field"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:451
+#: includes/class-cleanup-report-type-builder.php:572
 msgid "Value"
 msgstr ""
 
 #. translators: %s: field name
-#: includes/class-cleanup-report-type-builder.php:458
+#: includes/class-cleanup-report-type-builder.php:579
 #, php-format
 msgid "Remove %s"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:485
-#: includes/class-cleanup-report-type-builder.php:534
+#: includes/class-cleanup-report-type-builder.php:607
+#: includes/class-cleanup-report-type-builder.php:658
 msgid "Report types"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:503
-#: includes/class-cleanup-report-type-builder.php:778
+#: includes/class-cleanup-report-type-builder.php:625
+#: includes/class-cleanup-report-type-builder.php:906
 msgid "You are not allowed to manage report types."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:517
+#: includes/class-cleanup-report-type-builder.php:639
 msgid "Report type saved."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:518
+#: includes/class-cleanup-report-type-builder.php:640
 msgid "Report type turned on: it can be picked for new reports."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:519
+#: includes/class-cleanup-report-type-builder.php:641
 msgid "Report type turned off: it can't be picked for new reports; its reports still open and print."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:520
+#: includes/class-cleanup-report-type-builder.php:642
 msgid "Report type deleted."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:521
+#: includes/class-cleanup-report-type-builder.php:643
 msgid "This report type is used by reports, so it can only be turned off, not deleted."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:522
+#: includes/class-cleanup-report-type-builder.php:644
 msgid "Give the report type a name and at least one section with a field."
 msgstr ""
 
+#. translators: %d: maximum number of report types
+#: includes/class-cleanup-report-type-builder.php:646
+#, php-format
+msgid "You have %d report types, the most there can be. Delete one you no longer use to add another."
+msgstr ""
+
 #. translators: %s: report type
-#: includes/class-cleanup-report-type-builder.php:535
-#: includes/class-cleanup-report-type-builder.php:650
+#: includes/class-cleanup-report-type-builder.php:659
+#: includes/class-cleanup-report-type-builder.php:773
 msgid "Add report type"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:538
+#: includes/class-cleanup-report-type-builder.php:662
 msgid "The kinds of report your team can write. Built-in types come with the plugin; your own types use the fields you choose and the standard report layout."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:540
+#: includes/class-cleanup-report-type-builder.php:664
 msgid "Report type"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:540
-#: includes/class-cleanup-report-type-builder.php:554
+#: includes/class-cleanup-report-type-builder.php:664
+#: includes/class-cleanup-report-type-builder.php:677
 #: templates/types/generic.php:42
 msgid "Sections"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:540
+#: includes/class-cleanup-report-type-builder.php:664
 msgid "Actions"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:551
+#: includes/class-cleanup-report-type-builder.php:674
 msgid "Your type"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:551
+#: includes/class-cleanup-report-type-builder.php:674
 msgid "Built in"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:556
+#: includes/class-cleanup-report-type-builder.php:679
 msgid "On"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:556
+#: includes/class-cleanup-report-type-builder.php:679
 msgid "Off"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:559
+#: includes/class-cleanup-report-type-builder.php:682
 msgid "Edit"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:560
+#: includes/class-cleanup-report-type-builder.php:683
 msgid "Turn off"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:560
+#: includes/class-cleanup-report-type-builder.php:683
 msgid "Turn on"
 msgstr ""
 
 #. translators: %s: report type
-#: includes/class-cleanup-report-type-builder.php:561
+#: includes/class-cleanup-report-type-builder.php:684
 #, php-format
 msgid "Delete the report type \"%s\"? This can't be undone."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:563
+#: includes/class-cleanup-report-type-builder.php:686
 msgid "Duplicate"
 msgstr ""
 
 #. translators: %s: report type
-#: includes/class-cleanup-report-type-builder.php:577
-#: includes/class-cleanup-report-type-builder.php:638
+#: includes/class-cleanup-report-type-builder.php:700
+#: includes/class-cleanup-report-type-builder.php:761
 #, php-format
 msgid "%s (copy)"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:581
+#: includes/class-cleanup-report-type-builder.php:704
 msgid "Issue counts"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:582
+#: includes/class-cleanup-report-type-builder.php:705
 msgid "Plugin check"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:583
+#: includes/class-cleanup-report-type-builder.php:706
 #: templates/types/malware-cleanup-body.php:23
 msgid "Vulnerable components"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:584
+#: includes/class-cleanup-report-type-builder.php:707
 #: includes/class-cleanup-report-types.php:186
 msgid "Blocklists"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:585
-#: includes/class-cleanup-report-types.php:186
-msgid "Defender checklist"
+#: includes/class-cleanup-report-type-builder.php:708
+msgid "Security checklist"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:587
+#: includes/class-cleanup-report-type-builder.php:710
 msgid "PageSpeed scores"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:632
-#: includes/class-cleanup-report-type-builder.php:841
+#: includes/class-cleanup-report-type-builder.php:755
+#: includes/class-cleanup-report-type-builder.php:973
 msgid "Report type not found."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:643
+#: includes/class-cleanup-report-type-builder.php:766
 msgid "Details"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:643
+#: includes/class-cleanup-report-type-builder.php:766
 msgid "Summary"
 msgstr ""
 
 #. translators: %s: report type
-#: includes/class-cleanup-report-type-builder.php:650
+#: includes/class-cleanup-report-type-builder.php:773
 #, php-format
 msgid "Edit report type: %s"
 msgstr ""
 
 #. translators: %s: report type
-#: includes/class-cleanup-report-type-builder.php:651
+#: includes/class-cleanup-report-type-builder.php:774
 msgid "All report types"
 msgstr ""
 
 #. translators: %s: field names
-#: includes/class-cleanup-report-type-builder.php:654
+#: includes/class-cleanup-report-type-builder.php:777
 #, php-format
 msgid "Copied from a built-in type. These fields are special to it and weren't copied: %s."
 msgstr ""
 
 #. translators: %d: number of reports
-#: includes/class-cleanup-report-type-builder.php:657
+#: includes/class-cleanup-report-type-builder.php:780
 #, php-format
-msgid "%d report uses this type. Renaming or reordering is safe. A removed field keeps its value in that report, listed on its edit screen; approved reports keep printing as they were approved."
-msgid_plural "%d reports use this type. Renaming or reordering is safe. A removed field keeps its values in those reports, listed on their edit screens; approved reports keep printing as they were approved."
+msgid "%d report uses this type. Renaming and moving fields and sections is safe. A removed field, or one whose kind you change, keeps its value in that report, listed on its edit screen. Table columns are stored in order: add new ones at the end. Approved reports keep printing as they were approved."
+msgid_plural "%d reports use this type. Renaming and moving fields and sections is safe. A removed field, or one whose kind you change, keeps its values in those reports, listed on their edit screens. Table columns are stored in order: add new ones at the end. Approved reports keep printing as they were approved."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-cleanup-report-type-builder.php:664
+#: includes/class-cleanup-report-type-builder.php:787
 msgid "e.g. Website migration"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:664
+#: includes/class-cleanup-report-type-builder.php:787
 msgid "Shown in the Reports menu (\"Add … report\"), the list and on the report's cover."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:665
+#: includes/class-cleanup-report-type-builder.php:788
 msgid "Description"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:665
+#: includes/class-cleanup-report-type-builder.php:788
 msgid "One line on the \"Add report\" chooser."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:667
+#: includes/class-cleanup-report-type-builder.php:790
 msgid "Report wording (optional)"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:669
+#: includes/class-cleanup-report-type-builder.php:792
 msgid "Cover label"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:669
+#: includes/class-cleanup-report-type-builder.php:792
 msgid "\"<Name> report\""
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:670
+#: includes/class-cleanup-report-type-builder.php:793
 msgid "\"Prepared by\" team"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:670
+#: includes/class-cleanup-report-type-builder.php:793
 #: includes/class-cleanup-report-types.php:95
 msgid "team"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:671
+#: includes/class-cleanup-report-type-builder.php:794
 msgid "PDF file name part"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:671
+#: includes/class-cleanup-report-type-builder.php:794
 msgid "name-report"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:674
+#: includes/class-cleanup-report-type-builder.php:797
 msgid "On: staff can add reports of this type"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:677
+#: includes/class-cleanup-report-type-builder.php:800
 msgid "Sections and fields"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:678
-msgid "Every report starts with \"Member & website\" (who it's for, the website and the date). Add the sections that follow it, in the order of the report. Each section is a box on the edit screen and a numbered section in the PDF."
+#: includes/class-cleanup-report-type-builder.php:801
+msgid "Every report starts with a section for the client and the website (who it's for, the website and the date). Add the sections that follow it, in the order of the report. Each section is a box on the edit screen and a numbered section in the PDF."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:684
+#: includes/class-cleanup-report-type-builder.php:808
 msgid "Add section"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:686
+#: includes/class-cleanup-report-type-builder.php:810
 msgid "Save report type"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:688
+#: includes/class-cleanup-report-type-builder.php:812
 msgid "Preview the report"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:702
+#: includes/class-cleanup-report-type-builder.php:826
 msgid "Section title"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:703
+#: includes/class-cleanup-report-type-builder.php:827
 msgid "Section title, e.g. Migration"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:705
+#: includes/class-cleanup-report-type-builder.php:829
 msgid "Move section up"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:706
+#: includes/class-cleanup-report-type-builder.php:830
 msgid "Move section down"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:707
+#: includes/class-cleanup-report-type-builder.php:831
 msgid "Remove section"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:714
+#: includes/class-cleanup-report-type-builder.php:838
 msgid "Field type to add"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:718
+#: includes/class-cleanup-report-type-builder.php:842
 msgid "Add field"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:742
-#: assets/type-builder.js:42
+#: includes/class-cleanup-report-type-builder.php:868
+#: assets/type-builder.js:78
 msgid "New field"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:744
+#: includes/class-cleanup-report-type-builder.php:871
 msgid "Move field up"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:745
+#: includes/class-cleanup-report-type-builder.php:872
 msgid "Move field down"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:746
+#: includes/class-cleanup-report-type-builder.php:873
 msgid "Remove field"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:752
+#: includes/class-cleanup-report-type-builder.php:879
 msgid "Label"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:753
+#: includes/class-cleanup-report-type-builder.php:880
 msgid "Kind"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:755
+#: includes/class-cleanup-report-type-builder.php:881
+msgid "Changing the kind starts the field afresh; values reports already have are kept under \"Fields no longer in this type\"."
+msgstr ""
+
+#: includes/class-cleanup-report-type-builder.php:883
 msgid "Help for staff"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:756
+#: includes/class-cleanup-report-type-builder.php:884
 msgid "Placeholder"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:757
+#: includes/class-cleanup-report-type-builder.php:885
 msgid "Height (lines)"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:759
+#: includes/class-cleanup-report-type-builder.php:887
 msgid "Answers"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:759
-msgid "One per line. Keep the part before \"=\" as it is once reports use it."
+#: includes/class-cleanup-report-type-builder.php:887
+msgid "One per line. Keep the part before \"=\" as it is once reports use it: reports store the answer by it."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:761
+#: includes/class-cleanup-report-type-builder.php:889
 msgid "With a note beside the answer"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:763
+#: includes/class-cleanup-report-type-builder.php:891
 msgid "Questions"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:763
-msgid "One per line: Question | Label in the report | answers separated by \";\" (Yes and No when left out)."
+#: includes/class-cleanup-report-type-builder.php:891
+msgid "One per line: Question | Label in the report | answers separated by \";\" (Yes and No when left out). Keep the part before the first \"=\" as it is once reports use it: reports store their answers by it."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:764
+#: includes/class-cleanup-report-type-builder.php:892
 msgid "Columns"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:764
-msgid "One per line: Column name | placeholder (optional). Up to 8."
+#: includes/class-cleanup-report-type-builder.php:892
+msgid "One per line: Column name | placeholder (optional). Up to 8. Reports store their rows column by column in this order: rename freely, but add new columns at the end, and moving or removing one moves the values reports already have."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:765
+#: includes/class-cleanup-report-type-builder.php:893
 msgid "Checklist items"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:765
-msgid "One per line: Item | good answer (yes, no or nothing) | hint for staff. The good answer shows green, the other red."
+#: includes/class-cleanup-report-type-builder.php:893
+msgid "One per line: Item | good answer (yes, no or nothing) | hint for staff. The good answer shows green, the other red. Keep the part before the first \"=\" as it is once reports use it: reports store their answers by it."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:767
+#: includes/class-cleanup-report-type-builder.php:895
 msgid "Standard text"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:767
+#: includes/class-cleanup-report-type-builder.php:895
 msgid "Used in the report when staff leave the field empty. Basic HTML (paragraphs, lists, links) is allowed."
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:844
-msgid "Sample member"
+#: includes/class-cleanup-report-type-builder.php:976
+msgid "Sample client"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:855
+#: includes/class-cleanup-report-type-builder.php:987
 msgid "PREVIEW"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:858
+#: includes/class-cleanup-report-type-builder.php:990
 msgid "Edit report type"
 msgstr ""
 
-#: includes/class-cleanup-report-type-builder.php:869
+#: includes/class-cleanup-report-type-builder.php:1001
 msgid "Sample text"
 msgstr ""
 
 #. translators: %s: report type, e.g. "Website optimization"
 #. translators: %s: report type, e.g. "website optimization"
 #: includes/class-cleanup-report-types.php:88
-#: includes/class-cleanup-report-types.php:383
+#: includes/class-cleanup-report-types.php:384
 #, php-format
 msgid "Add %s report"
 msgstr ""
@@ -3299,6 +3308,10 @@ msgstr ""
 
 #: includes/class-cleanup-report-types.php:184
 msgid "security team"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:186
+msgid "Defender checklist"
 msgstr ""
 
 #: includes/class-cleanup-report-types.php:193
@@ -3578,24 +3591,24 @@ msgid "Why mobile is lower, why the target is 80, why scores differ, Core Web Vi
 msgstr ""
 
 #. translators: %s: report type, e.g. "website optimization"
-#: includes/class-cleanup-report-types.php:385
+#: includes/class-cleanup-report-types.php:386
 #, php-format
 msgid "Edit %s report"
 msgstr ""
 
-#: includes/class-cleanup-report-types.php:427
+#: includes/class-cleanup-report-types.php:428
 msgid "You are not allowed to add reports."
 msgstr ""
 
-#: includes/class-cleanup-report-types.php:432
+#: includes/class-cleanup-report-types.php:433
 msgid "Which kind of report? It can't be changed once the report is started."
 msgstr ""
 
-#: includes/class-cleanup-report-types.php:459
+#: includes/class-cleanup-report-types.php:460
 msgid "Filter by type"
 msgstr ""
 
-#: includes/class-cleanup-report-types.php:461
+#: includes/class-cleanup-report-types.php:462
 msgid "All types"
 msgstr ""
 
@@ -4534,10 +4547,34 @@ msgstr ""
 msgid "Give every item a name, or delete the ones you don't need."
 msgstr ""
 
-#: assets/type-builder.js:71
+#: assets/type-builder.js:107
 msgid "Remove this field? Reports that use it keep their value until it is removed from them."
 msgstr ""
 
-#: assets/type-builder.js:71
+#: assets/type-builder.js:107
 msgid "Remove this section and its fields? Reports that use them keep their values until they are removed from them."
+msgstr ""
+
+#: assets/type-builder.js:115
+msgid "Field removed."
+msgstr ""
+
+#: assets/type-builder.js:115
+msgid "Section removed."
+msgstr ""
+
+#: assets/type-builder.js:128
+msgid "Field moved up."
+msgstr ""
+
+#: assets/type-builder.js:128
+msgid "Field moved down."
+msgstr ""
+
+#: assets/type-builder.js:128
+msgid "Section moved up."
+msgstr ""
+
+#: assets/type-builder.js:128
+msgid "Section moved down."
 msgstr ""

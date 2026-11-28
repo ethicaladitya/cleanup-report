@@ -21,7 +21,10 @@ class Cleanup_Report_Type_Builder {
     const OPTION   = 'crg_custom_types';
     const SNAPSHOT = 'crg_type_snapshot';
     const PAGE     = 'crg-report-types';
-    const LIMITS   = [ 'sections' => 20, 'fields' => 40, 'options' => 40, 'columns' => 8 ];
+    const LIMITS   = [ 'types' => 50, 'sections' => 20, 'fields' => 40, 'options' => 40, 'columns' => 8, 'retired' => 200 ];
+
+    /** Type keys a custom type can never take: the built-in types (even when code removes them) and section names. */
+    const RESERVED = [ 'malware_cleanup', 'site_optimization', 'site', 'malware', 'optimization' ];
 
     /** Field types offered in the builder: type => label. (Bespoke types of the built-in reports aren't offered.) */
     public static function field_types() {
@@ -44,6 +47,8 @@ class Cleanup_Report_Type_Builder {
 
     public static function init() {
         add_filter( 'cleanup_report_types', [ __CLASS__, 'add_types' ], 5 );
+        // Every write of the option is cleaned, whatever writes it (this screen, options.php, code, WP-CLI).
+        add_filter( 'sanitize_option_' . self::OPTION, [ __CLASS__, 'sanitize_option' ] );
         if ( is_admin() ) {
             add_action( 'admin_menu', [ __CLASS__, 'menu' ], 20 );
             add_action( 'admin_post_crg_save_report_type', [ __CLASS__, 'handle_save' ] );
@@ -98,15 +103,18 @@ class Cleanup_Report_Type_Builder {
         ];
     }
 
-    /** A stored definition's sections as registry sections: the shared "Member & website" first, then its own. */
+    /** A stored definition's sections as registry sections: the shared client and website section first, then its own. */
     public static function sections( $key, array $def ) {
-        $out = [ 'site' => Cleanup_Report_Types::site_section() ];
+        $out   = [ 'site' => Cleanup_Report_Types::site_section() ];
+        $kinds = self::field_types();
         foreach ( (array) ( $def['sections'] ?? [] ) as $section ) {
             $fields = [];
             foreach ( (array) ( $section['fields'] ?? [] ) as $f ) {
-                $fields[] = self::runtime_field( $key, $f );
+                if ( is_array( $f ) && isset( $kinds[ $f['type'] ?? '' ] ) ) { // only the builder's kinds, even from a snapshot
+                    $fields[] = self::runtime_field( $key, $f );
+                }
             }
-            $out[ 's_' . $section['id'] ] = [ 'title' => $section['title'], 'fields' => $fields ];
+            $out[ 's_' . sanitize_key( $section['id'] ?? '' ) ] = [ 'title' => (string) ( $section['title'] ?? '' ), 'fields' => $fields ];
         }
         return $out;
     }
@@ -130,18 +138,17 @@ class Cleanup_Report_Type_Builder {
                     $out['questions'][ substr( $meta, 4 ) . '_' . $q['id'] ] = [ $q['question'], $q['label'] ?: $q['question'], $q['answers'], __( 'Note', 'cleanup-report-generator' ) ];
                 }
                 break;
-            case 'table':
+            case 'table': // a table's rows are stored as "a | b | c" lines: its columns are positions
                 $out['columns'] = [];
-                foreach ( (array) ( $f['columns'] ?? [] ) as $i => $c ) {
+                foreach ( array_values( (array) ( $f['columns'] ?? [] ) ) as $i => $c ) {
                     $out['columns'][ 'c' . $i ] = [ $c['label'], $c['placeholder'] ?? '' ];
                 }
                 break;
             case 'checklist':
-                $items          = (array) ( $f['items'] ?? [] );
-                $out['items']   = static function () use ( $items ) {
+                $items        = (array) ( $f['items'] ?? [] );
+                $out['items'] = static function () use ( $items ) {
                     return array_map( static function ( $i ) { return $i + [ 'enabled' => true, 'hint' => '', 'good' => '' ]; }, $items );
                 };
-                $out['note_from'] = 'note';
                 break;
             case 'note':
                 $standard        = (string) ( $f['standard'] ?? '' );
@@ -201,16 +208,47 @@ class Cleanup_Report_Type_Builder {
     }
 
     /**
-     * A definition posted from the editor → a clean stored definition. Keys of existing sections, fields, answers and
-     * items are kept (reports' values are stored by them); new ones are made from their labels. Anything not allowed
-     * is dropped: unknown field types, HTML outside help and standard texts, empty labels.
-     *
-     * @param array  $raw      Posted definition (unslashed).
-     * @param string $type_key The type's key (fields are unique within it).
+     * The meta key suffixes a field writes (after crg_t_<type>_): its id, and for a choice its note, for questions each
+     * question and its note. Two fields of a type never share one.
      */
-    public static function sanitize_definition( array $raw, $type_key ) {
-        $types = self::field_types();
-        $def   = [
+    public static function suffixes( array $f ) {
+        $id = (string) ( $f['id'] ?? '' );
+        switch ( $f['type'] ?? '' ) {
+            case 'select':
+                return [ $id, $id . '_note' ];
+            case 'questions':
+                $out = [ $id ];
+                foreach ( (array) ( $f['questions'] ?? [] ) as $q ) {
+                    $out[] = $id . '_' . $q['id'];
+                    $out[] = $id . '_' . $q['id'] . '_note';
+                }
+                return $out;
+            default:
+                return [ $id ];
+        }
+    }
+
+    /**
+     * A definition (posted from the editor, or stored) → a clean stored definition. Anything not allowed is dropped:
+     * unknown field kinds, HTML outside help and standard texts, empty labels; lengths and counts are capped.
+     *
+     * Keys of reports' values are protected:
+     *  - a field keeps its id while it keeps its kind; a new field, or one whose kind changed, gets a new id, so a value
+     *    is never read as another kind;
+     *  - no two fields share a meta key, counting the keys a field derives (a choice's note, each question);
+     *  - keys of removed fields (and of fields whose kind changed) are kept in 'retired' with their label, and never
+     *    given out again: their values show under "Fields no longer in this type" with the right name.
+     *
+     * Running it on its own output gives the same result, so the option filter can clean every write.
+     *
+     * @param array      $raw      Posted or stored definition (unslashed).
+     * @param string     $type_key The type's key.
+     * @param array|null $previous The type as stored before this save, if any.
+     */
+    public static function sanitize_definition( array $raw, $type_key, $previous = null ) {
+        $types    = self::field_types();
+        $previous = is_array( $previous ) ? $previous : [];
+        $def      = [
             'label'       => mb_substr( sanitize_text_field( $raw['label'] ?? '' ), 0, 60 ),
             'about'       => mb_substr( sanitize_text_field( $raw['about'] ?? '' ), 0, 200 ),
             'eyebrow'     => mb_substr( sanitize_text_field( $raw['eyebrow'] ?? '' ), 0, 60 ),
@@ -219,8 +257,28 @@ class Cleanup_Report_Type_Builder {
             'enabled'     => ! empty( $raw['enabled'] ),
             'sections'    => [],
         ];
+        // What the type had: field id => kind, and every key it ever wrote that no field uses now (suffix => label).
+        $old_kinds = [];
+        $old_keys  = [];
+        foreach ( (array) ( $previous['sections'] ?? [] ) as $s ) {
+            foreach ( (array) ( $s['fields'] ?? [] ) as $f ) {
+                $old_kinds[ $f['id'] ] = $f['type'];
+                foreach ( self::suffixes( $f ) as $k ) {
+                    $old_keys[ $k ] = (string) $f['label'];
+                }
+            }
+        }
+        $retired = [];
+        foreach ( [ $previous['retired'] ?? [], $raw['retired'] ?? [] ] as $list ) {
+            foreach ( (array) $list as $k => $label ) {
+                $k = substr( sanitize_key( (string) $k ), 0, 70 );
+                if ( '' !== $k ) {
+                    $retired[ $k ] = mb_substr( sanitize_text_field( (string) $label ), 0, 120 );
+                }
+            }
+        }
         $section_ids = [];
-        $field_ids   = [];
+        $taken       = []; // keys used by the fields so far
         foreach ( array_slice( (array) ( $raw['sections'] ?? [] ), 0, self::LIMITS['sections'] ) as $s ) {
             if ( ! is_array( $s ) ) {
                 continue;
@@ -229,7 +287,7 @@ class Cleanup_Report_Type_Builder {
             if ( '' === $title ) {
                 continue;
             }
-            $section = [ 'id' => self::unique( sanitize_key( $s['id'] ?? '' ) ?: self::slug( $title, 20 ), $section_ids ), 'title' => $title, 'fields' => [] ];
+            $section = [ 'id' => self::unique( substr( sanitize_key( $s['id'] ?? '' ), 0, 20 ) ?: self::slug( $title, 20 ), $section_ids ), 'title' => $title, 'fields' => [] ];
             foreach ( array_slice( (array) ( $s['fields'] ?? [] ), 0, self::LIMITS['fields'] ) as $f ) {
                 if ( ! is_array( $f ) || ! isset( $types[ $f['type'] ?? '' ] ) ) {
                     continue;
@@ -239,12 +297,13 @@ class Cleanup_Report_Type_Builder {
                     continue;
                 }
                 $field = [
-                    'id'          => self::unique( sanitize_key( $f['id'] ?? '' ) ?: self::slug( $label, 24 ), $field_ids ),
+                    'id'          => '',
                     'type'        => $f['type'],
                     'label'       => $label,
-                    'help'        => wp_kses( (string) ( $f['help'] ?? '' ), [ 'code' => [], 'strong' => [], 'em' => [] ] ),
+                    'help'        => force_balance_tags( wp_kses( mb_substr( (string) ( $f['help'] ?? '' ), 0, 300 ), [ 'code' => [], 'strong' => [], 'em' => [] ] ) ),
                     'placeholder' => mb_substr( sanitize_text_field( $f['placeholder'] ?? '' ), 0, 120 ),
                 ];
+                // Stored definitions hold lists, the editor posts text: both go through the same parser.
                 switch ( $f['type'] ) {
                     case 'textarea':
                     case 'editor':
@@ -265,14 +324,53 @@ class Cleanup_Report_Type_Builder {
                         $field['items'] = self::parse_items( is_array( $f['items'] ?? '' ) ? self::items_text( $f['items'] ) : ( $f['items'] ?? '' ) );
                         break;
                     case 'note':
-                        $field['standard'] = wp_kses_post( (string) ( $f['standard'] ?? '' ) );
+                        $field['standard'] = force_balance_tags( wp_kses_post( mb_substr( (string) ( $f['standard'] ?? '' ), 0, 5000 ) ) );
                         break;
+                }
+                // Its id: kept while the kind stays the same; otherwise new, clear of every key in use or retired.
+                $id   = substr( sanitize_key( $f['id'] ?? '' ), 0, 30 );
+                $kept = '' !== $id && isset( $old_kinds[ $id ] ) && $old_kinds[ $id ] === $f['type'];
+                if ( '' !== $id && isset( $old_kinds[ $id ] ) && ! $kept ) {
+                    $id = ''; // kind changed: the old values stay under the old id, as a removed field's do
+                }
+                $blocked = $kept ? $taken : $taken + $retired + $old_keys;
+                $base    = '' !== $id ? $id : self::slug( $label, 24 );
+                $id      = $base;
+                for ( $n = 2; array_intersect_key( array_flip( self::suffixes( [ 'id' => $id ] + $field ) ), $blocked ); $n++ ) {
+                    $id = substr( $base, 0, 26 ) . '_' . $n;
+                }
+                $field['id'] = $id;
+                foreach ( self::suffixes( $field ) as $k ) {
+                    $taken[ $k ] = true;
                 }
                 $section['fields'][] = $field;
             }
             $def['sections'][] = $section;
         }
+        // Keys the type no longer writes, with the label they had; a key in use again leaves the list.
+        $retired         = array_diff_key( $retired + array_diff_key( $old_keys, $retired ), $taken );
+        $def['retired']  = array_slice( $retired, -self::LIMITS['retired'], null, true );
         return $def;
+    }
+
+    /** The option filter: every stored type cleaned, keys checked, at most LIMITS['types']. */
+    public static function sanitize_option( $value ) {
+        $old = get_option( self::OPTION, [] ); // the value before this write
+        $out = [];
+        foreach ( is_array( $value ) ? $value : [] as $key => $def ) {
+            $key = (string) $key;
+            if ( ! is_array( $def ) || '' === $key || sanitize_key( $key ) !== $key || strlen( $key ) > 40 || in_array( $key, self::RESERVED, true ) ) {
+                continue;
+            }
+            $clean = self::sanitize_definition( $def, $key, is_array( $old ) && is_array( $old[ $key ] ?? null ) ? $old[ $key ] : null );
+            if ( '' !== $clean['label'] ) {
+                $out[ $key ] = $clean;
+            }
+            if ( count( $out ) >= self::LIMITS['types'] ) {
+                break;
+            }
+        }
+        return $out;
     }
 
     /** "id = Question | Label in the report | answer; answer" lines → [ id, question, label, answers ]. */
@@ -355,34 +453,46 @@ class Cleanup_Report_Type_Builder {
         $bar  = strpos( $line, '|' );
         $eq   = strpos( $line, '=' );
         if ( false !== $eq && ( false === $bar || $eq < $bar ) ) {
-            return [ sanitize_key( trim( substr( $line, 0, $eq ) ) ), trim( substr( $line, $eq + 1 ) ) ];
+            return [ substr( sanitize_key( trim( substr( $line, 0, $eq ) ) ), 0, 30 ), trim( substr( $line, $eq + 1 ) ) ];
         }
         return [ '', $line ];
     }
 
     /* ================================================================== reports of custom types */
 
-    /** How many reports (any status but the bin and auto-drafts) use a type. */
+    /** @var array|null report counts by type, for this request */
+    private static $counts = null;
+
+    /**
+     * How many reports use a type: every status but auto-drafts, the Trash included (a type with reports in the Trash
+     * can't be deleted, so restoring them never leaves a report without its type). One query for all types.
+     */
     public static function report_count( $type ) {
-        $q = new WP_Query( [
-            'post_type'              => 'cleanup_report',
-            'post_status'            => array_values( array_diff( get_post_stati(), [ 'auto-draft', 'inherit' ] ) ),
-            'fields'                 => 'ids',
-            'posts_per_page'         => 1,
-            'update_post_meta_cache' => false,
-            'update_post_term_cache' => false,
-            'meta_query'             => [ [ 'key' => Cleanup_Report_Types::META, 'value' => $type ] ], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- admin screen, one count per type
-        ] );
-        return (int) $q->found_posts;
+        if ( null === self::$counts ) {
+            global $wpdb;
+            $rows         = $wpdb->get_results( $wpdb->prepare( "SELECT m.meta_value AS type, COUNT(*) AS n FROM {$wpdb->postmeta} m INNER JOIN {$wpdb->posts} p ON p.ID = m.post_id WHERE m.meta_key = %s AND p.post_type = 'cleanup_report' AND p.post_status NOT IN ( 'auto-draft', 'inherit' ) GROUP BY m.meta_value", Cleanup_Report_Types::META ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- admin screen: one grouped count instead of a query per type; fresh on every load
+            self::$counts = wp_list_pluck( $rows, 'n', 'type' );
+        }
+        return (int) ( self::$counts[ $type ] ?? 0 );
     }
 
-    /** A custom type's on_save: the report keeps the definition it was filled in with. */
+    /**
+     * A custom type's on_save: the report keeps the definition it was filled in with. The save that approves (or
+     * completes) a report freezes it: later saves of the final report, by anyone, leave it as it was approved. A
+     * report sent back for changes is no longer final, so its next save takes the current definition again.
+     */
     public static function store_snapshot( $post_id ) {
         $type   = Cleanup_Report_Types::of( $post_id );
         $stored = self::stored();
-        if ( isset( $stored[ $type ] ) ) {
-            update_post_meta( $post_id, self::SNAPSHOT, wp_slash( $stored[ $type ] ) );
+        if ( ! isset( $stored[ $type ] ) ) {
+            return;
         }
+        $final    = Cleanup_Report_Admin::is_final( $post_id );
+        $snapshot = get_post_meta( $post_id, self::SNAPSHOT, true );
+        if ( $final && is_array( $snapshot ) && ! empty( $snapshot['_frozen'] ) ) {
+            return;
+        }
+        update_post_meta( $post_id, self::SNAPSHOT, wp_slash( [ '_frozen' => $final ] + $stored[ $type ] ) );
     }
 
     /**
@@ -402,8 +512,14 @@ class Cleanup_Report_Type_Builder {
         return $def;
     }
 
+    /** @var array orphans() by report ID, for this request */
+    private static $orphans = [];
+
     /** This report's values of fields the type no longer has: meta key => [ label, value ]. */
     public static function orphans( $post ) {
+        if ( isset( self::$orphans[ $post->ID ] ) ) {
+            return self::$orphans[ $post->ID ];
+        }
         $type = Cleanup_Report_Types::of( $post->ID );
         $def  = Cleanup_Report_Types::get( $type );
         if ( empty( $def['custom'] ) ) {
@@ -415,6 +531,8 @@ class Cleanup_Report_Type_Builder {
                 $current = array_merge( $current, Cleanup_Report_Fields::meta_keys( $f ) );
             }
         }
+        // Names: from the type's retired keys (kept with the label they had), else from the report's snapshot.
+        $prefix   = 'crg_t_' . $type . '_';
         $labels   = [];
         $snapshot = get_post_meta( $post->ID, self::SNAPSHOT, true );
         foreach ( is_array( $snapshot ) ? self::sections( $type, $snapshot ) : [] as $section ) {
@@ -424,13 +542,16 @@ class Cleanup_Report_Type_Builder {
                 }
             }
         }
-        $prefix = 'crg_t_' . $type . '_';
+        foreach ( (array) ( self::stored()[ $type ]['retired'] ?? [] ) as $suffix => $label ) {
+            $labels[ $prefix . $suffix ] = $label;
+        }
         $out    = [];
         foreach ( get_post_meta( $post->ID ) as $key => $values ) {
             if ( 0 === strpos( $key, $prefix ) && ! in_array( $key, $current, true ) && '' !== trim( (string) $values[0] ) && 'a:0:{}' !== $values[0] ) {
                 $out[ $key ] = [ $labels[ $key ] ?? substr( $key, strlen( $prefix ) ), maybe_unserialize( $values[0] ) ];
             }
         }
+        self::$orphans[ $post->ID ] = $out;
         return $out;
     }
 
@@ -477,6 +598,7 @@ class Cleanup_Report_Type_Builder {
                 delete_post_meta( $post_id, $key );
             }
         }
+        unset( self::$orphans[ $post_id ] );
     }
 
     /* ================================================================== admin screens */
@@ -520,9 +642,11 @@ class Cleanup_Report_Type_Builder {
             'deleted'  => __( 'Report type deleted.', 'cleanup-report-generator' ),
             'in_use'   => __( 'This report type is used by reports, so it can only be turned off, not deleted.', 'cleanup-report-generator' ),
             'invalid'  => __( 'Give the report type a name and at least one section with a field.', 'cleanup-report-generator' ),
+            /* translators: %d: maximum number of report types */
+            'too_many' => sprintf( __( 'You have %d report types, the most there can be. Delete one you no longer use to add another.', 'cleanup-report-generator' ), self::LIMITS['types'] ),
         ];
         if ( isset( $messages[ $done ] ) ) {
-            printf( '<div class="notice notice-%s is-dismissible"><p>%s</p></div>', in_array( $done, [ 'in_use', 'invalid' ], true ) ? 'error' : 'success', esc_html( $messages[ $done ] ) );
+            printf( '<div class="notice notice-%s is-dismissible"><p>%s</p></div>', in_array( $done, [ 'in_use', 'invalid', 'too_many' ], true ) ? 'error' : 'success', esc_html( $messages[ $done ] ) );
         }
     }
 
@@ -542,8 +666,7 @@ class Cleanup_Report_Type_Builder {
                 <?php foreach ( $all as $key => $def ) :
                     $custom  = isset( $stored[ $key ] );
                     $count   = self::report_count( $key );
-                    $nonce   = wp_create_nonce( 'crg_type_' . $key );
-                    $act     = static function ( $do ) use ( $key, $nonce ) { return wp_nonce_url( admin_url( 'admin-post.php?action=crg_report_type_action&do=' . $do . '&type=' . $key ), 'crg_type_' . $key ); };
+                    $act     = static function ( $do ) use ( $key ) { return wp_nonce_url( admin_url( 'admin-post.php?action=crg_report_type_action&do=' . $do . '&type=' . $key ), 'crg_type_' . $key ); };
                     ?>
                     <tr>
                         <td>
@@ -582,7 +705,7 @@ class Cleanup_Report_Type_Builder {
             'plugin_check'    => __( 'Plugin check', 'cleanup-report-generator' ),
             'components'      => __( 'Vulnerable components', 'cleanup-report-generator' ),
             'blocklists'      => __( 'Blocklists', 'cleanup-report-generator' ),
-            'defender'        => __( 'Defender checklist', 'cleanup-report-generator' ),
+            'defender'        => __( 'Security checklist', 'cleanup-report-generator' ),
             'followups'       => __( 'Follow-ups', 'cleanup-report-generator' ),
             'scores'          => __( 'PageSpeed scores', 'cleanup-report-generator' ),
         ];
@@ -654,7 +777,7 @@ class Cleanup_Report_Type_Builder {
                 <div class="notice notice-info"><p><?php echo esc_html( sprintf( /* translators: %s: field names */ __( 'Copied from a built-in type. These fields are special to it and weren\'t copied: %s.', 'cleanup-report-generator' ), implode( ', ', $def['skipped'] ) ) ); ?></p></div>
             <?php endif; ?>
             <?php if ( $count ) : ?>
-                <div class="notice notice-warning inline"><p><?php echo esc_html( sprintf( /* translators: %d: number of reports */ _n( '%d report uses this type. Renaming or reordering is safe. A removed field keeps its value in that report, listed on its edit screen; approved reports keep printing as they were approved.', '%d reports use this type. Renaming or reordering is safe. A removed field keeps its values in those reports, listed on their edit screens; approved reports keep printing as they were approved.', $count, 'cleanup-report-generator' ), $count ) ); ?></p></div>
+                <div class="notice notice-warning inline"><p><?php echo esc_html( sprintf( /* translators: %d: number of reports */ _n( '%d report uses this type. Renaming and moving fields and sections is safe. A removed field, or one whose kind you change, keeps its value in that report, listed on its edit screen. Table columns are stored in order: add new ones at the end. Approved reports keep printing as they were approved.', '%d reports use this type. Renaming and moving fields and sections is safe. A removed field, or one whose kind you change, keeps its values in those reports, listed on their edit screens. Table columns are stored in order: add new ones at the end. Approved reports keep printing as they were approved.', $count, 'cleanup-report-generator' ), $count ) ); ?></p></div>
             <?php endif; ?>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crg-type-form">
                 <input type="hidden" name="action" value="crg_save_report_type">
@@ -675,7 +798,8 @@ class Cleanup_Report_Type_Builder {
                 </div>
 
                 <h2><?php esc_html_e( 'Sections and fields', 'cleanup-report-generator' ); ?></h2>
-                <p class="description"><?php esc_html_e( 'Every report starts with "Member & website" (who it\'s for, the website and the date). Add the sections that follow it, in the order of the report. Each section is a box on the edit screen and a numbered section in the PDF.', 'cleanup-report-generator' ); ?></p>
+                <p class="description"><?php esc_html_e( 'Every report starts with a section for the client and the website (who it\'s for, the website and the date). Add the sections that follow it, in the order of the report. Each section is a box on the edit screen and a numbered section in the PDF.', 'cleanup-report-generator' ); ?></p>
+                <p class="screen-reader-text crg-type-live" aria-live="polite"></p>
                 <div class="crg-type-sections">
                     <?php foreach ( array_values( $def['sections'] ) as $i => $section ) { self::section_card( 's' . $i, $section ); } ?>
                 </div>
@@ -736,37 +860,41 @@ class Cleanup_Report_Type_Builder {
             <?php
         };
         ?>
-        <details class="crg-type-field" data-kind="<?php echo esc_attr( $f['type'] ); ?>"<?php echo '' === $f['label'] ? ' open' : ''; ?>>
-            <summary>
-                <span class="crg-type-kind"><?php echo esc_html( $types[ $f['type'] ] ?? $f['type'] ); ?></span>
-                <span class="crg-type-field-title"><?php echo esc_html( $f['label'] ?: __( 'New field', 'cleanup-report-generator' ) ); ?></span>
+        <div class="crg-type-field" data-kind="<?php echo esc_attr( $f['type'] ); ?>"<?php echo '' === $f['label'] ? ' data-open="1"' : ''; ?>>
+            <div class="crg-type-field-head">
+                <button type="button" class="crg-type-toggle" aria-expanded="true" aria-controls="<?php echo esc_attr( $id . '-body' ); ?>">
+                    <span class="dashicons dashicons-arrow-right-alt2" aria-hidden="true"></span>
+                    <span class="crg-type-kind"><?php echo esc_html( $types[ $f['type'] ] ?? $f['type'] ); ?></span>
+                    <span class="crg-type-field-title"><?php echo esc_html( $f['label'] ?: __( 'New field', 'cleanup-report-generator' ) ); ?></span>
+                </button>
                 <span class="crg-type-tools">
                     <button type="button" class="button-link crg-type-up" aria-label="<?php esc_attr_e( 'Move field up', 'cleanup-report-generator' ); ?>"><span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span></button>
                     <button type="button" class="button-link crg-type-down" aria-label="<?php esc_attr_e( 'Move field down', 'cleanup-report-generator' ); ?>"><span class="dashicons dashicons-arrow-down-alt2" aria-hidden="true"></span></button>
                     <button type="button" class="button-link crg-type-remove" aria-label="<?php esc_attr_e( 'Remove field', 'cleanup-report-generator' ); ?>"><span class="dashicons dashicons-trash" aria-hidden="true"></span></button>
                 </span>
-            </summary>
-            <div class="crg-type-field-body">
+            </div>
+            <div class="crg-type-field-body" id="<?php echo esc_attr( $id . '-body' ); ?>">
                 <input type="hidden" name="<?php echo esc_attr( $name . '[id]' ); ?>" value="<?php echo esc_attr( $f['id'] ); ?>">
                 <div class="crg-cols crg-cols-2">
                     <div class="crg-field"><label for="<?php echo esc_attr( $id . '-label' ); ?>"><?php esc_html_e( 'Label', 'cleanup-report-generator' ); ?></label><input type="text" id="<?php echo esc_attr( $id . '-label' ); ?>" class="crg-type-field-label" name="<?php echo esc_attr( $name . '[label]' ); ?>" value="<?php echo esc_attr( $f['label'] ); ?>" maxlength="120"></div>
-                    <div class="crg-field"><label for="<?php echo esc_attr( $id . '-type' ); ?>"><?php esc_html_e( 'Kind', 'cleanup-report-generator' ); ?></label><select id="<?php echo esc_attr( $id . '-type' ); ?>" class="crg-type-field-kind" name="<?php echo esc_attr( $name . '[type]' ); ?>"><?php foreach ( $types as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $f['type'], $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></div>
+                    <div class="crg-field"><label for="<?php echo esc_attr( $id . '-type' ); ?>"><?php esc_html_e( 'Kind', 'cleanup-report-generator' ); ?></label><select id="<?php echo esc_attr( $id . '-type' ); ?>" class="crg-type-field-kind" name="<?php echo esc_attr( $name . '[type]' ); ?>"<?php echo '' !== $f['id'] ? ' aria-describedby="' . esc_attr( $id . '-kind-note' ) . '"' : ''; ?>><?php foreach ( $types as $value => $label ) : ?><option value="<?php echo esc_attr( $value ); ?>" <?php selected( $f['type'], $value ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select>
+                        <?php if ( '' !== $f['id'] ) : ?><p class="description" id="<?php echo esc_attr( $id . '-kind-note' ); ?>"><?php esc_html_e( 'Changing the kind starts the field afresh; values reports already have are kept under "Fields no longer in this type".', 'cleanup-report-generator' ); ?></p><?php endif; ?></div>
                 </div>
-                <div class="crg-field"><label for="<?php echo esc_attr( $id . '-help' ); ?>"><?php esc_html_e( 'Help for staff', 'cleanup-report-generator' ); ?></label><input type="text" id="<?php echo esc_attr( $id . '-help' ); ?>" name="<?php echo esc_attr( $name . '[help]' ); ?>" value="<?php echo esc_attr( $f['help'] ); ?>"></div>
+                <div class="crg-field"><label for="<?php echo esc_attr( $id . '-help' ); ?>"><?php esc_html_e( 'Help for staff', 'cleanup-report-generator' ); ?></label><input type="text" id="<?php echo esc_attr( $id . '-help' ); ?>" name="<?php echo esc_attr( $name . '[help]' ); ?>" value="<?php echo esc_attr( $f['help'] ); ?>" maxlength="300"></div>
                 <div class="crg-field crg-type-opt" data-kinds="text url number textarea"><label for="<?php echo esc_attr( $id . '-ph' ); ?>"><?php esc_html_e( 'Placeholder', 'cleanup-report-generator' ); ?></label><input type="text" id="<?php echo esc_attr( $id . '-ph' ); ?>" name="<?php echo esc_attr( $name . '[placeholder]' ); ?>" value="<?php echo esc_attr( $f['placeholder'] ); ?>"></div>
                 <div class="crg-field crg-type-opt" data-kinds="textarea editor code"><label for="<?php echo esc_attr( $id . '-rows' ); ?>"><?php esc_html_e( 'Height (lines)', 'cleanup-report-generator' ); ?></label><input type="number" id="<?php echo esc_attr( $id . '-rows' ); ?>" name="<?php echo esc_attr( $name . '[rows]' ); ?>" value="<?php echo (int) $f['rows']; ?>" min="2" max="20" class="small-text"></div>
                 <?php
-                $opt( 'answers', __( 'Answers', 'cleanup-report-generator' ), self::answers_text( (array) $f['answers'] ), __( 'One per line. Keep the part before "=" as it is once reports use it.', 'cleanup-report-generator' ), [ 'select' ] );
+                $opt( 'answers', __( 'Answers', 'cleanup-report-generator' ), self::answers_text( (array) $f['answers'] ), __( 'One per line. Keep the part before "=" as it is once reports use it: reports store the answer by it.', 'cleanup-report-generator' ), [ 'select' ] );
                 ?>
                 <label class="crg-type-opt" data-kinds="select"><input type="checkbox" name="<?php echo esc_attr( $name . '[note]' ); ?>" value="1" <?php checked( ! empty( $f['note'] ) ); ?>> <?php esc_html_e( 'With a note beside the answer', 'cleanup-report-generator' ); ?></label>
                 <?php
-                $opt( 'questions', __( 'Questions', 'cleanup-report-generator' ), self::questions_text( (array) $f['questions'] ), __( 'One per line: Question | Label in the report | answers separated by ";" (Yes and No when left out).', 'cleanup-report-generator' ), [ 'questions' ], 4 );
-                $opt( 'columns', __( 'Columns', 'cleanup-report-generator' ), self::columns_text( (array) $f['columns'] ), __( 'One per line: Column name | placeholder (optional). Up to 8.', 'cleanup-report-generator' ), [ 'table' ] );
-                $opt( 'items', __( 'Checklist items', 'cleanup-report-generator' ), self::items_text( (array) $f['items'] ), __( 'One per line: Item | good answer (yes, no or nothing) | hint for staff. The good answer shows green, the other red.', 'cleanup-report-generator' ), [ 'checklist' ], 5 );
+                $opt( 'questions', __( 'Questions', 'cleanup-report-generator' ), self::questions_text( (array) $f['questions'] ), __( 'One per line: Question | Label in the report | answers separated by ";" (Yes and No when left out). Keep the part before the first "=" as it is once reports use it: reports store their answers by it.', 'cleanup-report-generator' ), [ 'questions' ], 4 );
+                $opt( 'columns', __( 'Columns', 'cleanup-report-generator' ), self::columns_text( (array) $f['columns'] ), __( 'One per line: Column name | placeholder (optional). Up to 8. Reports store their rows column by column in this order: rename freely, but add new columns at the end, and moving or removing one moves the values reports already have.', 'cleanup-report-generator' ), [ 'table' ] );
+                $opt( 'items', __( 'Checklist items', 'cleanup-report-generator' ), self::items_text( (array) $f['items'] ), __( 'One per line: Item | good answer (yes, no or nothing) | hint for staff. The good answer shows green, the other red. Keep the part before the first "=" as it is once reports use it: reports store their answers by it.', 'cleanup-report-generator' ), [ 'checklist' ], 5 );
                 ?>
-                <div class="crg-field crg-type-opt" data-kinds="note"><label for="<?php echo esc_attr( $id . '-std' ); ?>"><?php esc_html_e( 'Standard text', 'cleanup-report-generator' ); ?></label><textarea id="<?php echo esc_attr( $id . '-std' ); ?>" name="<?php echo esc_attr( $name . '[standard]' ); ?>" rows="4"><?php echo esc_textarea( $f['standard'] ); ?></textarea><p class="description"><?php esc_html_e( 'Used in the report when staff leave the field empty. Basic HTML (paragraphs, lists, links) is allowed.', 'cleanup-report-generator' ); ?></p></div>
+                <div class="crg-field crg-type-opt" data-kinds="note"><label for="<?php echo esc_attr( $id . '-std' ); ?>"><?php esc_html_e( 'Standard text', 'cleanup-report-generator' ); ?></label><textarea id="<?php echo esc_attr( $id . '-std' ); ?>" name="<?php echo esc_attr( $name . '[standard]' ); ?>" rows="4" maxlength="5000"><?php echo esc_textarea( $f['standard'] ); ?></textarea><p class="description"><?php esc_html_e( 'Used in the report when staff leave the field empty. Basic HTML (paragraphs, lists, links) is allowed.', 'cleanup-report-generator' ); ?></p></div>
             </div>
-        </details>
+        </div>
         <?php
     }
 
@@ -791,17 +919,21 @@ class Cleanup_Report_Type_Builder {
         // The edit form posts existing keys; a new type gets one from its name, never clashing with another type.
         $new_key = $key;
         if ( '' === $new_key ) {
-            $used = array_fill_keys( array_keys( Cleanup_Report_Types::definitions() ), true ) + array_fill_keys( [ 'site', 'malware', 'optimization' ], true );
+            $used = array_fill_keys( array_keys( Cleanup_Report_Types::definitions() ), true ) + array_fill_keys( self::RESERVED, true ) + array_fill_keys( array_keys( $stored ), true );
             $new_key = self::unique( self::slug( sanitize_text_field( $raw['label'] ?? '' ), 24 ), $used );
         }
-        $def = self::sanitize_definition( $raw, $new_key );
+        if ( '' === $key && count( $stored ) >= self::LIMITS['types'] ) {
+            wp_safe_redirect( self::url( [ 'crg_done' => 'too_many' ] ) );
+            exit;
+        }
+        unset( $raw['retired'] ); // the type's own list, never taken from the form
+        $def = self::sanitize_definition( $raw, $new_key, $stored[ $key ] ?? null );
         if ( '' === $def['label'] || ! array_filter( $def['sections'], static function ( $s ) { return ! empty( $s['fields'] ); } ) ) {
             wp_safe_redirect( self::url( '' !== $key ? [ 'edit' => $key, 'crg_done' => 'invalid' ] : [ 'new' => 1, 'crg_done' => 'invalid' ] ) );
             exit;
         }
         $stored[ $new_key ] = $def;
         update_option( self::OPTION, $stored, false ); // not autoloaded: only wp-admin, WP-Cron and the PDF read it
-        Cleanup_Report_Types::flush();
         wp_safe_redirect( self::url( [ 'edit' => $new_key, 'crg_done' => 'saved' ] ) );
         exit;
     }
@@ -841,7 +973,7 @@ class Cleanup_Report_Type_Builder {
             wp_die( esc_html__( 'Report type not found.', 'cleanup-report-generator' ), '', [ 'response' => 404 ] );
         }
         $def = Cleanup_Report_Types::get( $key );
-        $m   = [ 'crg_client_name' => __( 'Sample member', 'cleanup-report-generator' ), 'crg_site_url' => 'https://example.com', 'crg_report_date' => wp_date( 'Y-m-d' ) ];
+        $m   = [ 'crg_client_name' => __( 'Sample client', 'cleanup-report-generator' ), 'crg_site_url' => 'https://example.com', 'crg_report_date' => wp_date( 'Y-m-d' ) ];
         foreach ( $def['sections'] as $skey => $section ) {
             if ( 'site' === $skey ) {
                 continue;
