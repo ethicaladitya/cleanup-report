@@ -678,6 +678,14 @@
 .post-type-cleanup_report .column-crg_date {
 	width: 110px;
 }
+/* A long type name ("Unknown type (layout_test_retired)", a custom type) wraps inside its column. */
+.post-type-cleanup_report td.column-crg_type .crg-type-badge {
+	max-width: 100%;
+	box-sizing: border-box;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	border-radius: 10px;
+}
 
 /* ---------- Reports › Settings */
 .crg-settings .crg-lead {
