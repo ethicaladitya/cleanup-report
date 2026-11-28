@@ -66,7 +66,13 @@ $note_html  = [ 'Cleanup_Report_Render', 'note_html' ];    // SEO / Staying prot
  * buttons add) or in brackets at the end of the name, e.g. "Slider Revolution (revslider) – no licence provided";
  * the note is whatever follows a dash. Edition words in brackets, like "(Pro)", stay part of the name.
  */
-$list_rows = static function ( $html ) {
+// Leftover tag text from a mistyped tag in the editor's Code tab ("/li>", "</li", "<code") is dropped from names,
+// folders and reasons; a "/" inside a name (e.g. "AC/DC") is kept.
+$drop_tag_text = static function ( $text ) {
+    $tags = '(?:li|ul|ol|p|code|strong|em|b|i|br|span|div)';
+    return trim( preg_replace( [ '#\s*<\s*/?\s*' . $tags . '\b[^<>]*>?#i', '#\s*/' . $tags . '\s*>#i', '/\s{2,}/' ], ' ', $text ) );
+};
+$list_rows = static function ( $html ) use ( $drop_tag_text ) {
     $rows = [];
     if ( ! preg_match_all( '#<li[^>]*>(.*?)</li>#is', (string) $html, $m ) ) {
         $m[1] = array_filter( array_map( 'trim', preg_split( '/<br\s*\/?>|\n/', wp_strip_all_tags( (string) $html, false ) ) ) );
@@ -83,7 +89,11 @@ $list_rows = static function ( $html ) {
             [ , $text, $slug ] = $b;
         }
         if ( '' !== $text ) {
-            $rows[] = [ 'name' => html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' ), 'slug' => $slug, 'note' => html_entity_decode( $note, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ];
+            $rows[] = [
+                'name' => $drop_tag_text( html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+                'slug' => $drop_tag_text( html_entity_decode( $slug, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+                'note' => $drop_tag_text( html_entity_decode( $note, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+            ];
         }
     }
     return $rows;
