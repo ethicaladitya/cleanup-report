@@ -611,8 +611,10 @@ class Cleanup_Report_Fields {
                     <tr><th class="crg-col-score"><?php esc_html_e( 'Mobile', 'cleanup-report-generator' ); ?></th><th class="crg-col-score"><?php esc_html_e( 'Desktop', 'cleanup-report-generator' ); ?></th><th class="crg-col-score"><?php esc_html_e( 'Mobile', 'cleanup-report-generator' ); ?></th><th class="crg-col-score"><?php esc_html_e( 'Desktop', 'cleanup-report-generator' ); ?></th></tr>
                 </thead>
                 <tbody class="crg-score-rows"></tbody>
+                <tbody class="crg-score-empty" hidden><tr><td></td><td colspan="5"><?php esc_html_e( 'No pages yet. Add each page you tested on PageSpeed Insights, with its mobile and desktop scores.', 'cleanup-report-generator' ); ?></td><td></td></tr></tbody>
                 <tfoot><tr><td></td><th scope="row"><?php esc_html_e( 'Average', 'cleanup-report-generator' ); ?></th><td class="crg-avg" data-col="mobile_before">—</td><td class="crg-avg" data-col="desktop_before">—</td><td class="crg-avg" data-col="mobile_after">—</td><td class="crg-avg" data-col="desktop_after">—</td><td></td></tr></tfoot>
             </table>
+            <div class="crg-score-warn notice notice-error inline" role="alert" hidden><p></p></div>
             <div class="crg-scores-text">
                 <textarea id="crg_opt_scores" name="crg_opt_scores" rows="5" class="code" placeholder="https://example.com/ | 56 | 85 | 95 | 100"><?php echo esc_textarea( self::meta( $post, 'crg_opt_scores' ) ); ?></textarea>
                 <p class="description">

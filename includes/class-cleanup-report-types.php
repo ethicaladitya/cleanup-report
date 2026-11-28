@@ -29,6 +29,8 @@ class Cleanup_Report_Types {
     public static function init() {
         add_action( 'admin_menu', [ __CLASS__, 'menu' ], 9 ); // before Settings (priority 10), so the Add items come first
         add_action( 'load-post-new.php', [ __CLASS__, 'require_type' ] );
+        add_action( 'load-post-new.php', [ __CLASS__, 'name_headings' ], 20 );
+        add_action( 'load-post.php', [ __CLASS__, 'name_headings' ] );
         add_action( 'add_meta_boxes_cleanup_report', [ __CLASS__, 'store_new_type' ], 1 );
         add_filter( 'submenu_file', [ __CLASS__, 'submenu_file' ] );
         add_action( 'restrict_manage_posts', [ __CLASS__, 'list_filter' ] );
@@ -324,6 +326,24 @@ class Cleanup_Report_Types {
             return 'post-new.php?post_type=cleanup_report&crg_type=' . $type;
         }
         return $file;
+    }
+
+    /** The edit screen's heading names the report type ("Edit website optimization report"), so it's never in doubt. */
+    public static function name_headings() {
+        global $wp_post_types;
+        $post_id = absint( $_GET['post'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only: which heading to show
+        if ( $post_id && 'cleanup_report' !== get_post_type( $post_id ) ) {
+            return;
+        }
+        $type = $post_id ? self::of( $post_id ) : self::requested();
+        if ( ! $type || ! isset( $wp_post_types['cleanup_report'] ) ) {
+            return;
+        }
+        $label = strtolower( self::get( $type )['label'] );
+        /* translators: %s: report type, e.g. "website optimization" */
+        $wp_post_types['cleanup_report']->labels->add_new_item = sprintf( __( 'Add %s report', 'cleanup-report-generator' ), $label );
+        /* translators: %s: report type, e.g. "website optimization" */
+        $wp_post_types['cleanup_report']->labels->edit_item = sprintf( __( 'Edit %s report', 'cleanup-report-generator' ), $label );
     }
 
     /** A new report needs a type: without one, go to the chooser first. */

@@ -484,6 +484,8 @@
 		/* Averages: the sum of the pages' scores divided by the number of pages scored, as in the report. */
 		function changed() {
 			$rows.closest( 'table' ).prop( 'hidden', asText );
+			$box.find( '.crg-score-empty' ).prop( 'hidden', $rows.children().length > 0 );
+			validate();
 			$.each( SCORE_COLS, function ( i, col ) {
 				var sum = 0, n = 0;
 				$rows.find( '.s-' + col ).each( function () {
@@ -502,10 +504,45 @@
 			} );
 		}
 
+		/* Inline checks: a score is a whole number from 0 to 100, a page is a web address. Saving still clamps scores. */
+		function validate() {
+			var problems = [];
+			$rows.find( 'tr' ).each( function ( i ) {
+				var $r = $( this );
+				$r.find( 'input[type=number]' ).each( function () {
+					var v = $.trim( this.value ), bad = '' !== v && ( isNaN( Number( v ) ) || Number( v ) < 0 || Number( v ) > 100 || Math.round( Number( v ) ) !== Number( v ) );
+					$( this ).toggleClass( 'is-invalid', bad ).attr( 'aria-invalid', bad ? 'true' : null );
+					if ( bad ) {
+						/* translators: 1: row number, 2: column, e.g. "Mobile after" */
+						problems.push( sprintf( __( 'row %1$d, %2$s', 'cleanup-report-generator' ), i + 1, $( this ).attr( 'aria-label' ) ) );
+					}
+				} );
+				var $url = $r.find( '.s-url' ), url = $.trim( $url.val() ), badUrl = '' !== url && ! /^https?:\/\/[^\s/]+\.[^\s]+/i.test( url );
+				$url.toggleClass( 'is-invalid', badUrl ).attr( 'aria-invalid', badUrl ? 'true' : null );
+				if ( badUrl ) {
+					/* translators: %d: row number */
+					problems.push( sprintf( __( 'row %d, page address', 'cleanup-report-generator' ), i + 1 ) );
+				}
+			} );
+			/* translators: %s: list of cells, e.g. "row 2, Mobile after" */
+			$box.find( '.crg-score-warn' ).prop( 'hidden', ! problems.length ).find( 'p' ).text( problems.length ? sprintf( __( 'Check %s: scores are whole numbers from 0 to 100, and pages are full addresses starting with https://.', 'cleanup-report-generator' ), problems.join( '; ' ) ) : '' );
+		}
+
 		textToRows();
+		if ( ! $rows.children().length && ! $( 'body' ).hasClass( 'crg-locked' ) ) {
+			$rows.append( row( {} ) ); // a new report starts with one page to fill in
+			changed();
+		}
 		sortable( $rows, '> tr' );
 		$rows.on( 'sortupdate', rowsToText );
 		$rows.on( 'input change', ':input', rowsToText );
+		$rows.on( 'blur', '.s-url', function () { // "example.com/page" → "https://example.com/page"
+			var v = normalizeUrl( this.value, false );
+			if ( v !== this.value ) {
+				this.value = v;
+				rowsToText();
+			}
+		} );
 		$rows.on( 'click', '.crg-remove', function () {
 			$( this ).closest( 'tr' ).remove();
 			rowsToText();
@@ -528,8 +565,19 @@
 			$( this ).text( asText ? __( 'Back to table', 'cleanup-report-generator' ) : __( 'Edit as text', 'cleanup-report-generator' ) );
 		} );
 		$rows.on( 'keydown', 'input', function ( e ) {
-			if ( 'Enter' === e.key ) {
-				e.preventDefault(); // don't submit the post form
+			if ( 'Enter' !== e.key ) {
+				return;
+			}
+			e.preventDefault(); // don't submit the post form
+			// Enter in a row's last score: on to the next row, adding one at the end.
+			if ( $( this ).hasClass( 's-desktop_after' ) ) {
+				var $next = $( this ).closest( 'tr' ).next( 'tr' );
+				if ( ! $next.length ) {
+					$rows.append( row( {} ) );
+					changed();
+					$next = $rows.find( 'tr' ).last();
+				}
+				$next.find( '.s-url' ).trigger( 'focus' );
 			}
 		} );
 	}

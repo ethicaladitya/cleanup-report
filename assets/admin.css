@@ -1294,7 +1294,15 @@
 	color: var(--crg-green);
 }
 .crg-score-table .crg-avg.is-bad {
-	color: var(--crg-red);
+	color: #b42318; /* darker than --crg-red: 4.5:1 or more on the grey footer */
+}
+.crg-score-table input.is-invalid {
+	border-color: var(--crg-red);
+	box-shadow: 0 0 0 1px var(--crg-red);
+}
+.crg-score-empty td {
+	color: var(--crg-muted);
+	font-style: italic;
 }
 .crg-scores .crg-scores-text textarea,
 .crg-code-field textarea {
