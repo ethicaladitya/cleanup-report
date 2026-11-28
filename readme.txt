@@ -4,7 +4,7 @@ Tags: reports, pdf, client reports, malware cleanup, website optimization
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.2.0
+Stable tag: 2.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,7 +19,7 @@ Two report types come with it, each with its own fields and sections, sharing th
 * **Malware cleanup:** what was found and removed, screenshots, vulnerable components, the work done and how the site was verified, the security settings applied, and the client's next steps.
 * **Website optimization:** PageSpeed scores of the tested pages before and after the work (averages worked out for you), the pre-work and post-work checklists, the optimization steps, whether the mobile and desktop targets were reached, and any code added to the site.
 
-More report types can be added with a definition (see the FAQ); the edit screen, saving and the report follow from it.
+Administrators can make their own report types in Reports › Report types, without code: a name, the sections and their fields (text, dates, choices, questions, checklists, tables, rich text, screenshots and more). The edit screen, saving, the review workflow and the PDF follow from it. Developers can also add types with a definition (see the FAQ).
 
 Also included:
 
@@ -47,7 +47,11 @@ Give everyone who writes reports the Editor role. Writers edit their own reports
 
 = Can I add my own report type? =
 
-Yes. Add a definition with the `cleanup_report_types` filter: a label and a list of sections, each a list of fields (text, url, date, number, email, textarea, code, rich text, note, select, questions, table, screenshots, checklist). The edit screen, saving, the history and a generic report layout follow from it. See `includes/class-cleanup-report-types.php` for the two built-in definitions.
+Yes. In Reports › Report types (administrators), click "Add report type", or "Duplicate" on an existing type to start from its fields. Give it a name, add sections and fields, and save: "Add … report" appears in the Reports menu. A type can be turned off (it can't be picked for new reports; its reports still open and print) and deleted once no report uses it.
+
+Editing a type is safe for reports already written: renamed and reordered fields keep their values; a removed field keeps its value in each report, listed on the report's edit screen, where it can be removed; an approved report keeps printing as it was approved.
+
+Developers can also add a definition with the `cleanup_report_types` filter: a label and a list of sections, each a list of fields (text, url, date, number, email, textarea, code, rich text, note, select, questions, table, screenshots, checklist). The edit screen, saving, the history and a generic report layout follow from it. See `includes/class-cleanup-report-types.php` for the two built-in definitions.
 
 = Does deleting the plugin delete my reports? =
 
@@ -91,6 +95,11 @@ Only a link: the edit screen offers "check this site on VirusTotal", which opens
 
 == Changelog ==
 
+= 2.3.0 =
+* Report type builder (Reports › Report types, administrators only): make, edit, duplicate, turn off and delete report types without code. Fields: short text, plain and rich text, rich text with a standard text, web address, date, number, choice from a list, questions with answers, checklist, table, screenshots and code. Drawn with the standard report layout; "Preview the report" shows it with sample values.
+* Duplicating a built-in type copies its fields that the builder offers and names the special ones it can't copy.
+* Reports keep their values when their type changes; approved reports keep printing as they were approved, and fields removed from a type are listed on each report's edit screen until removed from it.
+
 = 2.2.0 =
 * Renamed to Handover – Service Reports for Agencies. Only the name changes in this release: the plugin folder, its settings and every report stay as they are.
 * Report types. Each report is a Malware cleanup or a Website optimization report, picked when it's added (Reports › Add cleanup report / Add optimization report, or the "Add report" button, which asks). The type can't change afterwards. The Reports list has a Type column and a type filter. Existing reports are Malware cleanup reports (marked once on update).
@@ -120,6 +129,9 @@ Changes before 2.2.0 are in changelog.txt.
 * Dompdf (LGPL-2.1) and the libraries it bundles: php-font-lib (LGPL-2.1), php-svg-lib (LGPL-3.0), masterminds/html5 (MIT), sabberworm/php-css-parser (MIT). DejaVu fonts (Bitstream Vera license) come with Dompdf.
 
 == Upgrade Notice ==
+
+= 2.3.0 =
+Adds Reports › Report types, where administrators make their own report types without code.
 
 = 2.2.0 =
 Adds Website optimization reports and report types. Existing reports become Malware cleanup reports and keep working; your branding and checklists are kept.

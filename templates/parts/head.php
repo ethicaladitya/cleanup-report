@@ -220,7 +220,7 @@ body { padding: 72px 0 48px; }
     ?></div>
     <?php endif; ?>
     <?php if ( empty( $data['final'] ) ) : ?><span class="nf"><?php echo esc_html( $data['watermark'] ); ?></span><?php endif; ?>
-    <?php if ( ! empty( $data['web']['edit'] ) ) : ?><a href="<?php echo esc_url( $data['web']['edit'] ); ?>"><?php esc_html_e( 'Edit report', 'cleanup-report-generator' ); ?></a><?php endif; ?>
+    <?php if ( ! empty( $data['web']['edit'] ) ) : ?><a href="<?php echo esc_url( $data['web']['edit'] ); ?>"><?php echo esc_html( $data['web']['edit_label'] ?? __( 'Edit report', 'cleanup-report-generator' ) ); ?></a><?php endif; ?>
     <?php if ( ! empty( $data['web']['pdf'] ) ) : ?><a class="primary" href="<?php echo esc_url( $data['web']['pdf'] ); ?>"><?php esc_html_e( 'Download PDF', 'cleanup-report-generator' ); ?></a><?php endif; ?>
 </div>
 <?php if ( empty( $data['final'] ) ) : ?><div class="notfinal" aria-hidden="true" style="font-size:<?php echo (int) min( 120, 1300 / max( 1, mb_strlen( $data['watermark'] ) * 0.72 ) ); ?>px"><?php echo esc_html( $data['watermark'] ); ?></div><?php endif; ?>

@@ -1499,7 +1499,7 @@
 	display: block;
 	margin: -6px 0 14px;
 }
-.crg-type-opt[hidden] {
+.crg-type-field-body .crg-type-opt[hidden] {
 	display: none;
 }
 .crg-type-add {
@@ -1549,6 +1549,15 @@
 	}
 	.crg-type-field summary {
 		flex-wrap: wrap;
+		gap: 6px;
+		padding-left: 8px;
+	}
+	.crg-type-kind {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		flex-shrink: 1;
 	}
 	.crg-type-field-title {
 		flex: 1 1 100%;
@@ -1556,7 +1565,7 @@
 		padding-bottom: 6px;
 	}
 	.crg-type-tools .button-link {
-		width: 40px;
+		width: 36px;
 		height: 40px;
 	}
 }

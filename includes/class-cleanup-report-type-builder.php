@@ -442,16 +442,20 @@ class Cleanup_Report_Type_Builder {
 
     public static function render_orphans( $post ) {
         ?>
-        <p class="description"><?php esc_html_e( 'These fields were removed from the report type after this report was filled in. Their values are kept and aren\'t shown in the report. Tick a field to remove its value from this report when you save.', 'cleanup-report-generator' ); ?></p>
+        <?php $can_remove = ! Cleanup_Report_Access::locked( $post->ID ); ?>
+        <p class="description">
+            <?php esc_html_e( 'These fields were removed from the report type after this report was filled in. Their values are kept. An approved report still shows them, as it was approved; a draft leaves them out.', 'cleanup-report-generator' ); ?>
+            <?php if ( $can_remove ) { esc_html_e( 'Tick a field to remove its value from this report when you save.', 'cleanup-report-generator' ); } ?>
+        </p>
         <table class="crg-table crg-orphans">
-            <thead><tr><th><?php esc_html_e( 'Field', 'cleanup-report-generator' ); ?></th><th><?php esc_html_e( 'Value', 'cleanup-report-generator' ); ?></th><th><?php esc_html_e( 'Remove', 'cleanup-report-generator' ); ?></th></tr></thead>
+            <thead><tr><th><?php esc_html_e( 'Field', 'cleanup-report-generator' ); ?></th><th><?php esc_html_e( 'Value', 'cleanup-report-generator' ); ?></th><?php if ( $can_remove ) : ?><th><?php esc_html_e( 'Remove', 'cleanup-report-generator' ); ?></th><?php endif; ?></tr></thead>
             <tbody>
             <?php foreach ( self::orphans( $post ) as $key => [ $label, $value ] ) :
                 $text = is_array( $value ) ? wp_json_encode( $value ) : wp_strip_all_tags( (string) $value ); ?>
                 <tr>
                     <td><strong><?php echo esc_html( $label ); ?></strong></td>
                     <td><?php echo esc_html( wp_html_excerpt( (string) $text, 200, '…' ) ); ?></td>
-                    <td><label><input type="checkbox" name="crg_remove_orphans[]" value="<?php echo esc_attr( $key ); ?>"> <span class="screen-reader-text"><?php echo esc_html( sprintf( /* translators: %s: field name */ __( 'Remove %s', 'cleanup-report-generator' ), $label ) ); ?></span></label></td>
+                    <?php if ( $can_remove ) : ?><td><label><input type="checkbox" name="crg_remove_orphans[]" value="<?php echo esc_attr( $key ); ?>"> <span class="screen-reader-text"><?php echo esc_html( sprintf( /* translators: %s: field name */ __( 'Remove %s', 'cleanup-report-generator' ), $label ) ); ?></span></label></td><?php endif; ?>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -547,7 +551,7 @@ class Cleanup_Report_Type_Builder {
                             <span class="crg-muted"> · <?php echo $custom ? esc_html__( 'Your type', 'cleanup-report-generator' ) : esc_html__( 'Built in', 'cleanup-report-generator' ); ?></span>
                             <?php if ( '' !== (string) $def['about'] ) : ?><br><span class="crg-muted"><?php echo esc_html( $def['about'] ); ?></span><?php endif; ?>
                         </td>
-                        <td data-label="<?php esc_attr_e( 'Sections', 'cleanup-report-generator' ); ?>"><?php echo $custom ? (int) count( $stored[ $key ]['sections'] ) : '—'; ?></td>
+                        <td data-label="<?php esc_attr_e( 'Sections', 'cleanup-report-generator' ); ?>"><?php echo (int) ( count( Cleanup_Report_Types::get( $key )['sections'] ) - 1 ); // not counting "Member & website" ?></td>
                         <td data-label="<?php esc_attr_e( 'Reports', 'cleanup-report-generator' ); ?>"><?php echo $count ? '<a href="' . esc_url( admin_url( 'edit.php?post_type=cleanup_report&crg_type=' . $key ) ) . '">' . (int) $count . '</a>' : '0'; ?></td>
                         <td><?php echo empty( $def['hidden'] ) ? '<span class="crg-status-badge crg-status-approved">' . esc_html__( 'On', 'cleanup-report-generator' ) . '</span>' : '<span class="crg-status-badge">' . esc_html__( 'Off', 'cleanup-report-generator' ) . '</span>'; ?></td>
                         <td class="crg-types-actions">
@@ -851,7 +855,7 @@ class Cleanup_Report_Type_Builder {
             'post_id' => 0, 'type' => $key, 'type_info' => $def, 'final' => false, 'watermark' => __( 'PREVIEW', 'cleanup-report-generator' ),
             'title' => $def['label'], 'client' => $m['crg_client_name'], 'site' => $m['crg_site_url'], 'date' => $m['crg_report_date'], 'request_link' => '',
             'brand' => Cleanup_Report_Render::brand(), 'screenshots' => [], 'opt' => [], 'generic' => Cleanup_Report_Render::generic_sections( 0, $def, $m ),
-            'web' => [ 'edit' => self::url( [ 'edit' => $key ] ) ],
+            'web' => [ 'edit' => self::url( [ 'edit' => $key ] ), 'edit_label' => __( 'Edit report type', 'cleanup-report-generator' ) ],
         ];
         status_header( 200 );
         nocache_headers();
