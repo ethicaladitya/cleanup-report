@@ -290,6 +290,7 @@ class Cleanup_Report_Admin {
         'crg_brand_name', 'crg_brand_logo', 'crg_brand_logo_light', 'crg_brand_primary', 'crg_report_theme', 'crg_cover_glow', 'crg_footer_text',
         'crg_color_success', 'crg_color_warning', 'crg_color_high', 'crg_color_danger', 'crg_color_neutral', 'crg_watermark_text', 'crg_pdf_requires_approval',
         'crg_buddyleads', 'crg_retention_days', 'crg_plugin_recheck', 'crg_delete_data', 'crg_opt_target_mobile', 'crg_opt_target_desktop',
+        'crg_custom_types',
     ];
 
     /** On the plugin's own screens, load its (non-autoloaded) settings in one query instead of one each. */

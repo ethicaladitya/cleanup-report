@@ -11,7 +11,8 @@ class Cleanup_Report_Render {
     public static function get_data( $post_id ) {
         $m        = array_map( static function ( $a ) { return $a[0]; }, get_post_meta( $post_id ) );
         $type     = Cleanup_Report_Types::of( $post_id );
-        $info     = Cleanup_Report_Types::get( $type );
+        // A custom type's approved report is drawn with the definition it was approved with (Report types).
+        $info     = Cleanup_Report_Type_Builder::definition_for_report( $post_id, $type, Cleanup_Report_Types::get( $type ) );
         $template = $info['template'];
         $data     = [
             'post_id'      => $post_id,
@@ -33,7 +34,7 @@ class Cleanup_Report_Render {
     }
 
     /** Branding from Settings › Branding (or the preset's defaults). */
-    private static function brand() {
+    public static function brand() {
         $dark = 'dark' === get_option( 'crg_report_theme', 'light' );
         return [
             'name'    => get_option( 'crg_brand_name', '' ) ?: Cleanup_Report_Presets::get( 'brand_name' ),

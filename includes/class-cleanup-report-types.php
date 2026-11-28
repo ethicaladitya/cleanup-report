@@ -70,27 +70,7 @@ class Cleanup_Report_Types {
                     unset( $definitions[ $key ] );
                     continue;
                 }
-                $label                = (string) ( $def['label'] ?? $key );
-                $definitions[ $key ] += [
-                    /* translators: %s: report type, e.g. "Website optimization" */
-                    'add'         => sprintf( __( 'Add %s report', 'cleanup-report-generator' ), strtolower( $label ) ),
-                    'about'       => '',
-                    /* translators: %s: report type, e.g. "Website optimization" */
-                    'eyebrow'     => sprintf( __( '%s report', 'cleanup-report-generator' ), $label ),
-                    'title'       => '',
-                    'file'        => sanitize_title( $label ) . '-report',
-                    'suffix'      => strtolower( $label ),
-                    'prepared_by' => __( 'team', 'cleanup-report-generator' ),
-                    'settings'    => [],
-                    'template'    => 'generic',
-                ];
-                $definitions[ $key ]['label'] = $label;
-                if ( '' === $definitions[ $key ]['title'] ) {
-                    $definitions[ $key ]['title'] = function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $definitions[ $key ]['eyebrow'] ) : strtoupper( $definitions[ $key ]['eyebrow'] );
-                }
-                if ( ! in_array( $definitions[ $key ]['template'], self::TEMPLATES, true ) ) {
-                    $definitions[ $key ]['template'] = 'generic';
-                }
+                $definitions[ $key ] = self::complete( $key, $def );
             }
             if ( ! isset( $definitions[ self::DEFAULT_TYPE ] ) ) { // every report saved before types existed is one
                 $definitions = [ self::DEFAULT_TYPE => self::malware_cleanup() ] + $definitions;
@@ -98,6 +78,32 @@ class Cleanup_Report_Types {
             self::$definitions = $definitions;
         }
         return self::$definitions;
+    }
+
+    /** A definition with its defaults filled in (labels made from the name, the generic template). */
+    public static function complete( $key, array $def ) {
+        $label = (string) ( $def['label'] ?? $key );
+        $def += [
+            /* translators: %s: report type, e.g. "Website optimization" */
+            'add'         => sprintf( __( 'Add %s report', 'cleanup-report-generator' ), strtolower( $label ) ),
+            'about'       => '',
+            /* translators: %s: report type, e.g. "Website optimization" */
+            'eyebrow'     => sprintf( __( '%s report', 'cleanup-report-generator' ), $label ),
+            'title'       => '',
+            'file'        => sanitize_title( $label ) . '-report',
+            'suffix'      => strtolower( $label ),
+            'prepared_by' => __( 'team', 'cleanup-report-generator' ),
+            'settings'    => [],
+            'template'    => 'generic',
+        ];
+        $def['label'] = $label;
+        if ( '' === $def['title'] ) {
+            $def['title'] = function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $def['eyebrow'] ) : strtoupper( $def['eyebrow'] );
+        }
+        if ( ! in_array( $def['template'], self::TEMPLATES, true ) ) {
+            $def['template'] = 'generic';
+        }
+        return $def;
     }
 
     /** @var array resolved definitions (sections built), by type */
@@ -115,6 +121,17 @@ class Cleanup_Report_Types {
             self::$resolved[ $type ] = $def;
         }
         return self::$resolved[ $type ];
+    }
+
+    /** Forgets the definitions built for this request (after report types are saved). */
+    public static function flush() {
+        self::$definitions = null;
+        self::$resolved    = [];
+    }
+
+    /** Types a new report can be added as: all but those turned off (Reports › Report types). */
+    public static function addable() {
+        return array_filter( self::definitions(), static function ( $def ) { return empty( $def['hidden'] ); } );
     }
 
     public static function exists( $type ) {
@@ -325,7 +342,7 @@ class Cleanup_Report_Types {
     public static function menu() {
         $parent = 'edit.php?post_type=cleanup_report';
         remove_submenu_page( $parent, 'post-new.php?post_type=cleanup_report' );
-        foreach ( self::definitions() as $key => $type ) {
+        foreach ( self::addable() as $key => $type ) {
             add_submenu_page( $parent, $type['add'], $type['add'], 'edit_posts', 'post-new.php?post_type=cleanup_report&crg_type=' . $key );
         }
         $hook = add_submenu_page( $parent, __( 'Add report', 'cleanup-report-generator' ), __( 'Add report', 'cleanup-report-generator' ), 'edit_posts', self::CHOOSER, [ __CLASS__, 'chooser' ] );
@@ -370,7 +387,8 @@ class Cleanup_Report_Types {
 
     /** A new report needs a type: without one, go to the chooser first. */
     public static function require_type() {
-        if ( 'cleanup_report' !== sanitize_key( wp_unslash( $_GET['post_type'] ?? '' ) ) || self::requested() ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing
+        $type = self::requested();
+        if ( 'cleanup_report' !== sanitize_key( wp_unslash( $_GET['post_type'] ?? '' ) ) || ( $type && isset( self::addable()[ $type ] ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing
             return;
         }
         wp_safe_redirect( admin_url( 'edit.php?post_type=cleanup_report&page=' . self::CHOOSER ) );
@@ -380,7 +398,7 @@ class Cleanup_Report_Types {
     /** The new report (WordPress's auto-draft) gets the type it was added as, before any box reads it. */
     public static function store_new_type( $post ) {
         $type = self::requested();
-        if ( 'auto-draft' === $post->post_status && $type && ! metadata_exists( 'post', $post->ID, self::META ) && current_user_can( 'edit_post', $post->ID ) ) {
+        if ( 'auto-draft' === $post->post_status && $type && isset( self::addable()[ $type ] ) && ! metadata_exists( 'post', $post->ID, self::META ) && current_user_can( 'edit_post', $post->ID ) ) {
             update_post_meta( $post->ID, self::META, $type );
         }
     }
@@ -413,7 +431,7 @@ class Cleanup_Report_Types {
             <h1><?php esc_html_e( 'Add report', 'cleanup-report-generator' ); ?></h1>
             <p class="crg-lead"><?php esc_html_e( 'Which kind of report? It can\'t be changed once the report is started.', 'cleanup-report-generator' ); ?></p>
             <div class="crg-chooser-cards">
-                <?php foreach ( self::definitions() as $key => $type ) : ?>
+                <?php foreach ( self::addable() as $key => $type ) : ?>
                     <a class="crg-chooser-card crg-type-card-<?php echo esc_attr( $key ); ?>" href="<?php echo esc_url( self::add_url( $key ) ); ?>">
                         <span class="crg-chooser-icon dashicons dashicons-<?php echo esc_attr( $type['icon'] ?? 'media-document' ); ?>" aria-hidden="true"></span>
                         <strong class="crg-chooser-title"><?php echo esc_html( $type['label'] ); ?></strong>
