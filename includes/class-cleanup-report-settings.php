@@ -52,7 +52,7 @@ class Cleanup_Report_Settings {
         register_setting( 'crg_settings', 'crg_brand_primary', [ 'default' => '#0059FF', 'sanitize_callback' => [ __CLASS__, 'sanitize_primary' ] ] ); // wpmudev.com blue
         register_setting( 'crg_settings', 'crg_report_theme', [ 'default' => 'light', 'sanitize_callback' => static function ( $v ) { return 'dark' === $v ? 'dark' : 'light'; } ] );
         register_setting( 'crg_settings', 'crg_cover_glow', [ 'type' => 'integer', 'default' => 100, 'sanitize_callback' => [ 'Cleanup_Report_Render', 'cover_glow' ] ] );
-        register_setting( 'crg_settings', 'crg_footer_text', [ 'default' => '© ' . wp_date( 'Y' ) . ' WPMU DEV Services', 'sanitize_callback' => 'sanitize_text_field' ] );
+        register_setting( 'crg_settings', 'crg_footer_text', [ 'default' => Cleanup_Report_Render::FOOTER_DEFAULT, 'sanitize_callback' => 'sanitize_text_field' ] );
         register_setting( 'crg_followups', Cleanup_Report_Checklists::FOLLOWUP_OPTION, [ 'type' => 'array', 'sanitize_callback' => [ 'Cleanup_Report_Checklists', 'sanitize_followup_items' ] ] );
         register_setting( 'crg_review', 'crg_watermark_text', [ 'default' => 'NOT FINAL', 'sanitize_callback' => static function ( $v ) { return mb_substr( trim( sanitize_text_field( (string) $v ) ), 0, 40 ) ?: 'NOT FINAL'; } ] );
         register_setting( 'crg_review', 'crg_pdf_requires_approval', [ 'type' => 'boolean', 'default' => 1, 'sanitize_callback' => static function ( $v ) { return empty( $v ) ? 0 : 1; } ] );
@@ -210,8 +210,8 @@ class Cleanup_Report_Settings {
                 </tr>
                 <tr>
                     <th scope="row"><label for="crg_footer_text">Footer text</label></th>
-                    <td><input type="text" id="crg_footer_text" name="crg_footer_text" value="<?php echo esc_attr( get_option( 'crg_footer_text', '© ' . wp_date( 'Y' ) . ' WPMU DEV Services' ) ); ?>" class="regular-text">
-                    <p class="description">Printed at the bottom of every PDF page.</p></td>
+                    <td><input type="text" id="crg_footer_text" name="crg_footer_text" value="<?php echo esc_attr( get_option( 'crg_footer_text', Cleanup_Report_Render::FOOTER_DEFAULT ) ); ?>" class="regular-text">
+                    <p class="description">Printed at the bottom of every PDF page. <code>{year}</code> is replaced with the current year.</p></td>
                 </tr>
             </table>
             <?php submit_button(); ?>
@@ -256,12 +256,13 @@ class Cleanup_Report_Settings {
     /** Buddyleads: user IDs of people who can edit reports. */
     public static function sanitize_buddyleads( $value ) {
         $ids = array_map( 'absint', is_array( $value ) ? $value : [] );
-        return array_values( array_filter( array_unique( $ids ), static function ( $id ) { return $id && user_can( $id, 'edit_posts' ); } ) );
+        // Editors and up only: approving means saving someone else's report, which WordPress allows only with edit_others_posts.
+        return array_values( array_filter( array_unique( $ids ), static function ( $id ) { return $id && user_can( $id, 'edit_others_posts' ); } ) );
     }
 
     private static function tab_review() {
         $leads = Cleanup_Report_Admin::buddyleads();
-        $users = get_users( [ 'capability' => 'edit_posts', 'orderby' => 'display_name', 'fields' => [ 'ID', 'display_name', 'user_email' ] ] );
+        $users = get_users( [ 'capability' => 'edit_others_posts', 'orderby' => 'display_name', 'fields' => [ 'ID', 'display_name', 'user_email' ] ] );
         ?>
         <form method="post" action="options.php" class="crg-settings-form">
             <?php settings_fields( 'crg_review' ); ?>
@@ -325,7 +326,7 @@ class Cleanup_Report_Settings {
             </p>
 
             <h2 class="title">Buddyleads</h2>
-            <p class="description">Who can approve reports or send them back, besides administrators (who have full access).</p>
+            <p class="description">Who can approve reports or send them back, besides administrators (who have full access). Only Editors and administrators are listed: approving saves someone else's report, which WordPress allows only from the Editor role up.</p>
             <input type="hidden" name="<?php echo esc_attr( Cleanup_Report_Admin::BUDDYLEADS_OPTION ); ?>[]" value="0">
             <fieldset class="crg-leads">
                 <?php foreach ( $users as $u ) : ?>

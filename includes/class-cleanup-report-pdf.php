@@ -18,14 +18,14 @@ class Cleanup_Report_PDF {
         $data = Cleanup_Report_Render::get_data( $post_id );
 
         if ( ! self::is_available() ) {
-            self::output_print_view( $data );
+            self::output_print_view( $data, 'PDF export needs ' . self::missing_text() . ' on this server' );
         }
 
         try {
             $dompdf = self::build( $data );
         } catch ( \Throwable $e ) {
             error_log( 'Cleanup Report Generator: PDF generation failed for report ' . $post_id . ': ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- record why the PDF fell back to print view
-            self::output_print_view( $data );
+            self::output_print_view( $data, 'The PDF couldn\'t be generated (the reason is in the PHP error log)' );
         }
 
         $dompdf->stream( self::filename( $data ), [ 'Attachment' => true ] );
@@ -54,6 +54,10 @@ class Cleanup_Report_PDF {
         $options->set( 'chroot', array_filter( [ CLEANUP_REPORT_PATH, $uploads['basedir'] ?? '' ] ) );
         $options->set( 'tempDir', get_temp_dir() );
         $options->set( 'fontCache', get_temp_dir() );
+        $font_dir = self::font_dir();
+        if ( $font_dir ) {
+            $options->set( 'fontDir', $font_dir ); // not Dompdf's default inside the plugin: may be read-only, and updates wipe it
+        }
         $options->set( 'dpi', 96 );
 
         $dompdf = new \CleanupReportGenerator\Vendor\Dompdf\Dompdf( $options );
@@ -290,8 +294,52 @@ class Cleanup_Report_PDF {
         return null;
     }
 
+    /**
+     * What PDF export needs that this server lacks, [] when it can run: the bundled Dompdf (missing from a copy of the
+     * repository that wasn't built), and the PHP extensions Dompdf uses for text (mbstring), HTML (dom) and images (gd:
+     * PNG screenshots and the cover glow). Without them every export would fall back to the print view.
+     */
+    public static function missing() {
+        $missing = [];
+        if ( ! class_exists( '\CleanupReportGenerator\Vendor\Dompdf\Dompdf' ) ) {
+            $missing['library'] = 'the bundled Dompdf library';
+        }
+        if ( ! function_exists( 'mb_convert_encoding' ) ) { // WordPress polyfills a few mb_* functions, not this one
+            $missing['mbstring'] = 'the PHP mbstring extension';
+        }
+        if ( ! class_exists( 'DOMDocument' ) ) {
+            $missing['dom'] = 'the PHP dom extension';
+        }
+        if ( ! function_exists( 'imagecreatefrompng' ) ) {
+            $missing['gd'] = 'the PHP gd extension';
+        }
+        return $missing;
+    }
+
     public static function is_available() {
-        return class_exists( '\CleanupReportGenerator\Vendor\Dompdf\Dompdf' );
+        return ! self::missing();
+    }
+
+    /**
+     * Where Dompdf keeps the report fonts it prepares (Roboto, copied from assets/fonts on first use): uploads/crg-cache/fonts,
+     * or the system temp folder if uploads isn't writable. '' leaves Dompdf's default.
+     */
+    private static function font_dir() {
+        $uploads = wp_get_upload_dir();
+        $dirs    = [ empty( $uploads['basedir'] ) ? '' : $uploads['basedir'] . '/crg-cache/fonts', get_temp_dir() . 'crg-fonts' ];
+        foreach ( array_filter( $dirs ) as $dir ) {
+            if ( wp_mkdir_p( $dir ) && wp_is_writable( $dir ) ) {
+                return wp_normalize_path( $dir );
+            }
+        }
+        return '';
+    }
+
+    /** missing() as a phrase: "the PHP gd extension and the PHP dom extension". */
+    private static function missing_text() {
+        $parts = array_values( self::missing() );
+        $last  = array_pop( $parts );
+        return $parts ? implode( ', ', $parts ) . ' and ' . $last : (string) $last;
     }
 
     public static function filename( array $data ) {
@@ -360,23 +408,30 @@ class Cleanup_Report_PDF {
      * Fallback when Dompdf is unavailable: the browser preview, which opens the print dialog so the user can
      * save it as a PDF.
      */
-    private static function output_print_view( array $data ) {
+    private static function output_print_view( array $data, $reason = '' ) {
         status_header( 200 );
         nocache_headers();
         header( 'Content-Type: text/html; charset=utf-8' );
-        $data['web'] = [ 'print' => true ];
+        $data['web'] = [ 'print' => true, 'fallback' => $reason ];
         echo self::render_html( $data, true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the template escapes its output
         exit;
     }
 
     /**
-     * Warn on the Reports list screen if PDF export can't run.
+     * Warn on the Reports list and report screens if PDF export can't run, naming what's missing.
      */
     public static function show_library_notice() {
-        global $pagenow;
-        if ( 'edit.php' !== $pagenow || 'cleanup_report' !== sanitize_key( wp_unslash( $_GET['post_type'] ?? '' ) ) || self::is_available() ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- only decides whether to show a notice
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        if ( ! $screen || 'cleanup_report' !== $screen->post_type || ! in_array( $screen->base, [ 'edit', 'post' ], true ) || self::is_available() ) {
             return;
         }
-        echo '<div class="notice notice-warning"><p><strong>PDF export unavailable:</strong> the Dompdf library is missing, so "Export PDF" opens the print view instead. Run <code>composer install --no-dev</code> in the plugin folder to enable it.</p></div>';
+        $missing = self::missing();
+        $fix     = isset( $missing['library'] )
+            ? 'Install the plugin from its release zip, or run <code>composer install --no-dev</code> in the plugin folder.'
+            : ( count( $missing ) > 1 ? 'Ask your host to enable them.' : 'Ask your host to enable it.' );
+        if ( isset( $missing['library'] ) && count( $missing ) > 1 ) {
+            $fix .= ' Then ask your host to enable the PHP extensions.';
+        }
+        echo '<div class="notice notice-warning"><p><strong>PDF export unavailable:</strong> it needs ' . esc_html( self::missing_text() ) . ', so "Download PDF" opens the print view instead (use the browser\'s Save as PDF). ' . wp_kses( $fix, [ 'code' => [] ] ) . '</p></div>';
     }
 }

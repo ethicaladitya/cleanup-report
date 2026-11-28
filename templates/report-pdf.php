@@ -364,7 +364,11 @@ body { padding: 72px 0 48px; }
 <body>
 <?php if ( $web ) : ?>
 <div class="webbar">
+    <?php if ( ! empty( $data['web']['fallback'] ) ) : ?>
+    <div class="t"><strong>Print view</strong> · <?php echo esc_html( $data['web']['fallback'] ); ?>. Use your browser's Save as PDF.</div>
+    <?php else : ?>
     <div class="t"><strong>Preview</strong> · <?php echo esc_html( $host ?: $client ); ?> · <?php echo empty( $data['final'] ) ? 'not approved yet, so this isn\'t the final report' : 'this is how the PDF reads'; ?></div>
+    <?php endif; ?>
     <?php if ( empty( $data['final'] ) ) : ?><span class="nf"><?php echo esc_html( $data['watermark'] ); ?></span><?php endif; ?>
     <?php if ( ! empty( $data['web']['edit'] ) ) : ?><a href="<?php echo esc_url( $data['web']['edit'] ); ?>">Edit report</a><?php endif; ?>
     <?php if ( ! empty( $data['web']['pdf'] ) ) : ?><a class="primary" href="<?php echo esc_url( $data['web']['pdf'] ); ?>">Download PDF</a><?php endif; ?>

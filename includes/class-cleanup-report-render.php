@@ -11,7 +11,7 @@ class Cleanup_Report_Render {
             'logo' => 'dark' === get_option( 'crg_report_theme', 'light' ) ? get_option( 'crg_brand_logo', '' ) : get_option( 'crg_brand_logo_light', '' ),
             'colors' => self::colors(),
             'primary' => get_option('crg_brand_primary','#0059FF'),
-            'footer'  => get_option('crg_footer_text','© ' . wp_date('Y') . ' WPMU DEV Services'),
+            'footer'  => self::footer(),
             'theme'   => 'dark' === get_option( 'crg_report_theme', 'light' ) ? 'dark' : 'light',
             'glow'    => self::cover_glow( get_option( 'crg_cover_glow', 100 ) ),
         ];
@@ -128,6 +128,13 @@ class Cleanup_Report_Render {
         'balanced' => [ 'Balanced', [ 'primary' => '#2F64D6', 'success' => '#47CD89', 'warning' => '#FDC94B', 'high' => '#F79A5C', 'danger' => '#F97066', 'neutral' => '#D0D5DD', 'glow' => 80 ] ],
         'bold'     => [ 'Bold', [ 'primary' => '#0059FF', 'success' => '#067647', 'warning' => '#FDB022', 'high' => '#C4320A', 'danger' => '#D92D20', 'neutral' => '#667085', 'glow' => 100 ] ],
     ];
+
+    /** Footer text (Settings › Branding) as saved; {year} becomes the current year when a report is made. */
+    const FOOTER_DEFAULT = '© {year} WPMU DEV Services';
+
+    public static function footer() {
+        return str_replace( '{year}', wp_date( 'Y' ), (string) get_option( 'crg_footer_text', self::FOOTER_DEFAULT ) );
+    }
 
     /** Cover gradient strength (Settings › Branding) as a whole percentage, 0–100; 100 when unset or not a number. */
     public static function cover_glow( $value ) {

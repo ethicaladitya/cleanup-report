@@ -41,7 +41,7 @@ class Cleanup_Report_Admin {
     ];
 
     /** Bump to run upgrade() once more on every site (stored in the autoloaded option crg_db_version). */
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
 
     /** The review status this request changed the report to, for the "saved" message. */
     private static $changed_to = '';
@@ -120,6 +120,8 @@ class Cleanup_Report_Admin {
      *    modified date; later saves keep them in step through sync_post_status().
      *  - The old default Verification bullet that named a third-party scanner brand gets the current wording.
      *  - The two checklist settings stop loading on every front-end page (see checklists_not_autoloaded()).
+     *  - A saved footer starting "© 2026" gets "© {year}", so it stays current (DB_VERSION 2).
+     * Every step is safe to repeat, so a version bump simply runs them all again once.
      */
     public static function upgrade() {
         if ( ! current_user_can( 'edit_posts' ) || get_transient( 'crg_upgrading' ) ) {
@@ -143,6 +145,13 @@ class Cleanup_Report_Admin {
         }
         if ( function_exists( 'wp_set_options_autoload' ) ) {
             wp_set_options_autoload( [ Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION ], false );
+        }
+        $footer = get_option( 'crg_footer_text' ); // a saved "© 2026 …" froze the year: make it follow the date
+        if ( is_string( $footer ) ) {
+            $live = preg_replace( '/^(©|&copy;|\(c\))\s*(?:19|20)\d{2}(?!\d)/iu', '$1 {year}', $footer, 1 );
+            if ( is_string( $live ) && $live !== $footer ) {
+                update_option( 'crg_footer_text', $live );
+            }
         }
         delete_option( 'crg_post_status_synced' ); // flags from earlier 2.1.0 builds
         delete_option( 'crg_scanner_line_replaced' );
@@ -689,7 +698,8 @@ class Cleanup_Report_Admin {
     /** Can this user approve? The site's administrators always can (full access); so can the Buddyleads. */
     public static function is_buddylead( $user_id = 0 ) {
         $user_id = $user_id ?: get_current_user_id();
-        return user_can( $user_id, 'manage_options' ) || in_array( (int) $user_id, self::buddyleads(), true );
+        // A Buddylead below Editor couldn't save anyone else's report, so the role is required as well as the tick.
+        return user_can( $user_id, 'manage_options' ) || ( in_array( (int) $user_id, self::buddyleads(), true ) && user_can( $user_id, 'edit_others_posts' ) );
     }
 
     /** Statuses this user can move a report to from $current (always including $current itself). */
