@@ -42,7 +42,7 @@ class Cleanup_Report_Admin {
     ];
 
     /** Bump to run upgrade() once more on every site (stored in the autoloaded option crg_db_version). */
-    const DB_VERSION = 6;
+    const DB_VERSION = 7;
 
     /** The review status this request changed the report to, for the "saved" message. */
     private static $changed_to = '';
@@ -125,7 +125,7 @@ class Cleanup_Report_Admin {
             foreach ( $section['fields'] as $f ) {
                 $keys = array_merge( $keys, Cleanup_Report_Fields::meta_keys( $f ) );
             }
-            $out[ $section['title'] ] = $keys;
+            $out[ $section['title'] ] = array_merge( $out[ $section['title'] ] ?? [], $keys ); // two sections may share a title
         }
         $out['Notes'] = [ 'crg_author_notes', 'crg_review_notes' ]; // stored in English in the history; translated on display
         return $out;
@@ -167,10 +167,12 @@ class Cleanup_Report_Admin {
      *    reports not yet approved (DB_VERSION 3; see Cleanup_Report_Checklists::rename_old_labels()).
      *  - Every report without a type is marked a Malware cleanup report, which it already reads as (DB_VERSION 4), so
      *    the Reports list's type filter is a plain meta query.
-     *  - An install that already had the plugin keeps the WPMU DEV defaults and the daily plugin-list re-check it has
+     *  - An install that already had the plugin keeps the defaults (Defender & managed hosting preset) and the daily plugin-list re-check it has
      *    always had; a new install starts with the Generic defaults, the re-check off and no automatic deletion
      *    (retention 0) (DB_VERSION 4). Settings only wp-admin needs stop being autoloaded (DB_VERSION 5).
      *  - The upgrade runs in batches of reports, and the type backfill is one query (DB_VERSION 6).
+     *  - Presets no longer carry a brand: an install on the Defender & managed hosting preset with no brand saved
+     *    gets the brand it showed until now saved as its setting (DB_VERSION 7).
      * Every step is safe to repeat, so a version bump simply runs them all again once.
      */
     /** Reports handled per upgrade step; the rest follow on the next admin page or WP-Cron run. */
@@ -228,6 +230,9 @@ class Cleanup_Report_Admin {
         $had_plugin = (int) get_option( 'crg_db_version', 0 ) > 0 || false !== get_option( 'crg_brand_name' )
             || (bool) $wpdb->get_var( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'cleanup_report' AND post_status <> 'auto-draft' LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time check
         Cleanup_Report_Presets::choose_on_upgrade( $had_plugin );
+        if ( (int) get_option( 'crg_db_version', 0 ) < 7 ) { // once, when coming from 2.2.0's first builds or earlier
+            Cleanup_Report_Presets::keep_old_brand();
+        }
         if ( false === get_option( 'crg_plugin_recheck' ) ) {
             add_option( 'crg_plugin_recheck', $had_plugin ? 1 : 0, '', false );
         }
@@ -290,6 +295,7 @@ class Cleanup_Report_Admin {
         'crg_brand_name', 'crg_brand_logo', 'crg_brand_logo_light', 'crg_brand_primary', 'crg_report_theme', 'crg_cover_glow', 'crg_footer_text',
         'crg_color_success', 'crg_color_warning', 'crg_color_high', 'crg_color_danger', 'crg_color_neutral', 'crg_watermark_text', 'crg_pdf_requires_approval',
         'crg_buddyleads', 'crg_retention_days', 'crg_plugin_recheck', 'crg_delete_data', 'crg_opt_target_mobile', 'crg_opt_target_desktop',
+        'crg_custom_types',
     ];
 
     /** On the plugin's own screens, load its (non-autoloaded) settings in one query instead of one each. */

@@ -39,6 +39,7 @@ screenshots are mock Defender scans (no real site data); they're uploaded to the
 | `optimization` | Sample – website optimization report | A full Website optimization report (invented site): 4 pages of scores including a long URL, both checklists, a screenshot, steps, and ~90 lines of code with a line too long for the page. |
 | `optimization-minimal` | Layout test – optimization minimal | A Website optimization report with nothing filled in: no scores ("—"), no tests, standard texts only. |
 | `generic` | Layout test – generic type | A report type that exists only as a definition (`fixtures/_types.php`, also loaded by `render.php`), drawn by the generic template: every generic field type, a 15-row table with a long URL, long code. |
+| `builder` | Layout test – builder type | A report type made with Reports › Report types (stored in `crg_custom_types`), approved, then edited: the PDF is drawn from the report's snapshot, so the removed field and the old section title still show. |
 
 ## Checks (`tools/layoutcheck.swift`)
 

@@ -32,6 +32,7 @@ class Cleanup_Report_Generator {
         // WP-CLI and XML-RPC. Front-end pages skip them.
         if ( is_admin() || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) || ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) ) {
             Cleanup_Report_Types::init();
+            Cleanup_Report_Type_Builder::init(); // report types made in Reports › Report types
             Cleanup_Report_Admin::init();
             Cleanup_Report_Settings::init();
             Cleanup_Report_Plugin_Check::init();

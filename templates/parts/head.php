@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 <title><?php echo esc_html( sprintf( /* translators: 1: report type, 2: website or client name */ __( '%1$s – %2$s', 'cleanup-report-generator' ), $type_info['eyebrow'], $host ?: $client ) ); ?></title>
 <style>
 <?php
-// Roboto (wpmudev.com's typeface, SIL OFL 1.1, assets/fonts/OFL.txt). Characters Roboto lacks fall back to DejaVu Sans glyph by glyph.
+// Roboto (SIL OFL 1.1, assets/fonts/OFL.txt). Characters Roboto lacks fall back to DejaVu Sans glyph by glyph.
 foreach ( [ [ 'Regular', 'normal', 'normal' ], [ 'Bold', 'bold', 'normal' ], [ 'Italic', 'normal', 'italic' ], [ 'BoldItalic', 'bold', 'italic' ] ] as [ $file, $weight, $style ] ) {
     printf( "@font-face { font-family: 'Roboto'; src: url('%s') format('truetype'); font-weight: %s; font-style: %s; }\n", esc_attr( $asset( 'assets/fonts/Roboto-' . $file . '.ttf' ) ), esc_attr( $weight ), esc_attr( $style ) );
 }
@@ -155,7 +155,7 @@ h3 { font-size: 10pt; color: #1a1a1a; margin: 12pt 0 5pt; }
 .grid tr.avg td { background: <?php echo esc_attr( $tint ); ?>; border-bottom: 0; }
 pre.code { font-family: 'DejaVu Sans Mono', monospace; font-size: 6.6pt; line-height: 1.45; color: #1a1a1a; background: #f6f7f9; border: 0.6pt solid #e4e7ec; border-radius: 4pt; padding: 8pt 10pt; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; word-wrap: break-word; }
 <?php if ( $dark ) : ?>
-/* ---------- Dark theme (Settings › Branding › Report theme): near-black cover and panels, like wpmudev.com ---------- */
+/* ---------- Dark theme (Settings › Branding › Report theme): near-black cover and panels ---------- */
 .cover { background: #0e0e0e; color: #fff; }
 .cover .glow { opacity: <?php echo esc_attr( $glow_op( 1 ) ); ?>; } .cover .glow2 { opacity: <?php echo esc_attr( $glow_op( 0.55 ) ); ?>; }
 .cover .brand, .cover h1, .cover .site strong, .cover .stats .n, .cover .meta .v { color: #fff; }
@@ -220,7 +220,7 @@ body { padding: 72px 0 48px; }
     ?></div>
     <?php endif; ?>
     <?php if ( empty( $data['final'] ) ) : ?><span class="nf"><?php echo esc_html( $data['watermark'] ); ?></span><?php endif; ?>
-    <?php if ( ! empty( $data['web']['edit'] ) ) : ?><a href="<?php echo esc_url( $data['web']['edit'] ); ?>"><?php esc_html_e( 'Edit report', 'cleanup-report-generator' ); ?></a><?php endif; ?>
+    <?php if ( ! empty( $data['web']['edit'] ) ) : ?><a href="<?php echo esc_url( $data['web']['edit'] ); ?>"><?php echo esc_html( $data['web']['edit_label'] ?? __( 'Edit report', 'cleanup-report-generator' ) ); ?></a><?php endif; ?>
     <?php if ( ! empty( $data['web']['pdf'] ) ) : ?><a class="primary" href="<?php echo esc_url( $data['web']['pdf'] ); ?>"><?php esc_html_e( 'Download PDF', 'cleanup-report-generator' ); ?></a><?php endif; ?>
 </div>
 <?php if ( empty( $data['final'] ) ) : ?><div class="notfinal" aria-hidden="true" style="font-size:<?php echo (int) min( 120, 1300 / max( 1, mb_strlen( $data['watermark'] ) * 0.72 ) ); ?>px"><?php echo esc_html( $data['watermark'] ); ?></div><?php endif; ?>

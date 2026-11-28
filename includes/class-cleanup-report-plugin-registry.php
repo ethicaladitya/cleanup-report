@@ -77,13 +77,16 @@ class Cleanup_Report_Plugin_Registry {
         $p = static function ( $slug, $name, $vendor, $type = 'plugin' ) {
             return [ 'slug' => $slug, 'name' => $name, 'type' => $type, 'vendor' => $vendor, 'status' => 'maintained', 'note' => '' ];
         };
-        return [
+        // The Defender & managed hosting preset's own tools; a Generic install starts without them (they can be added).
+        $hosting = ! Cleanup_Report_Presets::is( 'wpmudev' ) ? [] : [
             $p( 'wpmudev-updates', 'WPMU DEV Dashboard', 'https://wpmudev.com/' ),
             $p( 'wp-defender', 'Defender Pro', 'https://wpmudev.com/project/wp-defender/' ),
             $p( 'wp-smush-pro', 'Smush Pro', 'https://wpmudev.com/project/wp-smush-pro/' ),
             $p( 'wp-hummingbird', 'Hummingbird Pro', 'https://wpmudev.com/project/wp-hummingbird/' ),
             $p( 'wpmu-dev-seo', 'SmartCrawl Pro', 'https://wpmudev.com/project/smartcrawl-wordpress-seo/' ),
             $p( 'the-hub-client', 'The Hub Client', 'https://wpmudev.com/' ),
+        ];
+        return array_merge( $hosting, [
             $p( 'elementor-pro', 'Elementor Pro', 'https://elementor.com/' ),
             $p( 'advanced-custom-fields-pro', 'ACF PRO', 'https://www.advancedcustomfields.com/' ),
             $p( 'gravityforms', 'Gravity Forms', 'https://www.gravityforms.com/' ),
@@ -95,7 +98,7 @@ class Cleanup_Report_Plugin_Registry {
             $p( 'Avada', 'Avada', 'https://avada.com/', 'theme' ),
             $p( 'betheme', 'Betheme', 'https://muffingroup.com/betheme/', 'theme' ),
             $p( 'bricks', 'Bricks', 'https://bricksbuilder.io/', 'theme' ),
-        ];
+        ] );
     }
 
     /** The whole list, keyed. Created on first use from the seeds (and any old hand-kept premium list). */

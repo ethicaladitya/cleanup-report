@@ -52,7 +52,7 @@ class Cleanup_Report_Settings {
         foreach ( Cleanup_Report_Render::COLORS as $key => $default ) {
             register_setting( 'crg_settings', 'crg_color_' . $key, [ 'default' => $default, 'sanitize_callback' => static function ( $v ) use ( $default ) { return sanitize_hex_color( $v ) ?: $default; } ] );
         }
-        register_setting( 'crg_settings', 'crg_brand_primary', [ 'default' => '#0059FF', 'sanitize_callback' => [ __CLASS__, 'sanitize_primary' ] ] ); // wpmudev.com blue
+        register_setting( 'crg_settings', 'crg_brand_primary', [ 'default' => '#0059FF', 'sanitize_callback' => [ __CLASS__, 'sanitize_primary' ] ] ); // default accent blue
         register_setting( 'crg_settings', 'crg_report_theme', [ 'default' => 'light', 'sanitize_callback' => static function ( $v ) { return 'dark' === $v ? 'dark' : 'light'; } ] );
         register_setting( 'crg_settings', 'crg_cover_glow', [ 'type' => 'integer', 'default' => 100, 'sanitize_callback' => [ 'Cleanup_Report_Render', 'cover_glow' ] ] );
         register_setting( 'crg_settings', 'crg_footer_text', [ 'sanitize_callback' => 'sanitize_text_field' ] );
@@ -181,7 +181,7 @@ class Cleanup_Report_Settings {
                             <option value="<?php echo esc_attr( $value ); ?>" <?php selected( Cleanup_Report_Presets::current(), $value ); ?>><?php echo esc_html( $label ); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <p class="description"><?php echo wp_kses( __( 'What reports start with when nothing is set: <strong>WPMU DEV</strong> uses the WPMU DEV support team\'s brand, the Defender checklist, the Hub check and WPMU DEV products in the standard texts; <strong>Generic</strong> uses this site\'s name and neutral texts. Your saved settings and checklists always win.', 'cleanup-report-generator' ), [ 'strong' => [] ] ); ?></p></td>
+                    <p class="description"><?php echo wp_kses( __( 'What reports start with when nothing is set. <strong>Generic</strong>: neutral texts, no product names. <strong>Defender &amp; managed hosting</strong>: for sites that run Defender, the Hub, Automate and Snapshot on your own hosting: adds the Defender checklist, the Hub check and those products in the standard texts. The brand comes from the fields below, whichever you pick; your saved settings and checklists always win.', 'cleanup-report-generator' ), [ 'strong' => [] ] ); ?></p></td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="crg_brand_name"><?php esc_html_e( 'Brand name', 'cleanup-report-generator' ); ?></label></th>
