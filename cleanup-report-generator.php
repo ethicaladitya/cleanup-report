@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Handover – Service Reports for Agencies
  * Description: Branded service reports for your clients: malware cleanup and website optimization reports, written in wp-admin, approved through a review workflow and exported as PDF.
- * Version: 2.3.0
+ * Version: 2.2.0
  * Author: WPMU DEV
  * License: GPLv2 or later
  * Text Domain: cleanup-report-generator
@@ -19,7 +19,7 @@ if ( file_exists( __DIR__ . '/vendor-prefixed/autoload.php' ) ) {
     require_once __DIR__ . '/vendor-prefixed/autoload.php';
 }
 
-define( 'CLEANUP_REPORT_VERSION', '2.3.0' );
+define( 'CLEANUP_REPORT_VERSION', '2.2.0' );
 define( 'CLEANUP_REPORT_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CLEANUP_REPORT_URL', plugin_dir_url( __FILE__ ) );
 
