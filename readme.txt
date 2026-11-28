@@ -4,7 +4,7 @@ Tags: reports, pdf, client reports, malware cleanup, website optimization
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.2.0
+Stable tag: 2.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,11 @@ Only a link: the edit screen offers "check this site on VirusTotal", which opens
 
 == Changelog ==
 
+= 2.3.0 =
+* Report type builder (Reports › Report types, administrators only): make, edit, duplicate, turn off and delete report types without code. Fields: short text, plain and rich text, rich text with a standard text, web address, date, number, choice from a list, questions with answers, checklist, table, screenshots and code. Drawn with the standard report layout; "Preview the report" shows it with sample values.
+* Duplicating a built-in type copies its fields that the builder offers and names the special ones it can't copy.
+* Reports keep their values when their type changes; approved reports keep printing as they were approved, and fields removed from a type are listed on each report's edit screen until removed from it.
+
 = 2.2.0 =
 * Renamed to Handover – Service Reports for Agencies. Only the name changes in this release: the plugin folder, its settings and every report stay as they are.
 * Report types. Each report is a Malware cleanup or a Website optimization report, picked when it's added (Reports › Add cleanup report / Add optimization report, or the "Add report" button, which asks). The type can't change afterwards. The Reports list has a Type column and a type filter. Existing reports are Malware cleanup reports (marked once on update).
@@ -116,9 +121,6 @@ Only a link: the edit screen offers "check this site on VirusTotal", which opens
 
 * Performance: the update runs in batches of 100 reports (continuing in the background on large sites) and marks report types with one query; the plugin's classes load only when needed, and front-end pages load almost none of them; report types build their fields only on screens that use them; the plugin check gives up on slow answers after a time budget (checking again continues) and saving the plugin list looks up only the item added.
 * Edit screens: the heading names the report type; scores are checked as you type (0–100, full page addresses) and a new optimization report starts with a row to fill in.
-* Report type builder (Reports › Report types, administrators only): make, edit, duplicate, turn off and delete report types without code. Fields: short text, plain and rich text, rich text with a standard text, web address, date, number, choice from a list, questions with answers, checklist, table, screenshots and code. Drawn with the standard report layout; "Preview the report" shows it with sample values.
-* Duplicating a built-in type copies its fields that the builder offers and names the special ones it can't copy.
-* Reports keep their values when their type changes; approved reports keep printing as they were approved, and fields removed from a type are listed on each report's edit screen until removed from it.
 
 Changes before 2.2.0 are in changelog.txt.
 
@@ -128,5 +130,8 @@ Changes before 2.2.0 are in changelog.txt.
 
 == Upgrade Notice ==
 
+= 2.3.0 =
+Adds Reports › Report types, where administrators make their own report types without code.
+
 = 2.2.0 =
-Adds Website optimization reports, report types, and Reports › Report types for making your own without code. Existing reports become Malware cleanup reports and keep working; your branding and checklists are kept.
+Adds Website optimization reports and report types. Existing reports become Malware cleanup reports and keep working; your branding and checklists are kept.

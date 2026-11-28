@@ -2,7 +2,7 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Handover – Service Reports for Agencies 2.2.0\n"
+"Project-Id-Version: Handover – Service Reports for Agencies 2.3.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/services-reports-785a5f\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
