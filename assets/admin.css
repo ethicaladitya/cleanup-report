@@ -1,4 +1,4 @@
-/* Cleanup Report Generator: admin screens. Native WordPress look, WPMU DEV blue for accents. */
+/* Handover: admin screens. Native WordPress look, WPMU DEV blue for accents. */
 :root {
 	--crg-blue: #0059ff;
 	--crg-blue-soft: #eef3ff;
@@ -1143,4 +1143,132 @@
 .crg-settings .crg-preset.is-picked {
 	border-color: #2271b1;
 	box-shadow: 0 0 0 1px #2271b1;
+}
+
+/* ---------- report types: badge, chooser, settings tab groups */
+.crg-type-badge {
+	display: inline-block;
+	padding: 2px 9px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+	background: var(--crg-red-soft);
+	color: #912018;
+}
+.crg-type-site_optimization {
+	background: var(--crg-green-soft);
+	color: var(--crg-green);
+}
+.crg-nav .crg-type-badge {
+	align-self: center;
+	margin-right: 6px;
+}
+.crg-chooser-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 16px;
+	max-width: 900px;
+	margin-top: 16px;
+}
+.crg-chooser-card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 20px;
+	border: 1px solid var(--crg-line);
+	border-radius: 8px;
+	background: #fff;
+	color: #1d2327;
+	text-decoration: none;
+}
+.crg-chooser-card:hover,
+.crg-chooser-card:focus {
+	border-color: var(--crg-blue);
+	color: #1d2327;
+	box-shadow: 0 0 0 1px var(--crg-blue);
+}
+.crg-chooser-card strong {
+	font-size: 16px;
+}
+.crg-chooser-card span:last-child {
+	color: var(--crg-muted);
+}
+.nav-tab-wrapper .crg-tab-group {
+	float: left;
+	margin: 0 0 0 18px;
+	padding: 10px 6px 0 0;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--crg-muted);
+}
+
+/* ---------- Website optimization: test answers (green = the good answer, red = not, blue = information) */
+.crg-check.is-good {
+	border-left-color: var(--crg-green);
+}
+.crg-check.is-bad {
+	border-left-color: var(--crg-red);
+}
+.crg-check.is-info {
+	border-left-color: var(--crg-blue);
+}
+.crg-check.is-na {
+	border-left-color: #8c8f94;
+}
+.crg-check.is-good .crg-seg input:checked + span {
+	background: var(--crg-green);
+	color: #fff;
+}
+.crg-check.is-bad .crg-seg input:checked + span {
+	background: var(--crg-red);
+	color: #fff;
+}
+.crg-check.is-info .crg-seg input:checked + span {
+	background: var(--crg-blue);
+	color: #fff;
+}
+.crg-check.is-na .crg-seg input:checked + span {
+	background: #8c8f94;
+	color: #fff;
+}
+
+/* ---------- Website optimization: scores table, code */
+.crg-score-table .crg-col-group {
+	text-align: center;
+}
+.crg-score-table .crg-col-score {
+	width: 88px;
+	text-align: center;
+}
+.crg-score-table input[type="number"] {
+	width: 72px;
+	text-align: center;
+}
+.crg-score-table tfoot th,
+.crg-score-table tfoot td {
+	font-weight: 600;
+	text-align: center;
+	background: var(--crg-line-soft);
+}
+.crg-score-table tfoot th {
+	text-align: left;
+}
+.crg-score-table .crg-avg.is-ok {
+	color: var(--crg-green);
+}
+.crg-score-table .crg-avg.is-bad {
+	color: var(--crg-red);
+}
+.crg-scores .crg-scores-text textarea,
+.crg-code-field textarea {
+	width: 100%;
+	font-family: Menlo, Consolas, monospace;
+	font-size: 12px;
+}
+.crg-code-field .crg-field {
+	margin-bottom: 10px;
 }

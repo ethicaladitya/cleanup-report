@@ -417,7 +417,7 @@ class Cleanup_Report_Checklists {
      * Rows posted from the settings repeater → clean list. Rows keep their key (reports refer to it); new rows
      * get one made from their label. Rows without a label are dropped. Safe to run twice on its own output.
      */
-    private static function sanitize_items( $input, array $fields, ?callable $extra = null ) {
+    public static function sanitize_items( $input, array $fields, ?callable $extra = null ) {
         if ( ! is_array( $input ) ) {
             return [];
         }

@@ -69,8 +69,12 @@ class Cleanup_Report_Render {
             ];
         }
 
+        $type = Cleanup_Report_Types::of( $post_id );
         return [
             'post_id' => $post_id,
+            'type'    => $type,
+            'type_info' => Cleanup_Report_Types::get( $type ),
+            'opt'     => 'site_optimization' === $type ? self::optimization( $post_id, $m ) : [],
             'final'   => Cleanup_Report_Admin::is_final( $post_id ), // approved or completed; otherwise watermarked
             'watermark' => Cleanup_Report_Admin::watermark(),
             'components' => $components,
@@ -108,6 +112,41 @@ class Cleanup_Report_Render {
             'seo_note' => $m['crg_seo_note'] ?? '',
             'protect_note' => $m['crg_protect_note'] ?? '',
             'brand' => $brand,
+        ];
+    }
+
+    /** A Website optimization report's own data (see templates/types/site-optimization.php). */
+    private static function optimization( $post_id, array $m ) {
+        $site    = $m['crg_site_url'] ?? '';
+        $pages   = Cleanup_Report_Optimization::parse_scores( $m['crg_opt_scores'] ?? '' );
+        $targets = Cleanup_Report_Optimization::report_targets( $post_id );
+        $avg     = Cleanup_Report_Optimization::averages( $pages );
+        $shots   = [];
+        foreach ( Cleanup_Report_Optimization::SHOTS as $phase => $key ) {
+            $list            = get_post_meta( $post_id, $key, true );
+            $shots[ $phase ] = array_values( array_filter( is_array( $list ) ? $list : [], static function ( $s ) { return is_array( $s ) && ! empty( $s['url'] ); } ) );
+        }
+        $checks = [];
+        foreach ( array_keys( Cleanup_Report_Optimization::PHASES ) as $phase ) {
+            $checks[ $phase ] = Cleanup_Report_Optimization::checks_for_output( Cleanup_Report_Optimization::report_checks( $post_id, $phase ), $phase, $site );
+        }
+        return [
+            'pages'     => $pages,
+            'averages'  => $avg,
+            'targets'   => $targets,
+            'reached'   => [
+                'mobile'  => Cleanup_Report_Optimization::reached( $avg, $targets, 'mobile' ),
+                'desktop' => Cleanup_Report_Optimization::reached( $avg, $targets, 'desktop' ),
+            ],
+            'json_link' => $m['crg_opt_json_link'] ?? '',
+            'checks'    => $checks,
+            'shots'     => $shots,
+            'steps'     => wpautop( $m['crg_opt_steps'] ?? '' ),
+            'summary'   => wpautop( $m['crg_opt_summary'] ?? '' ),
+            'code_path' => $m['crg_opt_code_path'] ?? '',
+            'code'      => (string) get_post_meta( $post_id, 'crg_opt_code', true ),
+            'info'      => $m['crg_opt_info'] ?? '',
+            'faq'       => $m['crg_opt_faq'] ?? '',
         ];
     }
 

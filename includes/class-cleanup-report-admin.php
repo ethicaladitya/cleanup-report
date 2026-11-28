@@ -41,7 +41,7 @@ class Cleanup_Report_Admin {
     ];
 
     /** Bump to run upgrade() once more on every site (stored in the autoloaded option crg_db_version). */
-    const DB_VERSION = 3;
+    const DB_VERSION = 4;
 
     /** The review status this request changed the report to, for the "saved" message. */
     private static $changed_to = '';
@@ -55,6 +55,17 @@ class Cleanup_Report_Admin {
         'Member next steps'        => [ 'crg_pending_actions', 'crg_followups', 'crg_reinstall_list', 'crg_replace_list' ],
         'Member guidance'          => [ 'crg_documentation_links', 'crg_seo_note', 'crg_protect_note' ],
         'Notes'                    => [ 'crg_author_notes', 'crg_review_notes' ],
+    ];
+
+    /** History sections of a Website optimization report. */
+    const OPT_HISTORY_FIELDS = [
+        'Member & website'    => [ 'crg_client_name', 'crg_site_url', 'crg_report_date', 'crg_request_link', 'crg_task_url' ],
+        'Scores'              => [ 'crg_opt_scores', 'crg_opt_json_link' ],
+        'Pre-work checklist'  => [ 'crg_opt_pre_checks', 'crg_opt_pre_shots' ],
+        'Optimization work'   => [ 'crg_opt_steps', 'crg_opt_code_path', 'crg_opt_code', 'crg_opt_summary' ],
+        'Post-work checklist' => [ 'crg_opt_post_checks', 'crg_opt_post_shots' ],
+        'Member guidance'     => [ 'crg_opt_info', 'crg_opt_faq' ],
+        'Notes'               => [ 'crg_author_notes', 'crg_review_notes' ],
     ];
 
     /** What each review step is called in the history. */
@@ -91,6 +102,26 @@ class Cleanup_Report_Admin {
         'crg_box_guidance' => 'Member guidance',
     ];
 
+    /** Edit-screen sections of a Website optimization report, in the order of the report. */
+    const OPT_SECTIONS = [
+        'crg_box_site'     => 'Member & website',
+        'crg_box_scores'   => 'Scores',
+        'crg_box_prework'  => 'Pre-work checklist',
+        'crg_box_optwork'  => 'Optimization work',
+        'crg_box_postwork' => 'Post-work checklist',
+        'crg_box_optguide' => 'Member guidance',
+    ];
+
+    /** The report type's edit-screen sections. */
+    public static function sections( $post_id ) {
+        return 'site_optimization' === Cleanup_Report_Types::of( $post_id ) ? self::OPT_SECTIONS : self::SECTIONS;
+    }
+
+    /** The report type's history sections. */
+    private static function history_fields( $post_id ) {
+        return 'site_optimization' === Cleanup_Report_Types::of( $post_id ) ? self::OPT_HISTORY_FIELDS : self::HISTORY_FIELDS;
+    }
+
     public static function init() {
         add_action( 'add_meta_boxes_cleanup_report', [ __CLASS__, 'register_meta_boxes' ] );
         add_action( 'save_post_cleanup_report', [ __CLASS__, 'save_meta' ] );
@@ -123,6 +154,8 @@ class Cleanup_Report_Admin {
      *  - A saved footer starting "© 2026" gets "© {year}", so it stays current (DB_VERSION 2).
      *  - Checklist items still named as before 2.1.0 take the report template's names, in the saved lists and in
      *    reports not yet approved (DB_VERSION 3; see Cleanup_Report_Checklists::rename_old_labels()).
+     *  - Every report without a type is marked a Malware cleanup report, which it already reads as (DB_VERSION 4), so
+     *    the Reports list's type filter is a plain meta query.
      * Every step is safe to repeat, so a version bump simply runs them all again once.
      */
     public static function upgrade() {
@@ -142,6 +175,9 @@ class Cleanup_Report_Admin {
             if ( ! self::is_final( $post->ID ) ) {
                 Cleanup_Report_Checklists::rename_report_labels( $post->ID );
             }
+            if ( ! metadata_exists( 'post', $post->ID, Cleanup_Report_Types::META ) ) {
+                update_post_meta( $post->ID, Cleanup_Report_Types::META, Cleanup_Report_Types::DEFAULT_TYPE );
+            }
             $text = (string) get_post_meta( $post->ID, 'crg_verification_summary', true );
             $new  = preg_replace( '#Front-end scan with \S+ SiteCheck and VirusTotal#i', 'Front-end scan with external malware scanners such as VirusTotal', $text );
             if ( $new !== $text ) {
@@ -150,7 +186,7 @@ class Cleanup_Report_Admin {
         }
         Cleanup_Report_Checklists::rename_saved_labels();
         if ( function_exists( 'wp_set_options_autoload' ) ) {
-            wp_set_options_autoload( [ Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION, Cleanup_Report_Checklists::BLOCKLIST_OPTION ], false );
+            wp_set_options_autoload( self::CHECKLIST_OPTIONS, false );
         }
         $footer = get_option( 'crg_footer_text' ); // a saved "© 2026 …" froze the year: make it follow the date
         if ( is_string( $footer ) ) {
@@ -165,9 +201,12 @@ class Cleanup_Report_Admin {
         delete_transient( 'crg_upgrading' );
     }
 
+    /** The checklist settings, only needed in wp-admin. */
+    const CHECKLIST_OPTIONS = [ Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION, Cleanup_Report_Checklists::BLOCKLIST_OPTION, Cleanup_Report_Optimization::CHECKS_OPTION ];
+
     /** The checklists are only needed in wp-admin: when first saved, keep them out of every page's autoload. */
     public static function checklists_not_autoloaded( $option ) {
-        if ( in_array( $option, [ Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION, Cleanup_Report_Checklists::BLOCKLIST_OPTION ], true ) && function_exists( 'wp_set_option_autoload' ) ) {
+        if ( in_array( $option, self::CHECKLIST_OPTIONS, true ) && function_exists( 'wp_set_option_autoload' ) ) {
             wp_set_option_autoload( $option, false );
         }
     }
@@ -197,7 +236,7 @@ class Cleanup_Report_Admin {
     /** Current values of every field, by section, to see what a save changed. */
     private static function history_snapshot( $post_id ) {
         $snap = [];
-        foreach ( self::HISTORY_FIELDS as $section => $keys ) {
+        foreach ( self::history_fields( $post_id ) as $section => $keys ) {
             foreach ( $keys as $key ) {
                 $snap[ $section ][ $key ] = get_post_meta( $post_id, $key, true );
             }
@@ -262,8 +301,8 @@ class Cleanup_Report_Admin {
 
     /* ================================================================== edit screen */
 
-    public static function register_meta_boxes() {
-        foreach ( self::SECTIONS as $id => $title ) {
+    public static function register_meta_boxes( $post ) {
+        foreach ( self::sections( $post->ID ) as $id => $title ) {
             add_meta_box( $id, $title, [ __CLASS__, 'box_' . substr( $id, 8 ) ], 'cleanup_report', 'normal', 'high' );
         }
         // The Review box saves the report, so WordPress's Publish box (its own status, visibility and publish date,
@@ -276,7 +315,7 @@ class Cleanup_Report_Admin {
     }
 
     public static function title_placeholder( $text, $post ) {
-        return 'cleanup_report' === $post->post_type ? 'Report title, e.g. Acme Bakery – malware cleanup' : $text;
+        return 'cleanup_report' === $post->post_type ? 'Report title, e.g. Acme Bakery – ' . Cleanup_Report_Types::get( Cleanup_Report_Types::of( $post->ID ) )['suffix'] : $text;
     }
 
     /** "Jump to" links under the title, one per section. */
@@ -284,9 +323,11 @@ class Cleanup_Report_Admin {
         if ( 'cleanup_report' !== $post->post_type ) {
             return;
         }
-        echo '<nav class="crg-nav" aria-label="Report sections">';
+        $type = Cleanup_Report_Types::of( $post->ID );
+        echo '<nav class="crg-nav" aria-label="Report sections" data-title-suffix="' . esc_attr( Cleanup_Report_Types::get( $type )['suffix'] ) . '">';
+        Cleanup_Report_Types::badge( $type );
         $n = 0;
-        foreach ( self::SECTIONS as $id => $title ) {
+        foreach ( self::sections( $post->ID ) as $id => $title ) {
             printf( '<a href="#%s"><span>%d</span>%s</a>', esc_attr( $id ), (int) ++$n, esc_html( $title ) );
         }
         echo '</nav>';
@@ -329,13 +370,14 @@ class Cleanup_Report_Admin {
     public static function box_site( $post ) {
         wp_nonce_field( 'crg_save_' . $post->ID, 'crg_nonce' );
         ?>
+        <input type="hidden" name="crg_report_type" value="<?php echo esc_attr( Cleanup_Report_Types::of( $post->ID ) ); ?>">
         <div class="crg-cols crg-cols-2">
             <?php
             self::input( $post, 'crg_client_name', 'Prepared for', [ 'placeholder' => 'Member or business name', 'help' => 'Optional. The cover shows the website as its headline, with "Prepared for …" under it.' ] );
             self::input( $post, 'crg_site_url', 'Website URL', [ 'type' => 'url', 'placeholder' => 'https://example.com', 'help' => 'Paste any page or wp-admin link; it\'s trimmed to the site address.', 'attrs' => 'data-crg-url="site" autocomplete="off"' ] );
             self::input( $post, 'crg_report_date', 'Report date', [ 'type' => 'date', 'default' => wp_date( 'Y-m-d' ) ] );
             self::input( $post, 'crg_request_link', 'Support request link', [ 'type' => 'url', 'placeholder' => 'https://wpmudev.com/…', 'help' => 'The member\'s ticket or forum thread. The report ends with "Reply on your support request" linking here.', 'attrs' => 'data-crg-url="link" autocomplete="off"' ] );
-            self::input( $post, 'crg_task_url', 'Task URL', [ 'type' => 'url', 'placeholder' => 'https://…', 'help' => 'Internal: our task for this cleanup. Not shown in the report.', 'attrs' => 'data-crg-url="link" autocomplete="off"', 'class' => 'crg-col-right' ] );
+            self::input( $post, 'crg_task_url', 'Task URL', [ 'type' => 'url', 'placeholder' => 'https://…', 'help' => 'Internal: our task for this report. Not shown in the report.', 'attrs' => 'data-crg-url="link" autocomplete="off"', 'class' => 'crg-col-right' ] );
             ?>
         </div>
         <?php
@@ -359,16 +401,8 @@ class Cleanup_Report_Admin {
                 [ 'url' => '', 'title' => 'Security scan – after cleanup', 'type' => 'after' ],
             ];
         }
+        self::shots_field( 'crg_screenshots', $screenshots, 'Screenshots', 'Scan results before and after the cleanup, plus any evidence. Shown in the report in this order; drag to reorder.' );
         ?>
-        <div class="crg-field">
-            <span class="crg-field-label">Screenshots</span>
-            <p class="description">Scan results before and after the cleanup, plus any evidence. Shown in the report in this order; drag to reorder.</p>
-            <div class="crg-shots" data-next="<?php echo count( $screenshots ); ?>">
-                <?php foreach ( array_values( $screenshots ) as $i => $shot ) { self::screenshot_row( $i, $shot ); } ?>
-            </div>
-            <template class="crg-shot-template"><?php self::screenshot_row( '__i__', [ 'type' => 'evidence' ] ); ?></template>
-            <button type="button" class="button crg-shot-add"><span class="dashicons dashicons-format-image"></span> Add screenshot</button>
-        </div>
 
         <?php
         // Reports saved before this field existed showed the summary's first sentence: start from it so saving keeps it.
@@ -445,8 +479,23 @@ class Cleanup_Report_Admin {
         <?php
     }
 
-    private static function screenshot_row( $i, array $shot ) {
-        $name = 'crg_screenshots[' . $i . ']';
+    /** A list of screenshots (image, caption and, for cleanup reports, a type), saved as the meta $field. */
+    private static function shots_field( $field, array $screenshots, $label, $help, $typed = true ) {
+        ?>
+        <div class="crg-field crg-shots-field">
+            <span class="crg-field-label"><?php echo esc_html( $label ); ?></span>
+            <p class="description"><?php echo esc_html( $help ); ?></p>
+            <div class="crg-shots" data-next="<?php echo count( $screenshots ); ?>">
+                <?php foreach ( array_values( $screenshots ) as $i => $shot ) { self::screenshot_row( $i, $shot, $field, $typed ); } ?>
+            </div>
+            <template class="crg-shot-template"><?php self::screenshot_row( '__i__', [ 'type' => $typed ? 'evidence' : 'other' ], $field, $typed ); ?></template>
+            <button type="button" class="button crg-shot-add"><span class="dashicons dashicons-format-image"></span> Add screenshot</button>
+        </div>
+        <?php
+    }
+
+    private static function screenshot_row( $i, array $shot, $field = 'crg_screenshots', $typed = true ) {
+        $name = $field . '[' . $i . ']';
         $url  = $shot['url'] ?? '';
         ?>
         <div class="crg-shot">
@@ -455,13 +504,17 @@ class Cleanup_Report_Admin {
                 <?php if ( $url ) : ?><img src="<?php echo esc_url( $url ); ?>" alt=""><?php else : ?><span class="dashicons dashicons-format-image"></span><?php endif; ?>
             </button>
             <div class="crg-shot-fields">
-                <input type="text" name="<?php echo esc_attr( $name . '[title]' ); ?>" value="<?php echo esc_attr( $shot['title'] ?? '' ); ?>" placeholder="Caption, e.g. Defender scan after cleanup" class="crg-shot-title" aria-label="Caption">
+                <input type="text" name="<?php echo esc_attr( $name . '[title]' ); ?>" value="<?php echo esc_attr( $shot['title'] ?? '' ); ?>" placeholder="<?php echo esc_attr( $typed ? 'Caption, e.g. Defender scan after cleanup' : 'Caption, e.g. Logo loads without its size' ); ?>" class="crg-shot-title" aria-label="Caption">
                 <div class="crg-shot-line">
+                    <?php if ( $typed ) : ?>
                     <select name="<?php echo esc_attr( $name . '[type]' ); ?>" aria-label="Type">
                         <?php foreach ( [ 'before' => 'Before', 'after' => 'After', 'evidence' => 'Evidence', 'other' => 'Other' ] as $value => $label ) : ?>
                             <option value="<?php echo esc_attr( $value ); ?>" <?php selected( $shot['type'] ?? 'other', $value ); ?>><?php echo esc_html( $label ); ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <?php else : ?>
+                    <input type="hidden" name="<?php echo esc_attr( $name . '[type]' ); ?>" value="other">
+                    <?php endif; ?>
                     <input type="url" name="<?php echo esc_attr( $name . '[url]' ); ?>" value="<?php echo esc_attr( $url ); ?>" placeholder="Image URL, or choose from the media library" class="crg-shot-url" aria-label="Image URL">
                     <button type="button" class="button crg-media" data-target="<?php echo esc_attr( '[name="' . $name . '[url]"]' ); ?>">Choose</button>
                 </div>
@@ -663,7 +716,7 @@ class Cleanup_Report_Admin {
     private static function check_row( $field, $key, array $item, $status, $note, $note_field, array $choices, array $previews, $hide_none = false ) {
         $name = $field . '[' . $key . ']';
         ?>
-        <div class="crg-check<?php echo $status ? ' is-' . esc_attr( $status ) : ''; ?>" data-previews="<?php echo esc_attr( wp_json_encode( $previews ) ); ?>">
+        <div class="crg-check<?php echo $status ? ' is-' . esc_attr( $status ) : ''; ?>" data-previews="<?php echo esc_attr( wp_json_encode( $previews ) ); ?>"<?php echo isset( $item['good'] ) ? ' data-good="' . esc_attr( $item['good'] ) . '"' : ''; ?>>
             <div class="crg-check-name">
                 <strong><?php echo esc_html( $item['label'] ); ?></strong>
                 <?php if ( 'recommended' === ( $item['tone'] ?? '' ) ) : ?><span class="crg-tag" title="Shown in the report as Recommended rather than Required">Recommended</span><?php endif; ?>
@@ -726,6 +779,107 @@ class Cleanup_Report_Admin {
             </details>
         </div>
         <?php
+    }
+
+    /* ================================================================== Website optimization boxes */
+
+    /* ---------- 2. Scores */
+
+    public static function box_scores( $post ) {
+        $targets = Cleanup_Report_Optimization::report_targets( $post->ID );
+        ?>
+        <div class="crg-field crg-scores" data-target-mobile="<?php echo (int) $targets['mobile']; ?>" data-target-desktop="<?php echo (int) $targets['desktop']; ?>">
+            <span class="crg-field-label">Pages used for the average score</span>
+            <p class="description">PageSpeed Insights performance score (0–100) of each page, before and after the work. Leave an "after" empty until the work is done. Each average is the sum of the pages' scores divided by the number of pages. Targets: <strong>mobile <?php echo (int) $targets['mobile']; ?></strong>, <strong>desktop <?php echo (int) $targets['desktop']; ?></strong> (average after the work<?php echo isset( Cleanup_Report_Settings::tabs()['optimization'] ) ? '; <a href="' . esc_url( Cleanup_Report_Settings::url( 'optimization' ) ) . '">change</a>' : ''; ?>).</p>
+            <table class="crg-table crg-score-table hide-if-no-js">
+                <thead>
+                    <tr><th class="crg-col-drag" rowspan="2"></th><th rowspan="2">Page URL</th><th colspan="2" class="crg-col-group">Before</th><th colspan="2" class="crg-col-group">After</th><th class="crg-col-x" rowspan="2"></th></tr>
+                    <tr><th class="crg-col-score">Mobile</th><th class="crg-col-score">Desktop</th><th class="crg-col-score">Mobile</th><th class="crg-col-score">Desktop</th></tr>
+                </thead>
+                <tbody class="crg-score-rows"></tbody>
+                <tfoot><tr><td></td><th scope="row">Average</th><td class="crg-avg" data-col="mobile_before">—</td><td class="crg-avg" data-col="desktop_before">—</td><td class="crg-avg" data-col="mobile_after">—</td><td class="crg-avg" data-col="desktop_after">—</td><td></td></tr></tfoot>
+            </table>
+            <div class="crg-scores-text">
+                <textarea id="crg_opt_scores" name="crg_opt_scores" rows="5" class="code" placeholder="https://example.com/ | 56 | 85 | 95 | 100"><?php echo esc_textarea( self::meta( $post, 'crg_opt_scores' ) ); ?></textarea>
+                <p class="description">One page per line: <code>URL | mobile before | desktop before | mobile after | desktop after</code>.</p>
+            </div>
+            <p class="hide-if-no-js">
+                <button type="button" class="button crg-score-add"><span class="dashicons dashicons-plus-alt2"></span> Add page</button>
+                <button type="button" class="button-link crg-scores-toggle">Edit as text</button>
+            </p>
+        </div>
+        <?php
+        self::input( $post, 'crg_opt_json_link', 'Lighthouse JSON (before)', [ 'type' => 'url', 'placeholder' => 'https://drive.google.com/…', 'help' => 'Optional: a link to the shared JSON of the tests before the work. The report says it opens in the Lighthouse viewer.', 'attrs' => 'data-crg-url="link" autocomplete="off"' ] );
+    }
+
+    /* ---------- 3. and 5. Pre-work / post-work checklist */
+
+    public static function box_prework( $post ) {
+        self::opt_checklist( $post, 'pre' );
+    }
+
+    public static function box_postwork( $post ) {
+        self::opt_checklist( $post, 'post' );
+    }
+
+    private static function opt_checklist( $post, $phase ) {
+        $field   = Cleanup_Report_Optimization::PHASES[ $phase ];
+        $answers = Cleanup_Report_Optimization::report_checks( $post->ID, $phase );
+        $items   = Cleanup_Report_Checklists::form_items( Cleanup_Report_Optimization::check_items(), $answers );
+        $shots   = get_post_meta( $post->ID, Cleanup_Report_Optimization::SHOTS[ $phase ], true );
+        ?>
+        <div class="crg-field">
+            <div class="crg-checklist" data-kind="opt" data-phase="<?php echo esc_attr( $phase ); ?>">
+                <div class="crg-checklist-bar">
+                    <p class="description"><?php echo 'pre' === $phase ? 'Test the site before changing anything.' : 'Test the site again once the work is done.'; ?> The report colours each answer: green when it's the good one (e.g. <em>No</em> console errors), red when it isn't, and grey for N/A. Click a selected answer again to leave the test out of the report.</p>
+                    <span class="crg-checklist-count" aria-live="polite"></span>
+                    <?php if ( 'post' === $phase ) : ?><button type="button" class="button button-small crg-copy-pre">Same answers as pre-work</button><?php endif; ?>
+                </div>
+                <?php if ( ! $items ) : ?>
+                    <p class="crg-empty">No tests are set up. <?php self::settings_link( 'optimization', 'Add them in Settings' ); ?></p>
+                <?php endif; ?>
+                <?php
+                foreach ( $items as $key => $item ) {
+                    $answer = $answers[ $key ] ?? [];
+                    $note   = ( $item[ $phase . '_note' ] ?? '' ) ?: 'Note (optional)';
+                    $item  += [ 'tone' => '' ];
+                    self::check_row( $field, $key, $item, $answer['status'] ?? '', $answer['note'] ?? '', 'note', [ '' => 'Leave out' ] + Cleanup_Report_Optimization::STATUSES, [
+                        ''    => 'Not in the report',
+                        'yes' => $note,
+                        'no'  => $note,
+                        'na'  => $note,
+                    ], true );
+                }
+                ?>
+                <p class="crg-checklist-foot"><?php self::settings_link( 'optimization', 'Edit the tests' ); ?></p>
+            </div>
+        </div>
+        <?php
+        self::shots_field( Cleanup_Report_Optimization::SHOTS[ $phase ], is_array( $shots ) ? $shots : [], 'Relevant screenshots', 'What the ' . ( 'pre' === $phase ? 'pre-work' : 'post-work' ) . ' checklist found worth showing, e.g. a layout shift. None: the report says "No relevant screenshots."', false );
+    }
+
+    /* ---------- 4. Optimization work */
+
+    public static function box_optwork( $post ) {
+        self::editor( $post, 'crg_opt_steps', 'Optimization steps', 'What was changed, grouped by plugin or tool (e.g. Elementor, Hummingbird, Smush, Hosting). Shown after "For the site optimization, the following steps were taken:".', 10 );
+        ?>
+        <div class="crg-field crg-code-field">
+            <span class="crg-field-label">Code added</span>
+            <p class="description">Optional: custom code added to the site, e.g. an mu-plugin. Shown in full at the end of the report, so it doesn't break up the steps.</p>
+            <?php self::input( $post, 'crg_opt_code_path', 'File', [ 'placeholder' => 'wp-content/mu-plugins/optimization-wpmu.php', 'class' => 'crg-sub-field' ] ); ?>
+            <label for="crg_opt_code" class="crg-sub-label">Code</label>
+            <textarea id="crg_opt_code" name="crg_opt_code" rows="8" class="code" spellcheck="false"><?php echo esc_textarea( self::meta( $post, 'crg_opt_code' ) ); ?></textarea>
+        </div>
+        <?php
+        self::editor( $post, 'crg_opt_summary', 'Optimization summary', 'Shown under <strong>Optimization result</strong>, after whether the mobile and desktop targets were reached (worked out from the scores).', 5 );
+    }
+
+    /* ---------- 6. Member guidance */
+
+    public static function box_optguide( $post ) {
+        $defaults = Cleanup_Report_Optimization::default_texts();
+        self::note_editor( $post, 'crg_opt_info', 'Helpful information about the performance', 'How the score is measured and how to keep it. Leave empty to use the standard text.', $defaults['info'] );
+        self::note_editor( $post, 'crg_opt_faq', 'Questions about the score', 'Why mobile is lower, why the target is 80, why scores differ, Core Web Vitals. Leave empty to use the standard text.', $defaults['faq'] );
     }
 
     /* ---------- side: preview / PDF */
@@ -930,6 +1084,8 @@ class Cleanup_Report_Admin {
             return;
         }
 
+        Cleanup_Report_Types::save( $post_id, sanitize_key( wp_unslash( $_POST['crg_report_type'] ?? '' ) ) );
+        $type   = Cleanup_Report_Types::of( $post_id );
         $before = self::history_snapshot( $post_id );
 
         // Review status: checked against what this user may do (only Buddyleads approve; completing needs approval).
@@ -962,23 +1118,37 @@ class Cleanup_Report_Admin {
             update_post_meta( $post_id, 'crg_review_notes', wp_slash( sanitize_textarea_field( wp_unslash( $_POST['crg_review_notes'] ) ) ) );
         }
 
-        // Screenshots.
-        if ( isset( $_POST['crg_screenshots'] ) && is_array( $_POST['crg_screenshots'] ) ) {
-            $screenshots = [];
-            // Each part is sanitised below; wp_unslash() first, wp_slash() before saving (update_post_meta() unslashes).
-            foreach ( wp_unslash( $_POST['crg_screenshots'] ) as $shot ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-                if ( is_array( $shot ) && ! empty( $shot['url'] ) ) {
-                    $type          = sanitize_key( $shot['type'] ?? 'other' );
-                    $screenshots[] = [
-                        'url'   => esc_url_raw( $shot['url'] ),
-                        'title' => sanitize_text_field( $shot['title'] ?? '' ),
-                        'type'  => in_array( $type, [ 'before', 'after', 'evidence', 'other' ], true ) ? $type : 'other',
-                    ];
+        // Screenshots: each list of this report type.
+        foreach ( 'site_optimization' === $type ? Cleanup_Report_Optimization::SHOTS : [ 'crg_screenshots' ] as $shots_key ) {
+            if ( isset( $_POST[ $shots_key ] ) && is_array( $_POST[ $shots_key ] ) ) {
+                $screenshots = [];
+                // Each part is sanitised below; wp_unslash() first, wp_slash() before saving (update_post_meta() unslashes).
+                foreach ( wp_unslash( $_POST[ $shots_key ] ) as $shot ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                    if ( is_array( $shot ) && ! empty( $shot['url'] ) ) {
+                        $shot_type     = sanitize_key( $shot['type'] ?? 'other' );
+                        $screenshots[] = [
+                            'url'   => esc_url_raw( $shot['url'] ),
+                            'title' => sanitize_text_field( $shot['title'] ?? '' ),
+                            'type'  => in_array( $shot_type, [ 'before', 'after', 'evidence', 'other' ], true ) ? $shot_type : 'other',
+                        ];
+                    }
+                }
+                update_post_meta( $post_id, $shots_key, wp_slash( $screenshots ) );
+            } elseif ( isset( $_POST['crg_client_name'] ) ) {
+                update_post_meta( $post_id, $shots_key, [] ); // the form was submitted with every screenshot removed
+            }
+        }
+
+        // Website optimization: the two checklists, and the targets the report is saved with.
+        if ( 'site_optimization' === $type ) {
+            foreach ( Cleanup_Report_Optimization::PHASES as $phase => $checks_key ) {
+                if ( isset( $_POST[ $checks_key ] ) && is_array( $_POST[ $checks_key ] ) ) {
+                    Cleanup_Report_Optimization::save_checks( $post_id, $phase, map_deep( wp_unslash( $_POST[ $checks_key ] ), 'sanitize_text_field' ) );
                 }
             }
-            update_post_meta( $post_id, 'crg_screenshots', wp_slash( $screenshots ) );
-        } elseif ( isset( $_POST['crg_client_name'] ) ) {
-            update_post_meta( $post_id, 'crg_screenshots', [] ); // the form was submitted with every screenshot removed
+            if ( isset( $_POST['crg_client_name'] ) ) {
+                update_post_meta( $post_id, 'crg_opt_targets', Cleanup_Report_Optimization::targets() );
+            }
         }
 
         // Checklists (wording comes from settings, not from the request).
@@ -993,13 +1163,23 @@ class Cleanup_Report_Admin {
         }
 
         $fields = [
-            'text'  => [ 'crg_client_name', 'crg_report_date', 'crg_key_finding', 'crg_hosting_type_note', 'crg_backups_note', 'crg_ssh_accounts_note', 'crg_hub_member_note' ],
-            'pick'  => array_map( static function ( $k ) { return 'crg_' . $k; }, array_keys( Cleanup_Report_Render::SITE_CHECKS ) ),
+            'text'  => [ 'crg_client_name', 'crg_report_date' ],
             'url'   => [ 'crg_site_url', 'crg_request_link', 'crg_task_url' ],
-            'int'   => [ 'crg_summary_critical', 'crg_summary_medium', 'crg_summary_low' ],
-            'plain' => [ 'crg_plugin_list', 'crg_components', 'crg_documentation_links', 'crg_delist', 'crg_additional_sites' ],
-            'html'  => [ 'crg_pending_actions', 'crg_infection_summary', 'crg_highlights', 'crg_improvements', 'crg_verification_summary', 'crg_reinstall_list', 'crg_replace_list', 'crg_seo_note', 'crg_protect_note' ],
         ];
+        // Only the fields of this report's type are saved.
+        if ( 'site_optimization' === $type ) {
+            $fields['text'][]  = 'crg_opt_code_path';
+            $fields['url'][]   = 'crg_opt_json_link';
+            $fields['plain']   = [ 'crg_opt_scores' ];
+            $fields['code']    = [ 'crg_opt_code' ];
+            $fields['html']    = [ 'crg_opt_steps', 'crg_opt_summary', 'crg_opt_info', 'crg_opt_faq' ];
+        } else {
+            $fields['text']    = array_merge( $fields['text'], [ 'crg_key_finding', 'crg_hosting_type_note', 'crg_backups_note', 'crg_ssh_accounts_note', 'crg_hub_member_note' ] );
+            $fields['pick']    = array_map( static function ( $k ) { return 'crg_' . $k; }, array_keys( Cleanup_Report_Render::SITE_CHECKS ) );
+            $fields['int']     = [ 'crg_summary_critical', 'crg_summary_medium', 'crg_summary_low' ];
+            $fields['plain']   = [ 'crg_plugin_list', 'crg_components', 'crg_documentation_links', 'crg_delist', 'crg_additional_sites' ];
+            $fields['html']    = [ 'crg_pending_actions', 'crg_infection_summary', 'crg_highlights', 'crg_improvements', 'crg_verification_summary', 'crg_reinstall_list', 'crg_replace_list', 'crg_seo_note', 'crg_protect_note' ];
+        }
         foreach ( $fields as $type => $keys ) {
             foreach ( $keys as $key ) {
                 if ( ! isset( $_POST[ $key ] ) ) {
@@ -1019,6 +1199,9 @@ class Cleanup_Report_Admin {
                         break;
                     case 'plain':
                         $value = sanitize_textarea_field( $raw );
+                        break;
+                    case 'code': // shown escaped, in a code block; tags and < > must survive
+                        $value = Cleanup_Report_Optimization::sanitize_code( $raw );
                         break;
                     case 'html':
                         $value = wp_kses_post( $raw );
@@ -1071,6 +1254,7 @@ class Cleanup_Report_Admin {
         $date = $columns['date'] ?? 'Date';
         unset( $columns['date'] );
         return $columns + [
+            'crg_type'   => 'Type',
             'crg_client' => 'Prepared for',
             'crg_site'   => 'Website',
             'crg_review' => 'Review',
@@ -1081,6 +1265,9 @@ class Cleanup_Report_Admin {
 
     public static function column( $column, $post_id ) {
         switch ( $column ) {
+            case 'crg_type':
+                Cleanup_Report_Types::badge( Cleanup_Report_Types::of( $post_id ) );
+                break;
             case 'crg_client':
                 echo esc_html( get_post_meta( $post_id, 'crg_client_name', true ) ?: '—' );
                 break;

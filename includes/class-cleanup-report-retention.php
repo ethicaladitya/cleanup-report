@@ -100,10 +100,16 @@ class Cleanup_Report_Retention {
         delete_transient( 'crg_retention_running' );
     }
 
+    /** Screenshot lists of every report type (meta keys). */
+    const SHOT_KEYS = [ 'crg_screenshots', 'crg_opt_pre_shots', 'crg_opt_post_shots' ];
+
     /** The report's screenshots that are files in this site's Media Library: attachment ID => URL used in the report. */
     private static function screenshots( $post_id ) {
-        $shots = get_post_meta( $post_id, 'crg_screenshots', true );
-        $urls  = is_array( $shots ) ? wp_list_pluck( array_filter( $shots, 'is_array' ), 'url' ) : [];
+        $urls = [];
+        foreach ( self::SHOT_KEYS as $key ) {
+            $shots = get_post_meta( $post_id, $key, true );
+            $urls  = array_merge( $urls, is_array( $shots ) ? wp_list_pluck( array_filter( $shots, 'is_array' ), 'url' ) : [] );
+        }
         $urls[] = get_post_meta( $post_id, 'crg_ss_before', true ); // reports from 1.x
         $urls[] = get_post_meta( $post_id, 'crg_ss_after', true );
         $out    = [];
@@ -128,12 +134,11 @@ class Cleanup_Report_Retention {
             'posts_per_page' => 1,
             'no_found_rows'  => true,
             // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- daily cron, once per deleted screenshot
-            'meta_query'     => [
-                'relation' => 'OR',
-                [ 'key' => 'crg_screenshots', 'value' => $url, 'compare' => 'LIKE' ],
-                [ 'key' => 'crg_ss_before', 'value' => $url ],
-                [ 'key' => 'crg_ss_after', 'value' => $url ],
-            ],
+            'meta_query'     => array_merge(
+                [ 'relation' => 'OR' ],
+                array_map( static function ( $key ) use ( $url ) { return [ 'key' => $key, 'value' => $url, 'compare' => 'LIKE' ]; }, self::SHOT_KEYS ),
+                [ [ 'key' => 'crg_ss_before', 'value' => $url ], [ 'key' => 'crg_ss_after', 'value' => $url ] ]
+            ),
         ] );
         return (bool) $q->posts;
     }

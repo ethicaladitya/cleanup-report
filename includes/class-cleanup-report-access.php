@@ -36,7 +36,7 @@ class Cleanup_Report_Access {
         return self::can_manage( $user_id );
     }
 
-    /** May edit the Follow-ups and Defender checklists (Buddyleads and admins). */
+    /** May edit the checklists: Follow-ups, Defender, Blocklists, Website optimization (Buddyleads and admins). */
     public static function can_manage_checklists( $user_id = 0 ) {
         return self::can_manage( $user_id );
     }

@@ -2,6 +2,8 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-cpt.php';
+require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-types.php';
+require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-optimization.php';
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-access.php';
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-checklists.php';
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-settings.php';
@@ -19,6 +21,7 @@ class Cleanup_Report_Generator {
         add_filter( 'post_row_actions', [ __CLASS__, 'row_actions' ], 10, 2 );
         add_action( 'admin_post_crg_view_report', [ __CLASS__, 'handle_view_report' ] );
         add_action( 'admin_post_crg_export_pdf', [ __CLASS__, 'handle_export_pdf' ] );
+        Cleanup_Report_Types::init();
         Cleanup_Report_Access::init();
         Cleanup_Report_Admin::init();
         Cleanup_Report_Settings::init();

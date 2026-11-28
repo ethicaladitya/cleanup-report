@@ -1,18 +1,23 @@
-=== Cleanup Report Generator ===
+=== Handover – Service Reports for Agencies ===
 Contributors: aditya
 Requires at least: 5.8
 Tested up to: 7.1
-Stable tag: 2.1.0
+Stable tag: 2.2.0
 Requires PHP: 7.4
 License: GPLv2 or later
 
-Create branded cleanup/health reports from the WP Admin. Export as PDF (uses Dompdf if available, or falls back to browser print-to-PDF).
+Branded service reports for your clients: malware cleanup and website optimization reports, with a review workflow and PDF export.
 
 == Description ==
-Malware cleanup reports for members: staff fill in a report in wp-admin, a Buddylead reviews it, and the member gets a branded PDF.
+Service reports for members: staff fill in a report in wp-admin, a Buddylead reviews it, and the member gets a branded PDF. Handover was called Cleanup Report Generator before 2.2.0.
+
+Two report types, picked when a report is added (Reports › Add cleanup report / Add optimization report). They share the branding, the review workflow, the PDF layout, data retention and the plugin list, and each has its own fields and sections:
+
+- **Malware cleanup:** findings, screenshots, vulnerable components, work done and verification, Defender settings, the member's next steps and guidance.
+- **Website optimization:** PageSpeed scores of the tested pages before and after the work (averages worked out for you), the pre-work and post-work checklists, the optimization steps, whether the mobile and desktop targets were reached, and any code added to the site.
 
 - Reports post type with a review workflow (Draft, Submitted, Needs revision, Approved, Completed)
-- Follow-ups and Defender checklists, editable in Reports › Settings, with links built from the report's website URL
+- Follow-ups, Defender, Blocklists and optimization checklists, editable in Reports › Settings, with links built from the report's website URL
 - Plugin and theme check that flags abandoned, closed and vulnerable items, plus a self-building plugin list
 - Branding: name, logos, primary and status colours, light or dark report theme, footer
 - PDF export with Dompdf, bundled with the plugin; without it, a print view the browser can save as PDF
@@ -23,7 +28,7 @@ Works on any WordPress site: nothing in the code points at a particular site, an
 == Installation ==
 1. Upload the zip in Plugins › Add New › Upload Plugin, and activate it. Use the `cleanup-report-generator-<version>.zip` attached to the GitHub release (it includes Dompdf), not a copy of the repository.
 2. Set the branding in Reports › Settings › Branding and pick Buddyleads in Reports › Settings › Review.
-3. Add a report in Reports › Add New; preview it or download the PDF from the report's screen.
+3. Add a report in Reports › Add cleanup report or Add optimization report; preview it or download the PDF from the report's screen.
 
 == Dompdf ==
 Dompdf ships inside the plugin in `vendor-prefixed/`, moved into the plugin's own namespace (`CleanupReportGenerator\Vendor\`), so another plugin that bundles a different Dompdf version can't clash with it. Nothing needs installing on the server.
@@ -31,6 +36,15 @@ Dompdf ships inside the plugin in `vendor-prefixed/`, moved into the plugin's ow
 To build from source, run `composer install` (needs PHP 8 and Composer on the build machine). It installs Dompdf, then Strauss (in `tools/strauss`, build-only) copies it into `vendor-prefixed/` and re-namespaces it. Then zip the plugin without the files listed in `.distignore`, for example with `wp dist-archive .`. The GitHub workflow in `.github/workflows/build-zip.yml` does the same on every pull request and attaches the zip to each published release.
 
 == Changelog ==
+
+= 2.2.0 =
+* Renamed to Handover – Service Reports for Agencies. Only the name changes: the plugin folder, its settings and every report stay as they are, so updating needs nothing else.
+* Report types. Each report is a Malware cleanup or a Website optimization report, picked when it's added: Reports › Add cleanup report / Add optimization report, or the "Add report" button, which asks which one. The type can't change afterwards. The Reports list has a Type column and a type filter. Every existing report is a Malware cleanup report (marked once on update).
+* Website optimization reports, following the team's optimization report template. Fields: the pages used for the average score with their mobile and desktop PageSpeed scores before and after the work (as a table or as text, with live averages), an optional link to the shared Lighthouse JSON, the pre-work and post-work checklists (Yes / No / N/A with notes, and "Same answers as pre-work"), screenshots for each, the optimization steps, any code added (e.g. an mu-plugin), the optimization summary, and the member texts ("Helpful information about the performance" and the questions about the score, with the template's standard texts). The report: cover with the mobile and desktop averages and the targets reached, At a glance, Performance scores (coloured by PageSpeed's bands, with the averages worked out as sum / pages), Pre-work checklist, Optimization steps, Optimization result (whether the mobile and desktop targets were reached, worked out from the scores), Post-work checklist, Helpful information, and the code in full at the end. The PDF is called <site>-optimization-report-<date>.pdf.
+* Settings › Website optimization › Checklist & targets: the targets (mobile 80, desktop 95 by default) and the tests of the pre- and post-work checklists, each with its good answer (shown green; the other answer red) and default notes for before and after the work. Buddyleads can edit it, like the other checklists. A report keeps the tests' wording and the targets it was last saved with.
+* Settings tabs are grouped: shared tabs (Branding, Review, Plugin list) first, then each report type's own.
+* Data retention also removes an optimization report's screenshots.
+* The malware cleanup report and its PDF are unchanged (checked page by page against 2.1.0).
 
 = 2.1.0 =
 * Checklist names follow the team's report template, which also matches Defender's screens: "Hide Login URL" (was Mask login area), "Login & Access - Session Security" (Session protection), "Login & Access - Bot Protection" (Google reCAPTCHA), "Defender Hardening", "Enabling Audit Log", "Firewalls - Global Firewall", "Local Firewall - …", "Tools > Issues Scan" and so on, and the follow-ups "Update PHP Version", "Check any suspect admins", "Login & Access - Password Rules", "Review Post/Comment Section". Saved lists and reports not yet approved that still use an old default name are renamed once; names you changed yourself are kept. New Defender item: "Reports & Alerts - Scheduled Reports".

@@ -24,7 +24,7 @@ class Cleanup_Report_PDF {
         try {
             $dompdf = self::build( $data );
         } catch ( \Throwable $e ) {
-            error_log( 'Cleanup Report Generator: PDF generation failed for report ' . $post_id . ': ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- record why the PDF fell back to print view
+            error_log( 'Handover: PDF generation failed for report ' . $post_id . ': ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- record why the PDF fell back to print view
             self::output_print_view( $data, 'The PDF couldn\'t be generated (the reason is in the PHP error log)' );
         }
 
@@ -63,11 +63,11 @@ class Cleanup_Report_PDF {
         $dompdf = new \CleanupReportGenerator\Vendor\Dompdf\Dompdf( $options );
         $dompdf->getOptions()->setHttpContext( stream_context_create( [
             // No redirects: an allowed host could otherwise bounce the request somewhere else.
-            'http' => [ 'timeout' => 15, 'follow_location' => 0, 'user_agent' => 'Cleanup Report Generator/' . CLEANUP_REPORT_VERSION ],
+            'http' => [ 'timeout' => 15, 'follow_location' => 0, 'user_agent' => 'Handover/' . CLEANUP_REPORT_VERSION ],
         ] ) );
         $dompdf->loadHtml( $html, 'UTF-8' );
         $dompdf->setPaper( 'A4', 'portrait' );
-        $dompdf->addInfo( 'Title', ( $data['title'] ?: 'Cleanup Report' ) );
+        $dompdf->addInfo( 'Title', ( $data['title'] ?: ucfirst( strtolower( $data['type_info']['title'] ?? 'Report' ) ) ) );
         $dompdf->addInfo( 'Author', $data['brand']['name'] ?? '' );
         $dompdf->render();
 
@@ -99,7 +99,7 @@ class Cleanup_Report_PDF {
         $client = $host ?: $data['client']; // running header: the website, like the cover
         $right  = 'Report #' . (int) $data['post_id'] . ( $host && $data['client'] ? '  ·  Prepared for ' . $data['client'] : '' );
         $footer = (string) $data['brand']['footer'];
-        $title  = 'MALWARE CLEANUP REPORT';
+        $title  = (string) ( $data['type_info']['title'] ?? 'MALWARE CLEANUP REPORT' );
         $draft  = empty( $data['final'] ); // not approved yet: the watermark across every page, cover included
         $mark   = (string) ( $data['watermark'] ?? 'NOT FINAL' );
 
@@ -157,7 +157,11 @@ class Cleanup_Report_PDF {
                 $images['logo']['src'] = $logo;
             }
         }
-        foreach ( (array) $data['screenshots'] as $shot ) {
+        $shots = (array) $data['screenshots'];
+        foreach ( (array) ( $data['opt']['shots'] ?? [] ) as $phase_shots ) {
+            $shots = array_merge( $shots, (array) $phase_shots ); // Website optimization: pre-work and post-work screenshots
+        }
+        foreach ( $shots as $shot ) {
             $images[ $shot['url'] ] = self::image_box( $shot['url'], self::CONTENT_W, self::SHOT_MAX_H, $data );
             if ( $web && $images[ $shot['url'] ] ) {
                 $images[ $shot['url'] ]['src'] = $shot['url'];
@@ -348,7 +352,7 @@ class Cleanup_Report_PDF {
         $slug = trim( preg_replace( '/[^a-z0-9]+/', '-', strtolower( remove_accents( $name ) ) ), '-' );
         $slug = substr( $slug, 0, 60 ) ?: 'report-' . (int) $data['post_id'];
         $ts   = $data['date'] ? strtotime( $data['date'] ) : false;
-        return $slug . '-cleanup-report-' . gmdate( 'Y-m-d', $ts ?: time() ) . '.pdf';
+        return $slug . '-' . ( $data['type_info']['file'] ?? 'cleanup-report' ) . '-' . gmdate( 'Y-m-d', $ts ?: time() ) . '.pdf';
     }
 
     /**

@@ -1,4 +1,4 @@
-/* Cleanup Report Generator: report edit screen and Reports › Settings. */
+/* Handover: report edit screen and Reports › Settings. */
 ( function ( $ ) {
 	'use strict';
 
@@ -87,7 +87,7 @@
 				return;
 			}
 			var name = siteUrl().replace( /^[a-z]+:\/\//i, '' ) || $.trim( $( '#crg_client_name' ).val() );
-			$title.val( name ? name + ' – malware cleanup' : '' );
+			$title.val( name ? name + ' – ' + ( $( '.crg-nav' ).data( 'title-suffix' ) || 'malware cleanup' ) : '' );
 			$( '#title-prompt-text' ).toggleClass( 'screen-reader-text', !! name );
 		}
 		$( '[data-crg-url]' ).on( 'blur change', function () {
@@ -106,23 +106,26 @@
 		} );
 		$( '#crg_client_name' ).on( 'input', suggestTitle );
 
-		/* Screenshots */
-		var $shots = $( '.crg-shots' ), next = parseInt( $shots.data( 'next' ), 10 ) || 0;
-		sortable( $shots, '> .crg-shot' );
-		$( '.crg-shot-add' ).on( 'click', function () {
-			var html = $( '.crg-shot-template' ).html().split( '__i__' ).join( 'n' + ( next++ ) );
-			$shots.append( html );
-			$shots.find( '.crg-shot' ).last().find( '.crg-shot-title' ).trigger( 'focus' );
-		} );
-		$shots.on( 'click', '.crg-remove', function () {
-			$( this ).closest( '.crg-shot' ).remove();
-		} );
-		$shots.on( 'change input', '.crg-shot-url', function () {
-			var url = $.trim( this.value ), $thumb = $( this ).closest( '.crg-shot' ).find( '.crg-shot-thumb' );
-			$thumb.html( /^https?:\/\//i.test( url ) ? $( '<img alt="">' ).attr( 'src', url ) : '<span class="dashicons dashicons-format-image"></span>' );
+		/* Screenshots: each list on its own (an optimization report has one before and one after the work). */
+		$( '.crg-shots-field' ).each( function () {
+			var $field = $( this ), $shots = $field.find( '.crg-shots' ), next = parseInt( $shots.data( 'next' ), 10 ) || 0;
+			sortable( $shots, '> .crg-shot' );
+			$field.find( '.crg-shot-add' ).on( 'click', function () {
+				var html = $field.find( '.crg-shot-template' ).html().split( '__i__' ).join( 'n' + ( next++ ) );
+				$shots.append( html );
+				$shots.find( '.crg-shot' ).last().find( '.crg-shot-title' ).trigger( 'focus' );
+			} );
+			$shots.on( 'click', '.crg-remove', function () {
+				$( this ).closest( '.crg-shot' ).remove();
+			} );
+			$shots.on( 'change input', '.crg-shot-url', function () {
+				var url = $.trim( this.value ), $thumb = $( this ).closest( '.crg-shot' ).find( '.crg-shot-thumb' );
+				$thumb.html( /^https?:\/\//i.test( url ) ? $( '<img alt="">' ).attr( 'src', url ) : '<span class="dashicons dashicons-format-image"></span>' );
+			} );
 		} );
 
 		initComponents();
+		initScores();
 		initPluginCheck();
 		initChecklists();
 		initDelist();
@@ -158,7 +161,7 @@
 		/* Approved report, Writer: everything read-only except the Review box (to mark it Completed). */
 		if ( $( 'body' ).hasClass( 'crg-locked' ) ) {
 			$( '#title, .postbox[id^="crg_box_"] :input' ).not( '#crg_box_export :input' ).prop( 'disabled', true );
-			$( '.crg-shot-add, .crg-component-add, .crg-pc-run, .crg-set-all, .crg-use-std' ).prop( 'disabled', true );
+			$( '.crg-shot-add, .crg-component-add, .crg-score-add, .crg-copy-pre, .crg-pc-run, .crg-set-all, .crg-use-std' ).prop( 'disabled', true );
 			$( document ).on( 'tinymce-editor-init', function ( e, editor ) {
 				editor.mode.set( 'readonly' );
 			} );
@@ -325,6 +328,126 @@
 		} );
 	}
 
+	/* ---------- Website optimization: pages and scores (the textarea stays the saved value: "URL | mb | db | ma | da" lines) */
+
+	var SCORE_COLS = [ 'mobile_before', 'desktop_before', 'mobile_after', 'desktop_after' ];
+
+	/** A score typed in → whole number 0–100, or null. Mirrors Cleanup_Report_Optimization::score(). */
+	function scoreValue( v ) {
+		v = $.trim( String( v == null ? '' : v ) );
+		if ( '' === v || isNaN( Number( v ) ) ) {
+			return null;
+		}
+		return Math.max( 0, Math.min( 100, Math.round( Number( v ) ) ) );
+	}
+
+	/** 67.25, 85: up to two decimals. Mirrors format_avg(). */
+	function formatAvg( n ) {
+		return null === n ? '—' : String( Math.round( n * 100 ) / 100 );
+	}
+
+	function initScores() {
+		var $box = $( '.crg-scores' ), $text = $( '#crg_opt_scores' ), $rows = $box.find( '.crg-score-rows' );
+		if ( ! $text.length ) {
+			return;
+		}
+		var asText = false, $textWrap = $box.find( '.crg-scores-text' ).prop( 'hidden', true );
+		var targets = { mobile: parseInt( $box.data( 'target-mobile' ), 10 ), desktop: parseInt( $box.data( 'target-desktop' ), 10 ) };
+
+		function row( r ) {
+			var $tr = $( '<tr><td class="crg-col-drag"><span class="crg-drag dashicons dashicons-menu" title="Drag to reorder"></span></td>' +
+				'<td><input type="url" class="s-url" placeholder="https://example.com/page/" aria-label="Page URL"></td>' +
+				'<td><input type="number" class="s-mobile_before" min="0" max="100" step="1" aria-label="Mobile before"></td>' +
+				'<td><input type="number" class="s-desktop_before" min="0" max="100" step="1" aria-label="Desktop before"></td>' +
+				'<td><input type="number" class="s-mobile_after" min="0" max="100" step="1" aria-label="Mobile after"></td>' +
+				'<td><input type="number" class="s-desktop_after" min="0" max="100" step="1" aria-label="Desktop after"></td>' +
+				'<td class="crg-col-x"><button type="button" class="button-link crg-remove" title="Remove"><span class="dashicons dashicons-no-alt"></span><span class="screen-reader-text">Remove page</span></button></td></tr>' );
+			$tr.find( '.s-url' ).val( r.url || '' );
+			$.each( SCORE_COLS, function ( i, col ) {
+				$tr.find( '.s-' + col ).val( null == r[ col ] ? '' : r[ col ] );
+			} );
+			return $tr;
+		}
+
+		function textToRows() {
+			$rows.empty();
+			$.each( ( $text.val() || '' ).split( /\r?\n/ ), function ( i, line ) {
+				var cols = $.map( line.split( '|' ), $.trim ), r = { url: cols[ 0 ] };
+				if ( cols[ 0 ] ) {
+					$.each( SCORE_COLS, function ( j, col ) { r[ col ] = scoreValue( cols[ j + 1 ] ); } );
+					$rows.append( row( r ) );
+				}
+			} );
+			changed();
+		}
+
+		function rowsToText() {
+			var lines = $rows.find( 'tr' ).map( function () {
+				var $r = $( this ), url = $.trim( String( $r.find( '.s-url' ).val() || '' ).replace( /[|\r\n]+/g, '' ) );
+				if ( ! url ) {
+					return null;
+				}
+				return [ url ].concat( $.map( SCORE_COLS, function ( col ) {
+					var v = scoreValue( $r.find( '.s-' + col ).val() );
+					return null === v ? '' : String( v );
+				} ) ).join( ' | ' );
+			} ).get();
+			$text.val( lines.join( '\n' ) );
+			changed();
+		}
+
+		/* Averages: the sum of the pages' scores divided by the number of pages scored, as in the report. */
+		function changed() {
+			$rows.closest( 'table' ).prop( 'hidden', asText );
+			$.each( SCORE_COLS, function ( i, col ) {
+				var sum = 0, n = 0;
+				$rows.find( '.s-' + col ).each( function () {
+					var v = scoreValue( this.value );
+					if ( null !== v && $.trim( $( this ).closest( 'tr' ).find( '.s-url' ).val() ) ) {
+						sum += v;
+						n++;
+					}
+				} );
+				var avg = n ? sum / n : null, device = col.split( '_' )[ 0 ], $cell = $box.find( '.crg-avg[data-col="' + col + '"]' );
+				$cell.text( n ? formatAvg( avg ) + ' (' + sum + ' / ' + n + ')' : '—' ).removeClass( 'is-ok is-bad' );
+				if ( n && /_after$/.test( col ) ) {
+					$cell.addClass( avg >= targets[ device ] ? 'is-ok' : 'is-bad' ).attr( 'title', 'Target ' + targets[ device ] );
+				}
+			} );
+		}
+
+		textToRows();
+		sortable( $rows, '> tr' );
+		$rows.on( 'sortupdate', rowsToText );
+		$rows.on( 'input change', ':input', rowsToText );
+		$rows.on( 'click', '.crg-remove', function () {
+			$( this ).closest( 'tr' ).remove();
+			rowsToText();
+		} );
+		$box.find( '.crg-score-add' ).on( 'click', function () {
+			if ( asText ) {
+				$box.find( '.crg-scores-toggle' ).trigger( 'click' );
+			}
+			$rows.append( row( {} ) );
+			changed();
+			$rows.find( 'tr' ).last().find( '.s-url' ).trigger( 'focus' );
+		} );
+		$box.find( '.crg-scores-toggle' ).on( 'click', function () {
+			asText = ! asText;
+			if ( ! asText ) {
+				textToRows();
+			}
+			$textWrap.prop( 'hidden', ! asText );
+			$rows.closest( 'table' ).prop( 'hidden', asText );
+			$( this ).text( asText ? 'Back to table' : 'Edit as text' );
+		} );
+		$rows.on( 'keydown', 'input', function ( e ) {
+			if ( 'Enter' === e.key ) {
+				e.preventDefault(); // don't submit the post form
+			}
+		} );
+	}
+
 	/* ---------- Check plugins & themes */
 
 	var PC_STATUS = {
@@ -471,9 +594,14 @@
 	function refreshRow( $row ) {
 		var status = $row.find( 'input[type=radio]:checked' ).val() || '';
 		var previews = $row.data( 'previews' ) || {};
-		$row.removeClass( 'is-applied is-pending is-in_progress is-required is-not_required is-fixed' );
+		$row.removeClass( 'is-applied is-pending is-in_progress is-required is-not_required is-fixed is-yes is-no is-na is-good is-bad is-info' );
 		if ( status ) {
 			$row.addClass( 'is-' + status );
+		}
+		// Website optimization tests: green for the test's good answer, red for the other, blue without one.
+		if ( 'yes' === status || 'no' === status ) {
+			var good = String( $row.data( 'good' ) || '' );
+			$row.addClass( ! good ? 'is-info' : ( good === status ? 'is-good' : 'is-bad' ) );
 		}
 		$row.find( '.crg-check-note' ).attr( 'placeholder', fill( previews[ status ] ) ).prop( 'disabled', ! status );
 	}
@@ -485,9 +613,14 @@
 			counts[ s ] = ( counts[ s ] || 0 ) + 1;
 			total++;
 		} );
-		var text = 'defender' === $list.data( 'kind' )
-			? ( counts.applied || 0 ) + ' applied · ' + ( counts.in_progress || 0 ) + ' pending · ' + ( counts.pending || 0 ) + ' for the member'
-			: ( counts.not_required || 0 ) + ' already configured · ' + ( counts.fixed || 0 ) + ' done · ' + ( counts.required || 0 ) + ' for the member';
+		var kind = $list.data( 'kind' ), text;
+		if ( 'defender' === kind ) {
+			text = ( counts.applied || 0 ) + ' applied · ' + ( counts.in_progress || 0 ) + ' pending · ' + ( counts.pending || 0 ) + ' for the member';
+		} else if ( 'opt' === kind ) {
+			text = ( counts.yes || 0 ) + ' yes · ' + ( counts.no || 0 ) + ' no · ' + ( counts.na || 0 ) + ' N/A';
+		} else {
+			text = ( counts.not_required || 0 ) + ' already configured · ' + ( counts.fixed || 0 ) + ' done · ' + ( counts.required || 0 ) + ' for the member';
+		}
 		$list.find( '.crg-checklist-count' ).text( total ? text + ( counts[ '' ] ? ' · ' + counts[ '' ] + ' left out' : '' ) : '' );
 	}
 
@@ -566,6 +699,16 @@
 			} );
 			refreshChecklists();
 			$list.find( 'input[type=radio]' ).first().trigger( 'input' );
+		} );
+		/* Post-work checklist: start from the pre-work answers (notes aren't copied). */
+		$( '.crg-copy-pre' ).on( 'click', function () {
+			var $post = $( this ).closest( '.crg-checklist' );
+			$( '.crg-checklist[data-phase="pre"] input[type=radio]:checked' ).each( function () {
+				var name = this.name.replace( /^crg_opt_pre_checks/, 'crg_opt_post_checks' ), value = this.value;
+				$post.find( 'input[type=radio]' ).filter( function () { return this.name === name && this.value === value; } ).prop( 'checked', true );
+			} );
+			refreshChecklists();
+			$post.find( 'input[type=radio]' ).first().trigger( 'input' ); // marks the form as changed
 		} );
 		refreshChecklists();
 	}

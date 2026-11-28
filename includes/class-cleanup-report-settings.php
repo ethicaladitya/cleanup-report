@@ -17,6 +17,7 @@ class Cleanup_Report_Settings {
         add_filter( 'option_page_capability_crg_followups', [ __CLASS__, 'checklist_capability' ] );
         add_filter( 'option_page_capability_crg_defender', [ __CLASS__, 'checklist_capability' ] );
         add_filter( 'option_page_capability_crg_blocklists', [ __CLASS__, 'checklist_capability' ] );
+        add_filter( 'option_page_capability_crg_optimization', [ __CLASS__, 'checklist_capability' ] );
         add_filter( 'plugin_action_links_' . plugin_basename( CLEANUP_REPORT_PATH . 'cleanup-report-generator.php' ), [ __CLASS__, 'plugin_links' ] );
     }
 
@@ -61,6 +62,10 @@ class Cleanup_Report_Settings {
         register_setting( 'crg_review', Cleanup_Report_Admin::BUDDYLEADS_OPTION, [ 'type' => 'array', 'default' => [], 'sanitize_callback' => [ __CLASS__, 'sanitize_buddyleads' ] ] );
         register_setting( 'crg_defender', Cleanup_Report_Checklists::DEFENDER_OPTION, [ 'type' => 'array', 'sanitize_callback' => [ 'Cleanup_Report_Checklists', 'sanitize_defender_items' ] ] );
         register_setting( 'crg_blocklists', Cleanup_Report_Checklists::BLOCKLIST_OPTION, [ 'type' => 'array', 'sanitize_callback' => [ 'Cleanup_Report_Checklists', 'sanitize_blocklists' ] ] );
+        register_setting( 'crg_optimization', Cleanup_Report_Optimization::CHECKS_OPTION, [ 'type' => 'array', 'sanitize_callback' => [ 'Cleanup_Report_Optimization', 'sanitize_checks' ] ] );
+        foreach ( Cleanup_Report_Optimization::TARGETS as $device => $default ) {
+            register_setting( 'crg_optimization', 'crg_opt_target_' . $device, [ 'type' => 'integer', 'default' => $default, 'sanitize_callback' => [ 'Cleanup_Report_Optimization', 'sanitize_target' ] ] );
+        }
     }
 
     public static function sanitize_primary( $value ) {
@@ -74,7 +79,7 @@ class Cleanup_Report_Settings {
         if ( ! Cleanup_Report_Access::can_manage_checklists() ) {
             wp_die( 'You are not allowed to change these settings.', 'Forbidden', [ 'response' => 403, 'back_link' => true ] );
         }
-        $options = [ 'followups' => Cleanup_Report_Checklists::FOLLOWUP_OPTION, 'defender' => Cleanup_Report_Checklists::DEFENDER_OPTION, 'blocklists' => Cleanup_Report_Checklists::BLOCKLIST_OPTION ];
+        $options = [ 'followups' => Cleanup_Report_Checklists::FOLLOWUP_OPTION, 'defender' => Cleanup_Report_Checklists::DEFENDER_OPTION, 'blocklists' => Cleanup_Report_Checklists::BLOCKLIST_OPTION, 'optimization' => Cleanup_Report_Optimization::CHECKS_OPTION ];
         if ( isset( $options[ $list ] ) ) {
             delete_option( $options[ $list ] );
         }
@@ -82,27 +87,34 @@ class Cleanup_Report_Settings {
         exit;
     }
 
-    /** Tabs this user may open: all for admins; Follow-ups, Defender and Plugin list for Buddyleads; none for Writers. */
+    /**
+     * Where a report type's own tabs start, with the type's name shown before them; the tabs before the first group
+     * are shared by every report type.
+     */
+    const TAB_GROUPS = [ 'followups' => 'Malware cleanup', 'optimization' => 'Website optimization' ];
+
+    /** Tabs this user may open: all for admins; the checklists and Plugin list for Buddyleads; none for Writers. */
     public static function tabs() {
         $tabs = [
-            'general'   => 'Branding',
-            'followups' => 'Follow-ups',
-            'defender'  => 'Defender checklist',
-            'blocklists' => 'Blocklists',
-            'plugins'   => 'Plugin list',
-            'review'    => 'Review',
+            'general'      => 'Branding',
+            'review'       => 'Review',
+            'plugins'      => 'Plugin list',
+            'followups'    => 'Follow-ups',
+            'defender'     => 'Defender checklist',
+            'blocklists'   => 'Blocklists',
+            'optimization' => 'Checklist & targets',
         ];
         if ( current_user_can( 'manage_options' ) ) {
             return $tabs;
         }
         $mine = [];
-        if ( Cleanup_Report_Access::can_manage_checklists() ) {
-            $mine['followups'] = $tabs['followups'];
-            $mine['defender']  = $tabs['defender'];
-            $mine['blocklists'] = $tabs['blocklists'];
-        }
         if ( Cleanup_Report_Access::can_manage_plugin_list() ) {
             $mine['plugins'] = $tabs['plugins'];
+        }
+        if ( Cleanup_Report_Access::can_manage_checklists() ) {
+            foreach ( [ 'followups', 'defender', 'blocklists', 'optimization' ] as $key ) {
+                $mine[ $key ] = $tabs[ $key ];
+            }
         }
         return $mine;
     }
@@ -124,6 +136,7 @@ class Cleanup_Report_Settings {
             <?php settings_errors(); ?>
             <nav class="nav-tab-wrapper">
                 <?php foreach ( $tabs as $key => $label ) : ?>
+                    <?php if ( isset( self::TAB_GROUPS[ $key ] ) ) : ?><span class="crg-tab-group"><?php echo esc_html( self::TAB_GROUPS[ $key ] ); ?></span><?php endif; ?>
                     <a href="<?php echo esc_url( self::url( $key ) ); ?>" class="nav-tab<?php echo $key === $tab ? ' nav-tab-active' : ''; ?>"><?php echo esc_html( $label ); ?></a>
                 <?php endforeach; ?>
             </nav>
@@ -134,6 +147,8 @@ class Cleanup_Report_Settings {
                 self::tab_defender();
             } elseif ( 'blocklists' === $tab ) {
                 self::tab_blocklists();
+            } elseif ( 'optimization' === $tab ) {
+                self::tab_optimization();
             } elseif ( 'plugins' === $tab ) {
                 self::tab_plugins();
             } elseif ( 'review' === $tab ) {
@@ -259,6 +274,56 @@ class Cleanup_Report_Settings {
         <?php
     }
 
+    private static function tab_optimization() {
+        $items = Cleanup_Report_Optimization::check_items();
+        ?>
+        <form method="post" action="options.php" class="crg-settings-form">
+            <?php settings_fields( 'crg_optimization' ); ?>
+            <p class="crg-lead">For <strong>Website optimization</strong> reports: the score each average should reach after the work, and the tests staff answer before and after it (the report's <em>Pre-work</em> and <em>Post-work checklist</em>).</p>
+            <h2 class="title">Targets</h2>
+            <table class="form-table" role="presentation">
+                <?php foreach ( [ 'mobile' => 'Mobile', 'desktop' => 'Desktop' ] as $device => $label ) : ?>
+                    <tr>
+                        <th scope="row"><label for="crg_opt_target_<?php echo esc_attr( $device ); ?>"><?php echo esc_html( $label ); ?> average</label></th>
+                        <td><input type="number" id="crg_opt_target_<?php echo esc_attr( $device ); ?>" name="crg_opt_target_<?php echo esc_attr( $device ); ?>" value="<?php echo (int) Cleanup_Report_Optimization::targets()[ $device ]; ?>" min="0" max="100" step="1" class="small-text"></td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+            <p class="description">The report's <em>Optimization result</em> says whether each was reached. A report keeps the targets it was last saved with.</p>
+            <h2 class="title">Tests</h2>
+            <?php self::checklist_notes(); ?>
+            <div class="crg-items" data-name="<?php echo esc_attr( Cleanup_Report_Optimization::CHECKS_OPTION ); ?>">
+                <?php foreach ( $items as $i => $item ) { self::opt_item( $i, $item ); } ?>
+            </div>
+            <template class="crg-item-template"><?php self::opt_item( '__i__', [ 'enabled' => true, 'good' => 'no' ], true ); ?></template>
+            <p><button type="button" class="button crg-item-add"><span class="dashicons dashicons-plus-alt2"></span> Add test</button></p>
+            <?php self::checklist_footer( 'optimization' ); ?>
+        </form>
+        <?php
+    }
+
+    private static function opt_item( $i, array $item, $is_template = false ) {
+        $name = Cleanup_Report_Optimization::CHECKS_OPTION;
+        $good = $item['good'] ?? '';
+        self::item_head( $name, $i, $item, $is_template );
+        ?>
+            <div class="crg-item-body">
+                <?php self::field( $name, $i, 'label', 'Test', $item['label'] ?? '', 'The question, as it appears in the report.' ); ?>
+                <?php self::field( $name, $i, 'hint', 'Hint for staff', $item['hint'] ?? '', 'Edit screen only: how to test it.' ); ?>
+                <div class="crg-field">
+                    <span class="crg-field-label">Good answer</span>
+                    <?php foreach ( [ 'yes' => 'Yes', 'no' => 'No', '' => 'Neither (just information)' ] as $value => $label ) : ?>
+                        <label class="crg-radio"><input type="radio" name="<?php echo esc_attr( "{$name}[{$i}][good]" ); ?>" value="<?php echo esc_attr( $value ); ?>" <?php checked( $good, $value ); ?>> <?php echo esc_html( $label ); ?></label>
+                    <?php endforeach; ?>
+                    <p class="description">The report shows the good answer in green and the other in red. N/A is always grey.</p>
+                </div>
+                <?php self::field( $name, $i, 'pre_note', 'Report note before the work', $item['pre_note'] ?? '', 'Used in the pre-work checklist when the report has no note of its own.', 'textarea' ); ?>
+                <?php self::field( $name, $i, 'post_note', 'Report note after the work', $item['post_note'] ?? '', 'Used in the post-work checklist when the report has no note of its own.', 'textarea' ); ?>
+            </div>
+        </details>
+        <?php
+    }
+
     private static function tab_blocklists() {
         $items = Cleanup_Report_Checklists::blocklist_items();
         ?>
@@ -318,7 +383,7 @@ class Cleanup_Report_Settings {
                 <thead><tr><th>Who</th><th>WordPress role</th><th>Their own reports</th><th>Others' reports</th><th>Approve / send back</th><th>Settings</th></tr></thead>
                 <tbody>
                     <tr><td><strong>Writers</strong><br><span class="crg-muted">support staff who write reports</span></td><td>Editor</td><td>Create, edit, submit for review</td><td>Preview; download the PDF and mark Completed once approved</td><td>—</td><td>—</td></tr>
-                    <tr><td><strong>Buddyleads</strong><br><span class="crg-muted">ticked below</span></td><td>Editor</td><td>Everything</td><td>Open and edit any report</td><td>✓</td><td>Follow-ups, Defender checklist, Plugin list</td></tr>
+                    <tr><td><strong>Buddyleads</strong><br><span class="crg-muted">ticked below</span></td><td>Editor</td><td>Everything</td><td>Open and edit any report</td><td>✓</td><td>Plugin list, and the checklists: Follow-ups, Defender checklist, Blocklists, Website optimization</td></tr>
                     <tr><td><strong>Administrators</strong></td><td>Administrator</td><td>Everything</td><td>Everything</td><td>✓</td><td>All tabs, including Branding and Review</td></tr>
                 </tbody>
             </table>
