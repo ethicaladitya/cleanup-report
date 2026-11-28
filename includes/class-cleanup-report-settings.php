@@ -45,7 +45,8 @@ class Cleanup_Report_Settings {
     }
 
     public static function register() {
-        register_setting( 'crg_settings', 'crg_brand_name', [ 'default' => 'WPMU DEV Services', 'sanitize_callback' => 'sanitize_text_field' ] );
+        register_setting( 'crg_settings', Cleanup_Report_Presets::OPTION, [ 'default' => 'generic', 'sanitize_callback' => [ 'Cleanup_Report_Presets', 'sanitize' ] ] );
+        register_setting( 'crg_settings', 'crg_brand_name', [ 'sanitize_callback' => 'sanitize_text_field' ] );
         register_setting( 'crg_settings', 'crg_brand_logo', [ 'sanitize_callback' => 'esc_url_raw' ] );
         register_setting( 'crg_settings', 'crg_brand_logo_light', [ 'sanitize_callback' => 'esc_url_raw' ] );
         foreach ( Cleanup_Report_Render::COLORS as $key => $c ) {
@@ -54,11 +55,13 @@ class Cleanup_Report_Settings {
         register_setting( 'crg_settings', 'crg_brand_primary', [ 'default' => '#0059FF', 'sanitize_callback' => [ __CLASS__, 'sanitize_primary' ] ] ); // wpmudev.com blue
         register_setting( 'crg_settings', 'crg_report_theme', [ 'default' => 'light', 'sanitize_callback' => static function ( $v ) { return 'dark' === $v ? 'dark' : 'light'; } ] );
         register_setting( 'crg_settings', 'crg_cover_glow', [ 'type' => 'integer', 'default' => 100, 'sanitize_callback' => [ 'Cleanup_Report_Render', 'cover_glow' ] ] );
-        register_setting( 'crg_settings', 'crg_footer_text', [ 'default' => Cleanup_Report_Render::FOOTER_DEFAULT, 'sanitize_callback' => 'sanitize_text_field' ] );
+        register_setting( 'crg_settings', 'crg_footer_text', [ 'sanitize_callback' => 'sanitize_text_field' ] );
         register_setting( 'crg_followups', Cleanup_Report_Checklists::FOLLOWUP_OPTION, [ 'type' => 'array', 'sanitize_callback' => [ 'Cleanup_Report_Checklists', 'sanitize_followup_items' ] ] );
         register_setting( 'crg_review', 'crg_watermark_text', [ 'default' => 'NOT FINAL', 'sanitize_callback' => static function ( $v ) { return mb_substr( trim( sanitize_text_field( (string) $v ) ), 0, 40 ) ?: 'NOT FINAL'; } ] );
         register_setting( 'crg_review', 'crg_pdf_requires_approval', [ 'type' => 'boolean', 'default' => 1, 'sanitize_callback' => static function ( $v ) { return empty( $v ) ? 0 : 1; } ] );
         register_setting( 'crg_review', Cleanup_Report_Retention::OPTION, [ 'type' => 'integer', 'default' => Cleanup_Report_Retention::DEFAULT_DAYS, 'sanitize_callback' => [ 'Cleanup_Report_Retention', 'sanitize_days' ] ] );
+        register_setting( 'crg_review', 'crg_plugin_recheck', [ 'type' => 'boolean', 'default' => 0, 'sanitize_callback' => static function ( $v ) { return empty( $v ) ? 0 : 1; } ] );
+        register_setting( 'crg_review', 'crg_delete_data', [ 'type' => 'boolean', 'default' => 0, 'sanitize_callback' => static function ( $v ) { return empty( $v ) ? 0 : 1; } ] );
         register_setting( 'crg_review', Cleanup_Report_Admin::BUDDYLEADS_OPTION, [ 'type' => 'array', 'default' => [], 'sanitize_callback' => [ __CLASS__, 'sanitize_buddyleads' ] ] );
         register_setting( 'crg_defender', Cleanup_Report_Checklists::DEFENDER_OPTION, [ 'type' => 'array', 'sanitize_callback' => [ 'Cleanup_Report_Checklists', 'sanitize_defender_items' ] ] );
         register_setting( 'crg_blocklists', Cleanup_Report_Checklists::BLOCKLIST_OPTION, [ 'type' => 'array', 'sanitize_callback' => [ 'Cleanup_Report_Checklists', 'sanitize_blocklists' ] ] );
@@ -87,36 +90,47 @@ class Cleanup_Report_Settings {
         exit;
     }
 
-    /**
-     * Where a report type's own tabs start, with the type's name shown before them; the tabs before the first group
-     * are shared by every report type.
-     */
-    const TAB_GROUPS = [ 'followups' => 'Malware cleanup', 'optimization' => 'Website optimization' ];
+    /** Settings tabs drawn by this class (a report type's own tabs may bring a render callable instead). */
+    const BUILT_IN_TABS = [ 'general' => 'tab_general', 'review' => 'tab_review', 'plugins' => 'tab_plugins', 'followups' => 'tab_followups', 'defender' => 'tab_defender', 'blocklists' => 'tab_blocklists', 'optimization' => 'tab_optimization' ];
 
-    /** Tabs this user may open: all for admins; the checklists and Plugin list for Buddyleads; none for Writers. */
+    /**
+     * Tabs this user may open: the shared tabs (Branding and Review for admins; the Plugin list for Buddyleads too),
+     * then each report type's own tabs (its checklists: admins and Buddyleads). Writers get none.
+     */
     public static function tabs() {
-        $tabs = [
-            'general'      => 'Branding',
-            'review'       => 'Review',
-            'plugins'      => 'Plugin list',
-            'followups'    => 'Follow-ups',
-            'defender'     => 'Defender checklist',
-            'blocklists'   => 'Blocklists',
-            'optimization' => 'Checklist & targets',
-        ];
+        $tabs = [];
         if ( current_user_can( 'manage_options' ) ) {
-            return $tabs;
+            $tabs['general'] = __( 'Branding', 'cleanup-report-generator' );
+            $tabs['review']  = __( 'Review', 'cleanup-report-generator' );
         }
-        $mine = [];
         if ( Cleanup_Report_Access::can_manage_plugin_list() ) {
-            $mine['plugins'] = $tabs['plugins'];
+            $tabs['plugins'] = __( 'Plugin list', 'cleanup-report-generator' );
         }
         if ( Cleanup_Report_Access::can_manage_checklists() ) {
-            foreach ( [ 'followups', 'defender', 'blocklists', 'optimization' ] as $key ) {
-                $mine[ $key ] = $tabs[ $key ];
+            foreach ( self::type_tabs() as $key => $tab ) {
+                $tabs[ $key ] = $tab['label'];
             }
         }
-        return $mine;
+        return $tabs;
+    }
+
+    /** Every report type's own tabs: key => [ label, type label, render callable or null ]. */
+    private static function type_tabs() {
+        $out = [];
+        foreach ( Cleanup_Report_Types::definitions() as $def ) {
+            foreach ( (array) $def['settings'] as $key => $tab ) {
+                $key = sanitize_key( $key );
+                if ( '' === $key || isset( $out[ $key ] ) || ( in_array( $key, [ 'general', 'review', 'plugins' ], true ) ) ) {
+                    continue;
+                }
+                $out[ $key ] = [
+                    'label'  => is_array( $tab ) ? (string) ( $tab['label'] ?? $tab[0] ?? $key ) : (string) $tab,
+                    'group'  => $def['label'],
+                    'render' => is_array( $tab ) ? ( $tab['render'] ?? $tab[1] ?? null ) : null,
+                ];
+            }
+        }
+        return $out;
     }
 
     public static function page() {
@@ -127,6 +141,7 @@ class Cleanup_Report_Settings {
         $tab = sanitize_key( wp_unslash( $_GET['tab'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- tab switch, read-only
         $tab = 'premium' === $tab ? 'plugins' : $tab; // the tab's old name
         $tab = isset( $tabs[ $tab ] ) ? $tab : array_key_first( $tabs );
+        $type_tabs = self::type_tabs();
         ?>
         <div class="wrap crg-settings">
             <h1>Report settings</h1>
@@ -135,26 +150,17 @@ class Cleanup_Report_Settings {
             <?php endif; ?>
             <?php settings_errors(); ?>
             <nav class="nav-tab-wrapper">
+                <?php $group = ''; ?>
                 <?php foreach ( $tabs as $key => $label ) : ?>
-                    <?php if ( isset( self::TAB_GROUPS[ $key ] ) ) : ?><span class="crg-tab-group"><?php echo esc_html( self::TAB_GROUPS[ $key ] ); ?></span><?php endif; ?>
+                    <?php if ( isset( $type_tabs[ $key ] ) && $type_tabs[ $key ]['group'] !== $group ) : $group = $type_tabs[ $key ]['group']; ?><span class="crg-tab-group"><?php echo esc_html( $group ); ?></span><?php endif; ?>
                     <a href="<?php echo esc_url( self::url( $key ) ); ?>" class="nav-tab<?php echo $key === $tab ? ' nav-tab-active' : ''; ?>"><?php echo esc_html( $label ); ?></a>
                 <?php endforeach; ?>
             </nav>
             <?php
-            if ( 'followups' === $tab ) {
-                self::tab_followups();
-            } elseif ( 'defender' === $tab ) {
-                self::tab_defender();
-            } elseif ( 'blocklists' === $tab ) {
-                self::tab_blocklists();
-            } elseif ( 'optimization' === $tab ) {
-                self::tab_optimization();
-            } elseif ( 'plugins' === $tab ) {
-                self::tab_plugins();
-            } elseif ( 'review' === $tab ) {
-                self::tab_review();
-            } else {
-                self::tab_general();
+            if ( isset( self::BUILT_IN_TABS[ $tab ] ) ) {
+                call_user_func( [ __CLASS__, self::BUILT_IN_TABS[ $tab ] ] );
+            } elseif ( isset( $type_tabs[ $tab ]['render'] ) && is_callable( $type_tabs[ $tab ]['render'] ) ) {
+                call_user_func( $type_tabs[ $tab ]['render'] );
             }
             ?>
         </div>
@@ -169,8 +175,17 @@ class Cleanup_Report_Settings {
             <p class="crg-lead">How the report and PDF are branded.</p>
             <table class="form-table" role="presentation">
                 <tr>
+                    <th scope="row"><label for="crg_defaults">Defaults</label></th>
+                    <td><select id="crg_defaults" name="<?php echo esc_attr( Cleanup_Report_Presets::OPTION ); ?>">
+                        <?php foreach ( Cleanup_Report_Presets::choices() as $value => $label ) : ?>
+                            <option value="<?php echo esc_attr( $value ); ?>" <?php selected( Cleanup_Report_Presets::current(), $value ); ?>><?php echo esc_html( $label ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="description">What reports start with when nothing is set: <strong>WPMU DEV</strong> uses the WPMU DEV support team's brand, the Defender checklist, the Hub check and WPMU DEV products in the standard texts; <strong>Generic</strong> uses this site's name and neutral texts. Your saved settings and checklists always win.</p></td>
+                </tr>
+                <tr>
                     <th scope="row"><label for="crg_brand_name">Brand name</label></th>
-                    <td><input type="text" id="crg_brand_name" name="crg_brand_name" value="<?php echo esc_attr( get_option( 'crg_brand_name', 'WPMU DEV Services' ) ); ?>" class="regular-text">
+                    <td><input type="text" id="crg_brand_name" name="crg_brand_name" value="<?php echo esc_attr( get_option( 'crg_brand_name', '' ) ?: Cleanup_Report_Presets::get( 'brand_name' ) ); ?>" class="regular-text">
                     <p class="description">Shown on the cover and in "Prepared by … security team".</p></td>
                 </tr>
 <?php foreach ( [ 'crg_brand_logo_light' => [ 'Logo for the light theme', 'A dark or coloured logo, for the light cover.' ], 'crg_brand_logo' => [ 'Logo for the dark theme', 'A white logo, for the dark cover.' ] ] as $opt => [ $label, $help ] ) : $logo = get_option( $opt, '' ); ?>
@@ -201,7 +216,7 @@ class Cleanup_Report_Settings {
                 <tr>
                     <th scope="row"><label for="crg_brand_primary">Primary colour</label></th>
                     <td><input type="text" id="crg_brand_primary" name="crg_brand_primary" value="<?php echo esc_attr( get_option( 'crg_brand_primary', '#0059FF' ) ); ?>" class="crg-color" data-default-color="#0059FF">
-                    <p class="description">Headings, links and highlights. WPMU DEV blue is <code>#0059FF</code>.</p></td>
+                    <p class="description">Headings, links and highlights. The default blue is <code>#0059FF</code>.</p></td>
                 </tr>
                 <tr>
                     <th scope="row">Status colours</th>
@@ -221,7 +236,7 @@ class Cleanup_Report_Settings {
                         <?php $theme = get_option( 'crg_report_theme', 'light' ); ?>
                         <label class="crg-radio"><input type="radio" name="crg_report_theme" value="light" <?php checked( 'dark' !== $theme ); ?>> Light (day)</label>
                         <label class="crg-radio"><input type="radio" name="crg_report_theme" value="dark" <?php checked( 'dark', $theme ); ?>> Dark</label>
-                        <p class="description">Light prints well and suits most members; dark matches the wpmudev.com look. Applies to the PDF and the preview.</p>
+                        <p class="description">Light prints well and suits most members; dark is a near-black cover and panels. Applies to the PDF and the preview.</p>
                     </td>
                 </tr>
                 <tr>
@@ -231,7 +246,7 @@ class Cleanup_Report_Settings {
                 </tr>
                 <tr>
                     <th scope="row"><label for="crg_footer_text">Footer text</label></th>
-                    <td><input type="text" id="crg_footer_text" name="crg_footer_text" value="<?php echo esc_attr( get_option( 'crg_footer_text', Cleanup_Report_Render::FOOTER_DEFAULT ) ); ?>" class="regular-text">
+                    <td><input type="text" id="crg_footer_text" name="crg_footer_text" value="<?php echo esc_attr( get_option( 'crg_footer_text', Cleanup_Report_Render::footer_default() ) ); ?>" class="regular-text">
                     <p class="description">Printed at the bottom of every PDF page. <code>{year}</code> is replaced with the current year.</p></td>
                 </tr>
             </table>
@@ -430,6 +445,16 @@ class Cleanup_Report_Settings {
                     <?php echo esc_html( sprintf( 'Last cleanup %s: %d %s and %d %s deleted.', wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $retention_last['time'] ), (int) $retention_last['reports'], 1 === (int) $retention_last['reports'] ? 'report' : 'reports', (int) $retention_last['files'], 1 === (int) $retention_last['files'] ? 'screenshot' : 'screenshots' ) ); ?>
                 <?php endif; ?>
             </p>
+
+            <h2 class="title">Outside services</h2>
+            <input type="hidden" name="crg_plugin_recheck" value="0">
+            <label><input type="checkbox" name="crg_plugin_recheck" value="1" <?php checked( (int) get_option( 'crg_plugin_recheck', 0 ), 1 ); ?>> Re-check the plugin list every day</label>
+            <p class="description">Once a day, WP-Cron asks WordPress.org (api.wordpress.org) and WPVulnerability.net for the status of up to <?php echo (int) Cleanup_Report_Plugin_Registry::REFRESH_BATCH; ?> plugins and themes on the <a href="<?php echo esc_url( self::url( 'plugins' ) ); ?>">plugin list</a> not checked for <?php echo (int) Cleanup_Report_Plugin_Registry::REFRESH_DAYS; ?> days. Only their folder names are sent. Off: the list is updated only when someone runs "Check plugins &amp; themes" on a report or clicks "Re-check WordPress.org now".</p>
+
+            <h2 class="title">Removing the plugin</h2>
+            <input type="hidden" name="crg_delete_data" value="0">
+            <label><input type="checkbox" name="crg_delete_data" value="1" <?php checked( (int) get_option( 'crg_delete_data', 0 ), 1 ); ?>> Delete all reports and settings when the plugin is deleted</label>
+            <p class="description">Off (recommended): deleting the plugin leaves every report and setting in place, so reinstalling brings them back. On: deleting it in Plugins removes all reports (with their history), every setting, the plugin list and the plugin's cache folder, permanently. Screenshots stay in the Media Library. Deactivating never deletes anything.</p>
 
             <h2 class="title">Buddyleads</h2>
             <p class="description">Who can approve reports or send them back, besides administrators (who have full access). Only Editors and administrators are listed: approving saves someone else's report, which WordPress allows only from the Editor role up.</p>

@@ -17,7 +17,7 @@ class Cleanup_Report_Retention {
 
     public static function init() {
         add_action( self::CRON_HOOK, [ __CLASS__, 'run' ] ); // daily run: no argument; a follow-up run passes true
-        add_action( 'init', [ __CLASS__, 'schedule' ] );
+        add_action( 'admin_init', [ __CLASS__, 'schedule' ] ); // wp-admin only: no cron lookup on front-end pages
     }
 
     public static function schedule() {
@@ -100,13 +100,25 @@ class Cleanup_Report_Retention {
         delete_transient( 'crg_retention_running' );
     }
 
-    /** Screenshot lists of every report type (meta keys). */
-    const SHOT_KEYS = [ 'crg_screenshots', 'crg_opt_pre_shots', 'crg_opt_post_shots' ];
+    /** Screenshot lists of every report type (meta keys of their screenshots fields). */
+    private static function shot_keys() {
+        $keys = [ 'crg_screenshots' ];
+        foreach ( Cleanup_Report_Types::definitions() as $def ) {
+            foreach ( $def['sections'] as $section ) {
+                foreach ( $section['fields'] as $f ) {
+                    if ( 'screenshots' === ( $f['type'] ?? '' ) && ! empty( $f['key'] ) ) {
+                        $keys[] = $f['key'];
+                    }
+                }
+            }
+        }
+        return array_values( array_unique( $keys ) );
+    }
 
     /** The report's screenshots that are files in this site's Media Library: attachment ID => URL used in the report. */
     private static function screenshots( $post_id ) {
         $urls = [];
-        foreach ( self::SHOT_KEYS as $key ) {
+        foreach ( self::shot_keys() as $key ) {
             $shots = get_post_meta( $post_id, $key, true );
             $urls  = array_merge( $urls, is_array( $shots ) ? wp_list_pluck( array_filter( $shots, 'is_array' ), 'url' ) : [] );
         }
@@ -136,7 +148,7 @@ class Cleanup_Report_Retention {
             // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- daily cron, once per deleted screenshot
             'meta_query'     => array_merge(
                 [ 'relation' => 'OR' ],
-                array_map( static function ( $key ) use ( $url ) { return [ 'key' => $key, 'value' => $url, 'compare' => 'LIKE' ]; }, self::SHOT_KEYS ),
+                array_map( static function ( $key ) use ( $url ) { return [ 'key' => $key, 'value' => $url, 'compare' => 'LIKE' ]; }, self::shot_keys() ),
                 [ [ 'key' => 'crg_ss_before', 'value' => $url ], [ 'key' => 'crg_ss_after', 'value' => $url ] ]
             ),
         ] );

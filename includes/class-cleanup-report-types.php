@@ -3,10 +3,14 @@
  * Report types. Every report is a `cleanup_report` post; its type is the meta crg_report_type. Reports saved before
  * types existed have no such meta and are Malware cleanup reports.
  *
- * The type is picked when a report is added (Reports › Add cleanup report / Add optimization report, or the chooser
- * behind the list's "Add report" button) and doesn't change afterwards. It decides the edit screen's sections, the
- * fields that are saved, the report template and the PDF's title and file name. Branding, review, retention and the
- * plugin list are shared by all types.
+ * A type is a definition (see definitions()): its labels, its sections (each an edit-screen box and a group in the
+ * history) and their fields (Cleanup_Report_Fields), the Settings tabs that belong to it, and the template that draws
+ * its report. The edit screen, saving and the history come from the definition alone; a type without a template of
+ * its own gets the generic report (templates/types/generic.php). Add or change types with the `handover_report_types`
+ * filter.
+ *
+ * The type is picked when a report is added (Reports › Add … report, or the chooser behind the list's "Add report"
+ * button) and doesn't change afterwards. Branding, review, retention and the plugin list are shared by all types.
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -16,34 +20,11 @@ class Cleanup_Report_Types {
     const DEFAULT_TYPE = 'malware_cleanup';
     const CHOOSER      = 'crg-add-report';
 
-    /**
-     * key => label (Reports list, chooser), add (menu), eyebrow (cover), title (running header), file (PDF file name
-     * part), suffix (title suggestion), prepared_by (cover card), about (chooser), template (templates/types/<x>.php).
-     */
-    const TYPES = [
-        'malware_cleanup'   => [
-            'label'       => 'Malware cleanup',
-            'add'         => 'Add cleanup report',
-            'eyebrow'     => 'Malware cleanup report',
-            'title'       => 'MALWARE CLEANUP REPORT',
-            'file'        => 'cleanup-report',
-            'suffix'      => 'malware cleanup',
-            'prepared_by' => 'security team',
-            'about'       => 'What was found and removed, how the site was verified, Defender settings and the member\'s next steps.',
-            'template'    => 'malware-cleanup',
-        ],
-        'site_optimization' => [
-            'label'       => 'Website optimization',
-            'add'         => 'Add optimization report',
-            'eyebrow'     => 'Website optimization report',
-            'title'       => 'WEBSITE OPTIMIZATION REPORT',
-            'file'        => 'optimization-report',
-            'suffix'      => 'website optimization',
-            'prepared_by' => 'experts team',
-            'about'       => 'PageSpeed scores before and after, the pre- and post-work checklists, the optimization steps and the result against the targets.',
-            'template'    => 'site-optimization',
-        ],
-    ];
+    /** Templates bundled with the plugin (templates/types/<name>.php and <name>-body.php). */
+    const TEMPLATES = [ 'malware-cleanup', 'site-optimization', 'generic' ];
+
+    /** @var array|null definitions() for this request */
+    private static $definitions = null;
 
     public static function init() {
         add_action( 'admin_menu', [ __CLASS__, 'menu' ], 9 ); // before Settings (priority 10), so the Add items come first
@@ -54,20 +35,242 @@ class Cleanup_Report_Types {
         add_action( 'pre_get_posts', [ __CLASS__, 'filter_list' ] );
     }
 
-    /** The report's type: its saved type, or Malware cleanup (every report saved before types existed). */
-    public static function of( $post_id ) {
-        $type = (string) get_post_meta( $post_id, self::META, true );
-        return isset( self::TYPES[ $type ] ) ? $type : self::DEFAULT_TYPE;
+    /* ================================================================== definitions */
+
+    /**
+     * Every report type: key => definition. A definition:
+     *  - label, add (menu item), about (chooser), eyebrow (cover), title (running header), file (PDF file name part),
+     *    suffix (suggested title), prepared_by (cover card: "<brand> <prepared_by>")
+     *  - sections: key => [ title, fields => [ field, … ], columns (optional) ]; box ID crg_box_<key>. Fields are
+     *    described in Cleanup_Report_Fields.
+     *  - settings: Settings tabs of this type, tab key => label (built-in tabs) or [ label, render callable ].
+     *  - template: one of TEMPLATES ('generic' when left out).
+     *  - on_save: optional callable( $post_id ), after the fields are saved.
+     */
+    public static function definitions() {
+        if ( null === self::$definitions ) {
+            $definitions = (array) apply_filters( 'handover_report_types', [
+                'malware_cleanup'   => self::malware_cleanup(),
+                'site_optimization' => self::site_optimization(),
+            ] );
+            foreach ( $definitions as $key => $def ) {
+                if ( ! is_array( $def ) || empty( $def['sections'] ) || sanitize_key( $key ) !== $key ) {
+                    unset( $definitions[ $key ] );
+                    continue;
+                }
+                $label                = (string) ( $def['label'] ?? $key );
+                $definitions[ $key ] += [
+                    /* translators: %s: report type, e.g. "Website optimization" */
+                    'add'         => sprintf( __( 'Add %s report', 'cleanup-report-generator' ), strtolower( $label ) ),
+                    'about'       => '',
+                    /* translators: %s: report type, e.g. "Website optimization" */
+                    'eyebrow'     => sprintf( __( '%s report', 'cleanup-report-generator' ), $label ),
+                    'title'       => '',
+                    'file'        => sanitize_title( $label ) . '-report',
+                    'suffix'      => strtolower( $label ),
+                    'prepared_by' => __( 'team', 'cleanup-report-generator' ),
+                    'settings'    => [],
+                    'template'    => 'generic',
+                ];
+                $definitions[ $key ]['label'] = $label;
+                if ( '' === $definitions[ $key ]['title'] ) {
+                    $definitions[ $key ]['title'] = function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $definitions[ $key ]['eyebrow'] ) : strtoupper( $definitions[ $key ]['eyebrow'] );
+                }
+                if ( ! in_array( $definitions[ $key ]['template'], self::TEMPLATES, true ) ) {
+                    $definitions[ $key ]['template'] = 'generic';
+                }
+            }
+            if ( ! isset( $definitions[ self::DEFAULT_TYPE ] ) ) { // every report saved before types existed is one
+                $definitions = [ self::DEFAULT_TYPE => self::malware_cleanup() ] + $definitions;
+            }
+            self::$definitions = $definitions;
+        }
+        return self::$definitions;
     }
 
-    /** One type's settings (the default type's for an unknown key). */
+    /** One type's definition (the default type's for an unknown key). */
     public static function get( $type ) {
-        return self::TYPES[ $type ] ?? self::TYPES[ self::DEFAULT_TYPE ];
+        $defs = self::definitions();
+        return $defs[ $type ] ?? $defs[ self::DEFAULT_TYPE ];
     }
 
     public static function exists( $type ) {
-        return isset( self::TYPES[ (string) $type ] );
+        return isset( self::definitions()[ (string) $type ] );
     }
+
+    /** The report's type: its saved type, or Malware cleanup (every report saved before types existed). */
+    public static function of( $post_id ) {
+        $type = (string) get_post_meta( $post_id, self::META, true );
+        return self::exists( $type ) ? $type : self::DEFAULT_TYPE;
+    }
+
+    /** A field of a type by its meta key, or null. */
+    public static function field( $type, $key ) {
+        foreach ( self::get( $type )['sections'] as $section ) {
+            foreach ( $section['fields'] as $f ) {
+                if ( ( $f['key'] ?? '' ) === $key ) {
+                    return Cleanup_Report_Fields::defaults( $f );
+                }
+            }
+        }
+        return null;
+    }
+
+    /** "Member & website": the section every built-in type starts with (also for types added by the filter). */
+    public static function site_section() {
+        return [
+            'title'   => __( 'Member & website', 'cleanup-report-generator' ),
+            'columns' => 2,
+            'fields'  => [
+                [ 'key' => 'crg_client_name', 'label' => __( 'Prepared for', 'cleanup-report-generator' ), 'placeholder' => __( 'Member or business name', 'cleanup-report-generator' ), 'help' => __( 'Optional. The cover shows the website as its headline, with "Prepared for …" under it.', 'cleanup-report-generator' ) ],
+                [ 'key' => 'crg_site_url', 'type' => 'url', 'url' => 'site', 'label' => __( 'Website URL', 'cleanup-report-generator' ), 'placeholder' => 'https://example.com', 'help' => __( 'Paste any page or wp-admin link; it\'s trimmed to the site address.', 'cleanup-report-generator' ) ],
+                [ 'key' => 'crg_report_date', 'type' => 'date', 'label' => __( 'Report date', 'cleanup-report-generator' ), 'default' => wp_date( 'Y-m-d' ) ],
+                [ 'key' => 'crg_request_link', 'type' => 'url', 'label' => __( 'Support request link', 'cleanup-report-generator' ), 'placeholder' => Cleanup_Report_Presets::get( 'request_placeholder' ), 'help' => __( 'The member\'s ticket or forum thread. The report ends with "Reply on your support request" linking here.', 'cleanup-report-generator' ) ],
+                [ 'key' => 'crg_task_url', 'type' => 'url', 'label' => __( 'Task URL', 'cleanup-report-generator' ), 'placeholder' => 'https://…', 'help' => __( 'Internal: our task for this report. Not shown in the report.', 'cleanup-report-generator' ), 'class' => 'crg-col-right', 'report' => false ],
+            ],
+        ];
+    }
+
+    private static function malware_cleanup() {
+        $list_help = __( 'A bulleted list, one per item. Put the folder in brackets and a reason after a dash, e.g. <em>Slider Revolution (revslider) – no licence provided</em>.', 'cleanup-report-generator' );
+        $questions = [];
+        $notes     = [
+            'hosting_type' => __( 'Note, e.g. the host or plan', 'cleanup-report-generator' ),
+            'backups'      => __( 'Link to the backups, e.g. in the Hub', 'cleanup-report-generator' ),
+            'ssh_accounts' => __( 'Which accounts, and what was done', 'cleanup-report-generator' ),
+        ];
+        foreach ( Cleanup_Report_Render::site_checks_config() as $key => $check ) {
+            $questions[ $key ] = [ $check[0], $check[1], $check[2], $notes[ $key ] ?? __( 'Note', 'cleanup-report-generator' ) ];
+        }
+        return [
+            'label'       => __( 'Malware cleanup', 'cleanup-report-generator' ),
+            'add'         => __( 'Add cleanup report', 'cleanup-report-generator' ),
+            'about'       => __( 'What was found and removed, how the site was verified, Defender settings and the member\'s next steps.', 'cleanup-report-generator' ),
+            'eyebrow'     => __( 'Malware cleanup report', 'cleanup-report-generator' ),
+            'title'       => __( 'MALWARE CLEANUP REPORT', 'cleanup-report-generator' ),
+            'file'        => 'cleanup-report',
+            'suffix'      => __( 'malware cleanup', 'cleanup-report-generator' ),
+            'prepared_by' => __( 'security team', 'cleanup-report-generator' ),
+            'template'    => 'malware-cleanup',
+            'settings'    => [ 'followups' => __( 'Follow-ups', 'cleanup-report-generator' ), 'defender' => __( 'Defender checklist', 'cleanup-report-generator' ), 'blocklists' => __( 'Blocklists', 'cleanup-report-generator' ) ],
+            'sections'    => [
+                'site'     => self::site_section(),
+                'findings' => [
+                    'title'  => __( 'Findings', 'cleanup-report-generator' ),
+                    'fields' => [
+                        [ 'key' => 'crg_screenshots', 'type' => 'screenshots', 'typed' => true, 'label' => __( 'Screenshots', 'cleanup-report-generator' ), 'help' => __( 'Scan results before and after the cleanup, plus any evidence. Shown in the report in this order; drag to reorder.', 'cleanup-report-generator' ), 'default_rows' => [
+                            [ 'url' => '', 'title' => __( 'Security scan – before cleanup', 'cleanup-report-generator' ), 'type' => 'before' ],
+                            [ 'url' => '', 'title' => __( 'Security scan – after cleanup', 'cleanup-report-generator' ), 'type' => 'after' ],
+                        ] ],
+                        [ 'key' => 'crg_key_finding', 'type' => 'key_finding' ],
+                        [ 'key' => 'crg_infection_summary', 'type' => 'editor', 'rows' => 8, 'label' => __( 'Infection summary', 'cleanup-report-generator' ), 'help' => __( 'What was found and how the site was compromised.', 'cleanup-report-generator' ) ],
+                        [ 'key' => 'crg_summary_counts', 'type' => 'severity_counts' ],
+                        [ 'key' => 'crg_plugin_list', 'type' => 'plugin_check' ],
+                        [ 'key' => 'crg_components', 'type' => 'components' ],
+                        [ 'key' => 'crg_improvements', 'type' => 'editor', 'rows' => 5, 'label' => __( 'Suggested improvements & hardening', 'cleanup-report-generator' ), 'help' => __( 'Optional: changes that would make the site harder to attack (fewer plugins, replacing risky ones…).', 'cleanup-report-generator' ) ],
+                    ],
+                ],
+                'work'     => [
+                    'title'  => __( 'Work done & verification', 'cleanup-report-generator' ),
+                    'fields' => [
+                        [ 'key' => 'crg_highlights', 'type' => 'editor', 'rows' => 6, 'label' => __( 'Work carried out', 'cleanup-report-generator' ), 'help' => __( 'What we did to clean the site. Shown under <strong>Actions taken</strong>, before the list of standard steps every cleanup includes.', 'cleanup-report-generator' ) ],
+                        [ 'key' => 'crg_verification_summary', 'type' => 'editor', 'rows' => 6, 'label' => __( 'Verification', 'cleanup-report-generator' ), 'help' => __( 'How the site was checked after the cleanup, and anything still showing.', 'cleanup-report-generator' ), 'default_new' => Cleanup_Report_Render::default_texts()['verification'] ],
+                        [ 'key' => 'crg_additional_sites', 'type' => 'textarea', 'rows' => 2, 'label' => __( 'Additional sites on this hosting account', 'cleanup-report-generator' ), 'placeholder' => __( 'No problem identified', 'cleanup-report-generator' ), 'help' => __( 'Other sites found and what was done about them, one per line. Leave empty for "No problem identified".', 'cleanup-report-generator' ) ],
+                        [ 'key' => 'crg_site_checks', 'type' => 'questions', 'label' => __( 'Hosting & access', 'cleanup-report-generator' ), 'help' => __( 'Shown in the report\'s Verification table. Leave a question unanswered to leave it out.', 'cleanup-report-generator' ), 'questions' => $questions ],
+                        [ 'key' => 'crg_delist_vendors', 'type' => 'blocklists' ],
+                    ],
+                ],
+                'defender' => [
+                    'title'  => __( 'Defender', 'cleanup-report-generator' ),
+                    'fields' => [ [ 'key' => 'crg_defender', 'type' => 'defender' ] ],
+                ],
+                'next'     => [
+                    'title'  => __( 'Member next steps', 'cleanup-report-generator' ),
+                    'fields' => [
+                        [ 'key' => 'crg_pending_actions', 'type' => 'editor', 'legacy_text' => true, 'rows' => 5, 'label' => __( 'Pending actions', 'cleanup-report-generator' ), 'help' => __( 'Anything the member must still do, as a bulleted or numbered list. Leave empty if nothing is pending.', 'cleanup-report-generator' ) ],
+                        [ 'key' => 'crg_followups', 'type' => 'followups' ],
+                        [ 'key' => 'crg_reinstall_list', 'type' => 'editor', 'rows' => 4, 'label' => __( 'Reinstall: premium plugins & themes not provided', 'cleanup-report-generator' ), 'help' => $list_help ],
+                        [ 'key' => 'crg_replace_list', 'type' => 'editor', 'rows' => 4, 'label' => __( 'Replace: plugins & themes no longer maintained', 'cleanup-report-generator' ), 'help' => $list_help ],
+                    ],
+                ],
+                'guidance' => [
+                    'title'  => __( 'Member guidance', 'cleanup-report-generator' ),
+                    'fields' => [
+                        [ 'key' => 'crg_documentation_links', 'type' => 'textarea', 'rows' => 3, 'label' => __( 'Helpful links', 'cleanup-report-generator' ), 'placeholder' => __( 'Supported PHP versions: https://www.php.net/supported-versions.php', 'cleanup-report-generator' ), 'help' => __( 'One per line as <code>Title: https://…</code>. Links to the Defender docs, 2FA and Hide Login URL are always added.', 'cleanup-report-generator' ) ],
+                        [ 'key' => 'crg_seo_note', 'type' => 'note', 'label' => __( 'Search engines (SEO)', 'cleanup-report-generator' ), 'help' => __( 'What to check in Google and how to clean up search results. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function ( $post ) { return Cleanup_Report_Render::default_texts( self::host( $post ) )['seo']; } ],
+                        [ 'key' => 'crg_protect_note', 'type' => 'note', 'label' => __( 'Staying protected', 'cleanup-report-generator' ), 'help' => __( 'How to keep the site safe from now on. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function () { return Cleanup_Report_Render::default_texts()['protect']; } ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    private static function site_optimization() {
+        $shots_help = static function ( $phase ) {
+            /* translators: %s: "pre-work" or "post-work" */
+            return sprintf( __( 'What the %s checklist found worth showing, e.g. a layout shift. None: the report says "No relevant screenshots."', 'cleanup-report-generator' ), $phase );
+        };
+        $checklist  = [ 'type' => 'checklist', 'items' => [ 'Cleanup_Report_Optimization', 'check_items' ], 'settings' => 'optimization' ];
+        return [
+            'label'       => __( 'Website optimization', 'cleanup-report-generator' ),
+            'add'         => __( 'Add optimization report', 'cleanup-report-generator' ),
+            'about'       => __( 'PageSpeed scores before and after, the pre- and post-work checklists, the optimization steps and the result against the targets.', 'cleanup-report-generator' ),
+            'eyebrow'     => __( 'Website optimization report', 'cleanup-report-generator' ),
+            'title'       => __( 'WEBSITE OPTIMIZATION REPORT', 'cleanup-report-generator' ),
+            'file'        => 'optimization-report',
+            'suffix'      => __( 'website optimization', 'cleanup-report-generator' ),
+            'prepared_by' => __( 'experts team', 'cleanup-report-generator' ),
+            'template'    => 'site-optimization',
+            'settings'    => [ 'optimization' => __( 'Checklist & targets', 'cleanup-report-generator' ) ],
+            'on_save'     => [ 'Cleanup_Report_Optimization', 'save_targets' ],
+            'sections'    => [
+                'site'     => self::site_section(),
+                'scores'   => [
+                    'title'  => __( 'Scores', 'cleanup-report-generator' ),
+                    'fields' => [
+                        [ 'key' => 'crg_opt_scores', 'type' => 'scores' ],
+                        [ 'key' => 'crg_opt_json_link', 'type' => 'url', 'label' => __( 'Lighthouse JSON (before)', 'cleanup-report-generator' ), 'placeholder' => 'https://drive.google.com/…', 'help' => __( 'Optional: a link to the shared JSON of the tests before the work. The report says it opens in the Lighthouse viewer.', 'cleanup-report-generator' ) ],
+                    ],
+                ],
+                'prework'  => [
+                    'title'  => __( 'Pre-work checklist', 'cleanup-report-generator' ),
+                    'fields' => [
+                        [ 'key' => 'crg_opt_pre_checks', 'phase' => 'pre', 'note_from' => 'pre_note', 'help' => __( 'Test the site before changing anything.', 'cleanup-report-generator' ) ] + $checklist,
+                        [ 'key' => 'crg_opt_pre_shots', 'type' => 'screenshots', 'label' => __( 'Relevant screenshots', 'cleanup-report-generator' ), 'help' => $shots_help( __( 'pre-work', 'cleanup-report-generator' ) ) ],
+                    ],
+                ],
+                'optwork'  => [
+                    'title'  => __( 'Optimization work', 'cleanup-report-generator' ),
+                    'fields' => [
+                        [ 'key' => 'crg_opt_steps', 'type' => 'editor', 'rows' => 10, 'label' => __( 'Optimization steps', 'cleanup-report-generator' ), 'help' => __( 'What was changed, grouped by plugin or tool (e.g. Elementor, Hummingbird, Smush, Hosting). Shown after "For the site optimization, the following steps were taken:".', 'cleanup-report-generator' ) ],
+                        [ 'key' => 'crg_opt_code', 'type' => 'code', 'rows' => 8, 'path_key' => 'crg_opt_code_path', 'path_placeholder' => 'wp-content/mu-plugins/optimization-wpmu.php', 'label' => __( 'Code added', 'cleanup-report-generator' ), 'help' => __( 'Optional: custom code added to the site, e.g. an mu-plugin. Shown in full at the end of the report, so it doesn\'t break up the steps.', 'cleanup-report-generator' ) ],
+                        [ 'key' => 'crg_opt_summary', 'type' => 'editor', 'rows' => 5, 'label' => __( 'Optimization summary', 'cleanup-report-generator' ), 'help' => __( 'Shown under <strong>Optimization result</strong>, after whether the mobile and desktop targets were reached (worked out from the scores).', 'cleanup-report-generator' ) ],
+                    ],
+                ],
+                'postwork' => [
+                    'title'  => __( 'Post-work checklist', 'cleanup-report-generator' ),
+                    'fields' => [
+                        [ 'key' => 'crg_opt_post_checks', 'phase' => 'post', 'note_from' => 'post_note', 'copy_from' => 'pre', 'copy_label' => __( 'Same answers as pre-work', 'cleanup-report-generator' ), 'help' => __( 'Test the site again once the work is done.', 'cleanup-report-generator' ) ] + $checklist,
+                        [ 'key' => 'crg_opt_post_shots', 'type' => 'screenshots', 'label' => __( 'Relevant screenshots', 'cleanup-report-generator' ), 'help' => $shots_help( __( 'post-work', 'cleanup-report-generator' ) ) ],
+                    ],
+                ],
+                'optguide' => [
+                    'title'  => __( 'Member guidance', 'cleanup-report-generator' ),
+                    'fields' => [
+                        [ 'key' => 'crg_opt_info', 'type' => 'note', 'label' => __( 'Helpful information about the performance', 'cleanup-report-generator' ), 'help' => __( 'How the score is measured and how to keep it. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function () { return Cleanup_Report_Optimization::default_texts()['info']; } ],
+                        [ 'key' => 'crg_opt_faq', 'type' => 'note', 'label' => __( 'Questions about the score', 'cleanup-report-generator' ), 'help' => __( 'Why mobile is lower, why the target is 80, why scores differ, Core Web Vitals. Leave empty to use the standard text.', 'cleanup-report-generator' ), 'standard' => static function () { return Cleanup_Report_Optimization::default_texts()['faq']; } ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /** The report's website host (for standard texts). */
+    private static function host( $post ) {
+        return (string) ( wp_parse_url( (string) get_post_meta( $post->ID, 'crg_site_url', true ), PHP_URL_HOST ) ?: '' );
+    }
+
+    /* ================================================================== adding a report, Reports list */
 
     /** The edit-screen link that adds a report of this type. */
     public static function add_url( $type ) {
@@ -81,16 +284,16 @@ class Cleanup_Report_Types {
     }
 
     /**
-     * Reports › Add cleanup report / Add optimization report replace WordPress's "Add report". The chooser (two cards)
-     * is a hidden page: the list's "Add report" button and the admin bar's New › Report lead to it.
+     * Reports › Add … report, one per type, replace WordPress's "Add report". The chooser (one card per type) is a
+     * hidden page: the list's "Add report" button and the admin bar's New › Report lead to it.
      */
     public static function menu() {
         $parent = 'edit.php?post_type=cleanup_report';
         remove_submenu_page( $parent, 'post-new.php?post_type=cleanup_report' );
-        foreach ( self::TYPES as $key => $type ) {
+        foreach ( self::definitions() as $key => $type ) {
             add_submenu_page( $parent, $type['add'], $type['add'], 'edit_posts', 'post-new.php?post_type=cleanup_report&crg_type=' . $key );
         }
-        add_submenu_page( $parent, 'Add report', 'Add report', 'edit_posts', self::CHOOSER, [ __CLASS__, 'chooser' ] );
+        add_submenu_page( $parent, __( 'Add report', 'cleanup-report-generator' ), __( 'Add report', 'cleanup-report-generator' ), 'edit_posts', self::CHOOSER, [ __CLASS__, 'chooser' ] );
         remove_submenu_page( $parent, self::CHOOSER ); // reachable by URL, not listed
     }
 
@@ -117,7 +320,7 @@ class Cleanup_Report_Types {
     /** The new report (WordPress's auto-draft) gets the type it was added as, before any box reads it. */
     public static function store_new_type( $post ) {
         $type = self::requested();
-        if ( 'auto-draft' === $post->post_status && $type && ! metadata_exists( 'post', $post->ID, self::META ) ) {
+        if ( 'auto-draft' === $post->post_status && $type && ! metadata_exists( 'post', $post->ID, self::META ) && current_user_can( 'edit_post', $post->ID ) ) {
             update_post_meta( $post->ID, self::META, $type );
         }
     }
@@ -131,12 +334,15 @@ class Cleanup_Report_Types {
     }
 
     public static function chooser() {
+        if ( ! current_user_can( 'edit_posts' ) ) {
+            wp_die( esc_html__( 'You are not allowed to add reports.', 'cleanup-report-generator' ), '', [ 'response' => 403 ] );
+        }
         ?>
         <div class="wrap crg-chooser">
-            <h1>Add report</h1>
-            <p class="crg-lead">Which kind of report? It can't be changed once the report is started.</p>
+            <h1><?php esc_html_e( 'Add report', 'cleanup-report-generator' ); ?></h1>
+            <p class="crg-lead"><?php esc_html_e( 'Which kind of report? It can\'t be changed once the report is started.', 'cleanup-report-generator' ); ?></p>
             <div class="crg-chooser-cards">
-                <?php foreach ( self::TYPES as $key => $type ) : ?>
+                <?php foreach ( self::definitions() as $key => $type ) : ?>
                     <a class="crg-chooser-card" href="<?php echo esc_url( self::add_url( $key ) ); ?>">
                         <?php self::badge( $key ); ?>
                         <strong><?php echo esc_html( $type['add'] ); ?></strong>
@@ -160,10 +366,10 @@ class Cleanup_Report_Types {
         }
         $current = sanitize_key( wp_unslash( $_GET['crg_type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- list filter
         ?>
-        <label for="crg-type-filter" class="screen-reader-text">Filter by type</label>
+        <label for="crg-type-filter" class="screen-reader-text"><?php esc_html_e( 'Filter by type', 'cleanup-report-generator' ); ?></label>
         <select name="crg_type" id="crg-type-filter">
-            <option value="">All types</option>
-            <?php foreach ( self::TYPES as $key => $type ) : ?>
+            <option value=""><?php esc_html_e( 'All types', 'cleanup-report-generator' ); ?></option>
+            <?php foreach ( self::definitions() as $key => $type ) : ?>
                 <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $current, $key ); ?>><?php echo esc_html( $type['label'] ); ?></option>
             <?php endforeach; ?>
         </select>

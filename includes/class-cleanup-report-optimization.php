@@ -13,10 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class Cleanup_Report_Optimization {
 
     const CHECKS_OPTION   = 'crg_opt_checks';
-    const STATUSES        = [ 'yes' => 'Yes', 'no' => 'No', 'na' => 'N/A' ];
     const TARGETS         = [ 'mobile' => 80, 'desktop' => 95 ]; // average PageSpeed score aimed for (the template's)
-    const PHASES          = [ 'pre' => 'crg_opt_pre_checks', 'post' => 'crg_opt_post_checks' ];
-    const SHOTS           = [ 'pre' => 'crg_opt_pre_shots', 'post' => 'crg_opt_post_shots' ];
     const LIGHTHOUSE      = 'https://googlechrome.github.io/lighthouse/viewer/';
     const PLAYLIST        = 'https://www.youtube.com/watch?v=x2WSkG6-x74&list=PLV1BcivFAIdu9nxH0DU-W7LO3pFKrmbhl';
 
@@ -39,7 +36,9 @@ class Cleanup_Report_Optimization {
             $c( 'product_variation', 'Can you select product variation?', 'yes', 'Shops only; N/A otherwise.' ),
             $c( 'add_to_cart', 'Can you add products to cart?', 'yes', 'Shops only; N/A otherwise.' ),
             $c( 'checkout', 'Are checkout functionalities working? (checkout page, information filling, shipping and payment options)', 'yes', 'No purchase is made in this step. Shops only; N/A otherwise.' ),
-            $c( 'backup', 'Backup completed?', 'yes', '', 'Under the Hub › Click the site › Hosting › Backups with the comment "pre-optimization backup".', 'Under the Hub › Click the site › Hosting › Backups with the comment "post-optimization backup".' ),
+            Cleanup_Report_Presets::is( 'wpmudev' )
+                ? $c( 'backup', 'Backup completed?', 'yes', '', 'Under the Hub › Click the site › Hosting › Backups with the comment "pre-optimization backup".', 'Under the Hub › Click the site › Hosting › Backups with the comment "post-optimization backup".' )
+                : $c( 'backup', 'Backup completed?', 'yes', '', 'Backup taken before the optimization.', 'Backup taken after the optimization.' ),
             $c( 'cloudflare', 'Is the site using Cloudflare?', '' ),
             $c( 'other_issues', 'Any other issues noticed?', 'no' ),
             $c( 'initial_response', 'Any functionality highlighted in the initial response?', '', 'Something the member asked us to check in their request.' ),
@@ -66,62 +65,6 @@ class Cleanup_Report_Optimization {
         return in_array( $value, [ 'yes', 'no' ], true ) ? $value : '';
     }
 
-    /** A report's answers for one phase ('pre' or 'post'), in order: key => [ key, label, good, pre_note, post_note, status, note ]. */
-    public static function report_checks( $post_id, $phase ) {
-        $saved = get_post_meta( $post_id, self::PHASES[ $phase ] ?? '', true );
-        return is_array( $saved ) ? $saved : [];
-    }
-
-    /**
-     * Saves one phase's answers from the edit form. Wording comes from settings (or, for a test no longer in settings,
-     * from the report's own snapshot), never from the request.
-     *
-     * @param array $posted $_POST['crg_opt_pre_checks'] or […post…] (unslashed, sanitised): key => [ status, note ]
-     */
-    public static function save_checks( $post_id, $phase, array $posted ) {
-        $defs = Cleanup_Report_Checklists::keyed( self::check_items() );
-        $old  = self::report_checks( $post_id, $phase );
-        $rows = [];
-        foreach ( $posted as $key => $answer ) {
-            $key    = sanitize_key( $key );
-            $status = sanitize_key( $answer['status'] ?? '' );
-            $def    = $defs[ $key ] ?? $old[ $key ] ?? null;
-            if ( $def && isset( self::STATUSES[ $status ] ) ) {
-                $rows[ $key ] = [
-                    'key'       => $key,
-                    'label'     => $def['label'],
-                    'good'      => self::good( $def['good'] ?? '' ),
-                    'pre_note'  => $def['pre_note'] ?? '',
-                    'post_note' => $def['post_note'] ?? '',
-                    'status'    => $status,
-                    'note'      => sanitize_text_field( $answer['note'] ?? '' ),
-                ];
-            }
-        }
-        update_post_meta( $post_id, self::PHASES[ $phase ], wp_slash( $rows ) );
-    }
-
-    /**
-     * Answers as the report shows them: label, answer (Yes / No / N/A), tone (ok, bad, info, na) and note. A Yes or
-     * No is ok when it's the test's good answer, bad when it isn't, and info for tests without one.
-     */
-    public static function checks_for_output( array $rows, $phase, $site_url ) {
-        $out = [];
-        foreach ( $rows as $row ) {
-            $status = $row['status'];
-            $good   = $row['good'] ?? '';
-            $tone   = 'na' === $status ? 'na' : ( '' === $good ? 'info' : ( $good === $status ? 'ok' : 'bad' ) );
-            $note   = '' !== (string) $row['note'] ? $row['note'] : (string) ( $row[ $phase . '_note' ] ?? '' );
-            $out[]  = [
-                'label'  => $row['label'],
-                'answer' => self::STATUSES[ $status ] ?? $status,
-                'tone'   => $tone,
-                'note'   => Cleanup_Report_Checklists::fill( $note, $site_url ),
-            ];
-        }
-        return $out;
-    }
-
     /* ------------------------------------------------------------------ targets and scores */
 
     /** The targets in Settings: [ mobile, desktop ]. */
@@ -131,6 +74,11 @@ class Cleanup_Report_Optimization {
             $out[ $device ] = self::score( get_option( 'crg_opt_target_' . $device, $default ) ) ?? $default;
         }
         return $out;
+    }
+
+    /** Saving a report (the type's on_save): it keeps the targets it was saved with. */
+    public static function save_targets( $post_id ) {
+        update_post_meta( $post_id, 'crg_opt_targets', self::targets() );
     }
 
     /** The targets a report was saved with (reports not saved since use today's). */
@@ -211,9 +159,9 @@ class Cleanup_Report_Optimization {
     /** Standard texts used when a report leaves them empty (also shown under the editors). From the team's template. */
     public static function default_texts() {
         return [
-            'info' => '<p>WPMU DEV services will focus on increasing your website score. For that, we use different pages and generate the average score using a simple formula:</p>'
+            'info' => '<p>' . ( Cleanup_Report_Presets::is( 'wpmudev' ) ? 'WPMU DEV services will focus on increasing your website score.' : 'We focus on increasing your website score.' ) . ' For that, we use different pages and generate the average score using a simple formula:</p>'
                 . '<ol><li>Run the test multiple times;</li><li>Remove the top and lowest score;</li><li>Sum the average result for the tested pages.</li></ol>'
-                . '<p>The above is described in our <a href="' . esc_url( self::PLAYLIST ) . '">optimization playlist</a>. It gives you a more accurate result, since the performance score only takes into account the page tested, not the full site.</p>'
+                . '<p>' . ( Cleanup_Report_Presets::is( 'wpmudev' ) ? 'The above is described in our <a href="' . esc_url( self::PLAYLIST ) . '">optimization playlist</a>. It' : 'This' ) . ' gives you a more accurate result, since the performance score only takes into account the page tested, not the full site.</p>'
                 . '<p>To maintain a good score on your website, it is important to:</p>'
                 . '<ul><li>Avoid duplicate plugins for the same task;</li><li>Keep your pages light, with the relevant information only: it reduces the number of elements the browser needs to handle;</li><li>Wait for the cache to be generated before running the tests: a lower score is expected if the cache is not being hit;</li><li>Avoid animations above the fold (what is visible when the page loads).</li></ul>',
             'faq'  => '<p><strong>Why is the mobile score lower?</strong></p>'

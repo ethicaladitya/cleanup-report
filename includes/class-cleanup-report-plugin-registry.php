@@ -4,7 +4,7 @@
  * on any report, with whether it's still maintained.
  *
  *  - WordPress.org items: status found automatically (closed, no release for 2 years, "Tested up to" 3+ WordPress
- *    versions behind) and refreshed daily by WP-Cron.
+ *    versions behind); refreshed daily by WP-Cron when Settings › Review › "Re-check the plugin list every day" is on.
  *  - Everything else (premium, custom, or a folder name WordPress.org uses for something else): staff mark it
  *    Maintained or Abandoned once; the check then uses that decision on every report.
  *
@@ -23,15 +23,21 @@ class Cleanup_Report_Plugin_Registry {
 
     public static function init() {
         add_action( self::CRON_HOOK, [ __CLASS__, 'refresh' ] );
-        add_action( 'init', [ __CLASS__, 'schedule' ] );
+        add_action( 'admin_init', [ __CLASS__, 'schedule' ] );
         add_action( 'admin_post_crg_save_plugin_list', [ __CLASS__, 'handle_save' ] );
         add_action( 'admin_post_crg_refresh_plugin_list', [ __CLASS__, 'handle_refresh' ] );
         add_action( 'admin_post_crg_export_plugin_list', [ __CLASS__, 'handle_export' ] );
     }
 
+    /** The daily re-check runs only when an administrator turned it on (Settings › Review › Outside services). */
     public static function schedule() {
-        if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-            wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_HOOK );
+        $next = wp_next_scheduled( self::CRON_HOOK );
+        if ( get_option( 'crg_plugin_recheck', 0 ) ) {
+            if ( ! $next ) {
+                wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_HOOK );
+            }
+        } elseif ( $next ) {
+            self::unschedule();
         }
     }
 
@@ -161,7 +167,14 @@ class Cleanup_Report_Plugin_Registry {
      * Daily (WP-Cron) or on demand: re-check WordPress.org items not checked for REFRESH_DAYS, and undecided ones
      * (a plugin can be added to WordPress.org later). Returns how many were checked.
      */
-    public static function refresh( $force = false ) {
+    /**
+     * @param bool $force   Re-check every undecided item now ("Re-check WordPress.org now").
+     * @param bool $by_user Run because someone just did something (not WP-Cron), even when the daily re-check is off.
+     */
+    public static function refresh( $force = false, $by_user = false ) {
+        if ( ! $force && ! $by_user && ! get_option( 'crg_plugin_recheck', 0 ) ) {
+            return; // the daily run was turned off since it was scheduled
+        }
         $list  = self::all();
         $stale = array_filter( $list, static function ( $e ) use ( $force ) {
             return '' === $e['decision'] && ( $force || $e['checked'] < time() - self::REFRESH_DAYS * DAY_IN_SECONDS );
@@ -250,7 +263,7 @@ class Cleanup_Report_Plugin_Registry {
         }
         self::save( $list );
         if ( '' !== $slug ) {
-            self::refresh(); // a new undecided item gets looked up straight away
+            self::refresh( false, true ); // a new undecided item gets looked up straight away
         }
         self::back( [ 'saved' => 1 ] );
     }

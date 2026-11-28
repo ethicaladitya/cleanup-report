@@ -2,7 +2,7 @@
 # PDF layout check: deploy the plugin to a TEST WordPress site, seed the fixture reports, render each one through
 # the real export path, and check every page for layout problems. See README.md.
 #
-#   tests/layout/run.sh                 all fixtures (sample minimal long optimization optimization-minimal)
+#   tests/layout/run.sh                 all fixtures (sample minimal long optimization optimization-minimal generic)
 #   tests/layout/run.sh sample          just one
 #
 #   CRG_SSH_HOST   ssh host of the test site          (default: iaditya)
@@ -19,7 +19,7 @@ HOST=${CRG_SSH_HOST:-iaditya}
 WP=${CRG_WP_PATH:-site/public_html}
 OUT=$HERE/out
 BIN=$HERE/.build
-fixtures=("$@"); (( $#fixtures )) || fixtures=(sample minimal long optimization optimization-minimal)
+fixtures=("$@"); (( $#fixtures )) || fixtures=(sample minimal long optimization optimization-minimal generic)
 
 # 1. Lint, and build the macOS checking tools (PDFKit) when their source changed.
 for f in $PLUGIN/cleanup-report-generator.php $PLUGIN/includes/*.php $PLUGIN/templates/*.php $HERE/*.php $HERE/fixtures/*.php; do

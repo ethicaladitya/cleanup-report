@@ -6,6 +6,9 @@
  * headings next to it (<out.pdf>.headings, one per line) for the layout checker.
  */
 defined( 'WP_CLI' ) || exit;
+if ( is_readable( __DIR__ . '/_types.php' ) ) {
+	require_once __DIR__ . '/_types.php'; // the test-only report type of the "generic" fixture
+}
 
 [ $id, $out ] = [ (int) $args[0], $args[1] ];
 $data  = Cleanup_Report_Render::get_data( $id );

@@ -2,6 +2,8 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-cpt.php';
+require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-presets.php';
+require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-fields.php';
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-types.php';
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-optimization.php';
 require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-access.php';

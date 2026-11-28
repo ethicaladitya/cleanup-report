@@ -161,6 +161,13 @@ class Cleanup_Report_PDF {
         foreach ( (array) ( $data['opt']['shots'] ?? [] ) as $phase_shots ) {
             $shots = array_merge( $shots, (array) $phase_shots ); // Website optimization: pre-work and post-work screenshots
         }
+        foreach ( (array) ( $data['generic'] ?? [] ) as $section ) { // a report type drawn by the generic template
+            foreach ( $section['blocks'] as $block ) {
+                if ( 'shots' === $block['kind'] ) {
+                    $shots = array_merge( $shots, $block['shots'] );
+                }
+            }
+        }
         foreach ( $shots as $shot ) {
             $images[ $shot['url'] ] = self::image_box( $shot['url'], self::CONTENT_W, self::SHOT_MAX_H, $data );
             if ( $web && $images[ $shot['url'] ] ) {

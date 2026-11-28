@@ -187,7 +187,7 @@ class Cleanup_Report_Checklists {
             $f( 'reset_passwords', 'Login & Access - Password Rules', 'Force users to change their passwords at their next login after the breach.', 'Force users to change their passwords at their next login, because of the security breach.', 'Not needed.', 'required', self::DEFENDER_DOCS . '#reset-passwords' ),
             // Off by default: Hide Login URL is in the Defender checklist's member part.
             $f( 'mask_login', 'Hide Login URL', 'Setting a custom login URL needs the site owner.', 'Set a custom login URL in Defender and share it with your team.', 'Already configured.', 'recommended', self::DEFENDER_DOCS . '#hide-login-url', false ),
-            $f( 'automate', 'Enable WPMU DEV Automate', 'Keeps plugins and themes updated automatically.', 'Keeps plugins and themes updated automatically.', 'Already enabled.' ),
+            $f( 'automate', 'Enable WPMU DEV Automate', 'Keeps plugins and themes updated automatically.', 'Keeps plugins and themes updated automatically.', 'Already enabled.', 'required', '', (bool) Cleanup_Report_Presets::get( 'product_items' ) ), // WPMU DEV preset
             $f( 'review_content', 'Review Post/Comment Section', 'Check for spam the attacker may have added.', 'Check recent posts and comments for spam the attacker may have added.', 'Nothing suspicious found.' ),
         ];
     }
@@ -232,7 +232,7 @@ class Cleanup_Report_Checklists {
                 'pending_note' => $pending,
                 'link'         => self::DEFENDER_LINKS[ $key ] ?? '',
                 'docs'         => self::DEFENDER_DOCS . '#' . $anchor,
-                'enabled'      => true,
+                'enabled'      => (bool) Cleanup_Report_Presets::get( 'product_items' ), // on with the WPMU DEV preset; can be switched on in Settings
             ];
         }
         return $out;

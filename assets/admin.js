@@ -126,6 +126,7 @@
 
 		initComponents();
 		initScores();
+		initTables();
 		initPluginCheck();
 		initChecklists();
 		initDelist();
@@ -325,6 +326,61 @@
 			$compRows.closest( 'table' ).prop( 'hidden', asText || ! $compRows.children().length );
 			$( '.crg-components-empty' ).prop( 'hidden', asText || $compRows.children().length > 0 );
 			$( this ).text( asText ? 'Back to table' : 'Edit as text' );
+		} );
+	}
+
+	/* ---------- declared tables (field type "table"): rows edited in a table; the textarea stays the saved value */
+
+	function initTables() {
+		$( '.crg-gtable' ).each( function () {
+			var $box = $( this ), cols = $box.data( 'columns' ) || [], $text = $box.find( 'textarea' ), $rows = $box.find( '.crg-gtable-rows' );
+			var asText = false, $textWrap = $box.find( '.crg-gtable-text' ).prop( 'hidden', true );
+			function row( cells ) {
+				var $tr = $( '<tr><td class="crg-col-drag"><span class="crg-drag dashicons dashicons-menu"></span></td></tr>' );
+				$.each( cols, function ( i, c ) {
+					$( '<td><input type="text"></td>' ).find( 'input' ).attr( { placeholder: c.placeholder || '', 'aria-label': c.label } ).val( cells[ i ] || '' ).end().appendTo( $tr );
+				} );
+				$tr.append( '<td class="crg-col-x"><button type="button" class="button-link crg-remove"><span class="dashicons dashicons-no-alt"></span></button></td>' );
+				return $tr;
+			}
+			function textToRows() {
+				$rows.empty();
+				$.each( ( $text.val() || '' ).split( /\r?\n/ ), function ( i, line ) {
+					if ( $.trim( line ) ) {
+						$rows.append( row( $.map( line.split( '|' ), $.trim ) ) );
+					}
+				} );
+			}
+			function rowsToText() {
+				$text.val( $rows.find( 'tr' ).map( function () {
+					var cells = $( this ).find( 'input' ).map( function () { return $.trim( String( this.value ).replace( /[|\r\n]+/g, '/' ) ); } ).get();
+					return cells.join( '' ) ? cells.join( ' | ' ) : null;
+				} ).get().join( '\n' ) );
+			}
+			textToRows();
+			sortable( $rows, '> tr' );
+			$rows.on( 'sortupdate input change', rowsToText ).on( 'click', '.crg-remove', function () {
+				$( this ).closest( 'tr' ).remove();
+				rowsToText();
+			} ).on( 'keydown', 'input', function ( e ) {
+				if ( 'Enter' === e.key ) {
+					e.preventDefault();
+				}
+			} );
+			$box.find( '.crg-gtable-add' ).on( 'click', function () {
+				if ( asText ) {
+					$box.find( '.crg-gtable-toggle' ).trigger( 'click' );
+				}
+				$rows.append( row( [] ) ).find( 'tr' ).last().find( 'input' ).first().trigger( 'focus' );
+			} );
+			$box.find( '.crg-gtable-toggle' ).on( 'click', function () {
+				asText = ! asText;
+				if ( ! asText ) {
+					textToRows();
+				}
+				$textWrap.prop( 'hidden', ! asText );
+				$rows.closest( 'table' ).prop( 'hidden', asText );
+			} );
 		} );
 	}
 
@@ -594,7 +650,7 @@
 	function refreshRow( $row ) {
 		var status = $row.find( 'input[type=radio]:checked' ).val() || '';
 		var previews = $row.data( 'previews' ) || {};
-		$row.removeClass( 'is-applied is-pending is-in_progress is-required is-not_required is-fixed is-yes is-no is-na is-good is-bad is-info' );
+		$row.attr( 'class', $.trim( String( $row.attr( 'class' ) || '' ).replace( /(^|\s)is-\S+/g, '' ) ) );
 		if ( status ) {
 			$row.addClass( 'is-' + status );
 		}
@@ -617,7 +673,14 @@
 		if ( 'defender' === kind ) {
 			text = ( counts.applied || 0 ) + ' applied · ' + ( counts.in_progress || 0 ) + ' pending · ' + ( counts.pending || 0 ) + ' for the member';
 		} else if ( 'opt' === kind ) {
-			text = ( counts.yes || 0 ) + ' yes · ' + ( counts.no || 0 ) + ' no · ' + ( counts.na || 0 ) + ' N/A';
+			// A checklist field: "3 Yes · 1 No · 2 N/A", in the order of its answer buttons.
+			var parts = [];
+			$list.find( '.crg-check' ).first().find( '.crg-seg input' ).each( function () {
+				if ( this.value ) {
+					parts.push( ( counts[ this.value ] || 0 ) + ' ' + $.trim( $( this ).next( 'span' ).text() ) );
+				}
+			} );
+			text = parts.join( ' · ' );
 		} else {
 			text = ( counts.not_required || 0 ) + ' already configured · ' + ( counts.fixed || 0 ) + ' done · ' + ( counts.required || 0 ) + ' for the member';
 		}
@@ -700,15 +763,16 @@
 			refreshChecklists();
 			$list.find( 'input[type=radio]' ).first().trigger( 'input' );
 		} );
-		/* Post-work checklist: start from the pre-work answers (notes aren't copied). */
+		/* A checklist that starts from another's answers (e.g. post-work from pre-work; notes aren't copied). */
 		$( '.crg-copy-pre' ).on( 'click', function () {
-			var $post = $( this ).closest( '.crg-checklist' );
-			$( '.crg-checklist[data-phase="pre"] input[type=radio]:checked' ).each( function () {
-				var name = this.name.replace( /^crg_opt_pre_checks/, 'crg_opt_post_checks' ), value = this.value;
-				$post.find( 'input[type=radio]' ).filter( function () { return this.name === name && this.value === value; } ).prop( 'checked', true );
+			var $to = $( this ).closest( '.crg-checklist' ), $from = $( '.crg-checklist[data-phase="' + $( this ).data( 'from' ) + '"]' );
+			var toField = ( $to.find( 'input[type=radio]' ).attr( 'name' ) || '' ).split( '[' )[ 0 ];
+			$from.find( 'input[type=radio]:checked' ).each( function () {
+				var name = toField + this.name.slice( this.name.indexOf( '[' ) ), value = this.value;
+				$to.find( 'input[type=radio]' ).filter( function () { return this.name === name && this.value === value; } ).prop( 'checked', true );
 			} );
 			refreshChecklists();
-			$post.find( 'input[type=radio]' ).first().trigger( 'input' ); // marks the form as changed
+			$to.find( 'input[type=radio]' ).first().trigger( 'input' ); // marks the form as changed
 		} );
 		refreshChecklists();
 	}
