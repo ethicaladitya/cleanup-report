@@ -42,7 +42,7 @@ class Cleanup_Report_Admin {
     ];
 
     /** Bump to run upgrade() once more on every site (stored in the autoloaded option crg_db_version). */
-    const DB_VERSION = 7;
+    const DB_VERSION = 8;
 
     /** The review status this request changed the report to, for the "saved" message. */
     private static $changed_to = '';
@@ -111,7 +111,7 @@ class Cleanup_Report_Admin {
     /** The report type's edit-screen sections: box ID (crg_box_<section>) => title. */
     public static function sections( $post_id ) {
         $out = [];
-        foreach ( Cleanup_Report_Types::get( Cleanup_Report_Types::of( $post_id ) )['sections'] as $key => $section ) {
+        foreach ( Cleanup_Report_Types::for_report( $post_id )['sections'] as $key => $section ) {
             $out[ 'crg_box_' . $key ] = $section['title'];
         }
         return $out;
@@ -120,7 +120,7 @@ class Cleanup_Report_Admin {
     /** History groups of the report's type: section title => the meta its fields write (and the review notes). */
     private static function history_fields( $post_id ) {
         $out = [];
-        foreach ( Cleanup_Report_Types::get( Cleanup_Report_Types::of( $post_id ) )['sections'] as $section ) {
+        foreach ( Cleanup_Report_Types::for_report( $post_id )['sections'] as $section ) {
             $keys = [];
             foreach ( $section['fields'] as $f ) {
                 $keys = array_merge( $keys, Cleanup_Report_Fields::meta_keys( $f ) );
@@ -173,6 +173,8 @@ class Cleanup_Report_Admin {
      *  - The upgrade runs in batches of reports, and the type backfill is one query (DB_VERSION 6).
      *  - Presets no longer carry a brand: an install on the Defender & managed hosting preset with no brand saved
      *    gets the brand it showed until now saved as its setting (DB_VERSION 7).
+     *  - Ready-made report types can be turned off: an install that already had the plugin keeps them on; a new one
+     *    starts with them off (DB_VERSION 8; Cleanup_Report_Types::choose_on_upgrade()).
      * Every step is safe to repeat, so a version bump simply runs them all again once.
      */
     /** Reports handled per upgrade step; the rest follow on the next admin page or WP-Cron run. */
@@ -230,6 +232,7 @@ class Cleanup_Report_Admin {
         $had_plugin = (int) get_option( 'crg_db_version', 0 ) > 0 || false !== get_option( 'crg_brand_name' )
             || (bool) $wpdb->get_var( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'cleanup_report' AND post_status <> 'auto-draft' LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time check
         Cleanup_Report_Presets::choose_on_upgrade( $had_plugin );
+        Cleanup_Report_Types::choose_on_upgrade( $had_plugin );
         if ( (int) get_option( 'crg_db_version', 0 ) < 7 ) { // once, when coming from 2.2.0's first builds or earlier
             Cleanup_Report_Presets::keep_old_brand();
         }
@@ -295,7 +298,7 @@ class Cleanup_Report_Admin {
         'crg_brand_name', 'crg_brand_logo', 'crg_brand_logo_light', 'crg_brand_primary', 'crg_report_theme', 'crg_cover_glow', 'crg_footer_text',
         'crg_color_success', 'crg_color_warning', 'crg_color_high', 'crg_color_danger', 'crg_color_neutral', 'crg_watermark_text', 'crg_pdf_requires_approval',
         'crg_buddyleads', 'crg_retention_days', 'crg_plugin_recheck', 'crg_delete_data', 'crg_opt_target_mobile', 'crg_opt_target_desktop',
-        'crg_custom_types',
+        'crg_custom_types', 'crg_types_off',
     ];
 
     /** On the plugin's own screens, load its (non-autoloaded) settings in one query instead of one each. */
@@ -411,7 +414,7 @@ class Cleanup_Report_Admin {
     /* ================================================================== edit screen */
 
     public static function register_meta_boxes( $post ) {
-        foreach ( Cleanup_Report_Types::get( Cleanup_Report_Types::of( $post->ID ) )['sections'] as $key => $section ) {
+        foreach ( Cleanup_Report_Types::for_report( $post->ID )['sections'] as $key => $section ) {
             add_meta_box( 'crg_box_' . $key, $section['title'], [ __CLASS__, 'box_section' ], 'cleanup_report', 'normal', 'high', [ 'section' => $key ] );
         }
         // The Review box saves the report, so WordPress's Publish box (its own status, visibility and publish date,
@@ -430,7 +433,7 @@ class Cleanup_Report_Admin {
      */
     public static function box_section( $post, $box ) {
         $type     = Cleanup_Report_Types::of( $post->ID );
-        $sections = Cleanup_Report_Types::get( $type )['sections'];
+        $sections = Cleanup_Report_Types::for_report( $post->ID )['sections'];
         if ( array_key_first( $sections ) === $box['args']['section'] ) {
             wp_nonce_field( 'crg_save_' . $post->ID, 'crg_nonce' );
             echo '<input type="hidden" name="crg_report_type" value="' . esc_attr( $type ) . '">';
@@ -446,7 +449,7 @@ class Cleanup_Report_Admin {
             return $text;
         }
         /* translators: %s: the report type's title suffix, e.g. Malware cleanup report */
-        return sprintf( __( 'Report title, e.g. Acme Bakery – %s', 'cleanup-report-generator' ), Cleanup_Report_Types::get( Cleanup_Report_Types::of( $post->ID ) )['suffix'] );
+        return sprintf( __( 'Report title, e.g. Acme Bakery – %s', 'cleanup-report-generator' ), Cleanup_Report_Types::for_report( $post->ID )['suffix'] );
     }
 
     /** "Jump to" links under the title, one per section. */
@@ -455,7 +458,7 @@ class Cleanup_Report_Admin {
             return;
         }
         $type = Cleanup_Report_Types::of( $post->ID );
-        echo '<nav class="crg-nav" aria-label="' . esc_attr__( 'Report sections', 'cleanup-report-generator' ) . '" data-title-suffix="' . esc_attr( Cleanup_Report_Types::get( $type )['suffix'] ) . '">';
+        echo '<nav class="crg-nav" aria-label="' . esc_attr__( 'Report sections', 'cleanup-report-generator' ) . '" data-title-suffix="' . esc_attr( Cleanup_Report_Types::for_report( $post->ID )['suffix'] ) . '">';
         Cleanup_Report_Types::badge( $type );
         $n = 0;
         foreach ( self::sections( $post->ID ) as $id => $title ) {
@@ -469,6 +472,10 @@ class Cleanup_Report_Admin {
     public static function box_export( $post ) {
         if ( 'auto-draft' === $post->post_status ) {
             echo '<p class="crg-muted">' . esc_html__( 'Save the report to preview it or download the PDF.', 'cleanup-report-generator' ) . '</p>';
+            return;
+        }
+        if ( ! Cleanup_Report_Types::printable( $post->ID ) ) {
+            echo '<p class="crg-muted">' . esc_html__( 'This report\'s type no longer exists, so it can\'t be previewed or printed.', 'cleanup-report-generator' ) . '</p>';
             return;
         }
         $view = wp_nonce_url( admin_url( 'admin-post.php?action=crg_view_report&post=' . $post->ID ), 'crg_view_' . $post->ID );
@@ -731,7 +738,6 @@ class Cleanup_Report_Admin {
             return;
         }
         Cleanup_Report_Types::save( $post_id, sanitize_key( wp_unslash( $_POST['crg_report_type'] ?? '' ) ) ); // only sets a missing type
-        $type = Cleanup_Report_Types::of( $post_id );
         if ( isset( $_POST['crg_author_notes'] ) ) {
             update_post_meta( $post_id, 'crg_author_notes', wp_slash( sanitize_textarea_field( wp_unslash( $_POST['crg_author_notes'] ) ) ) );
         }
@@ -740,7 +746,8 @@ class Cleanup_Report_Admin {
         }
 
         // The report type's fields, each sanitised by its field type (Cleanup_Report_Fields::save()).
-        $definition = Cleanup_Report_Types::get( $type );
+        // A report of a type that no longer exists saves what its edit screen shows (Cleanup_Report_Types::unknown()).
+        $definition = Cleanup_Report_Types::for_report( $post_id );
         foreach ( $definition['sections'] as $section ) {
             foreach ( $section['fields'] as $f ) {
                 Cleanup_Report_Fields::save( $post_id, $f );

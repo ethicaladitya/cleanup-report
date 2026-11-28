@@ -4,7 +4,7 @@ Tags: reports, pdf, client reports, malware cleanup, website optimization
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.3.0
+Stable tag: 2.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ Branded service reports for your clients: malware cleanup and website optimizati
 
 Handover turns the work you do on a client's website into a branded report they can keep. Your team fills the report in from wp-admin, a lead reviews and approves it, and the client gets a PDF. Handover was called Cleanup Report Generator before 2.2.0.
 
-Two report types come with it, each with its own fields and sections, sharing the branding, the review workflow and the PDF layout:
+Two ready-made report types come with it, each with its own fields and sections, sharing the branding, the review workflow and the PDF layout. Turn on the ones your team uses in Reports › Report types:
 
 * **Malware cleanup:** what was found and removed, screenshots, vulnerable components, the work done and how the site was verified, the security settings applied, and the client's next steps.
 * **Website optimization:** PageSpeed scores of the tested pages before and after the work (averages worked out for you), the pre-work and post-work checklists, the optimization steps, whether the mobile and desktop targets were reached, and any code added to the site.
@@ -47,7 +47,7 @@ Give everyone who writes reports the Editor role. Writers edit their own reports
 
 = Can I add my own report type? =
 
-Yes. In Reports › Report types (administrators), click "Add report type", or "Duplicate" on an existing type to start from its fields. Give it a name, add sections and fields, and save: "Add … report" appears in the Reports menu. A type can be turned off (it can't be picked for new reports; its reports still open and print) and deleted once no report uses it.
+Yes. In Reports › Report types (administrators), click "Add report type", or "Duplicate" on an existing type to start from its fields. Give it a name, add sections and fields, and save: "Add … report" appears in the Reports menu. Any type, the ready-made ones included, can be turned off: it can't be picked for new reports, its reports still open and print, and if no report uses it, it no longer shows in the Reports menu, list or settings. Your own types can be deleted once no report uses them.
 
 Editing a type is safe for reports already written: renamed and reordered fields keep their values; a removed field keeps its value in each report, listed on the report's edit screen, where it can be removed; an approved report keeps printing as it was approved.
 
@@ -95,6 +95,12 @@ Only a link: the edit screen offers "check this site on VirusTotal", which opens
 
 == Changelog ==
 
+= 2.4.0 =
+* Ready-made report types are optional: Malware cleanup and Website optimization can be turned on and off in Reports › Report types, like your own types. A type that's off can't be picked for new reports; if no report uses it, it disappears from the Reports menu, the list's views and filter, and Settings. A new install starts with none turned on and shows where to start; sites updating keep both on.
+* A report whose type no longer exists (its code or definition was removed) is listed as "Unknown type (…)" instead of being shown as a Malware cleanup report. Its type is never rewritten; it prints with the fields it was last saved with, or, without them, can't be previewed or printed.
+* Performance: the Reports list counts reports per type with one query instead of one per type.
+* Turn on, turn off and delete in Reports › Report types are buttons (they were links).
+
 = 2.3.0 =
 * Report type builder (Reports › Report types, administrators only): make, edit, duplicate, turn off and delete report types without code. Fields: short text, plain and rich text, rich text with a standard text, web address, date, number, choice from a list, questions with answers, checklist, table, screenshots and code. Drawn with the standard report layout; "Preview the report" shows it with sample values.
 * Duplicating a built-in type copies its fields that the builder offers and names the special ones it can't copy.
@@ -130,6 +136,9 @@ Changes before 2.2.0 are in changelog.txt.
 * Dompdf (LGPL-2.1) and the libraries it bundles: php-font-lib (LGPL-2.1), php-svg-lib (LGPL-3.0), masterminds/html5 (MIT), sabberworm/php-css-parser (MIT). DejaVu fonts (Bitstream Vera license) come with Dompdf.
 
 == Upgrade Notice ==
+
+= 2.4.0 =
+Report types can be turned off, the ready-made ones included. Your current types stay on.
 
 = 2.3.0 =
 Adds Reports › Report types, where administrators make their own report types without code.

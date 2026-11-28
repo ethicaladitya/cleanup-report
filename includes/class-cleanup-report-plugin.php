@@ -70,6 +70,9 @@ class Cleanup_Report_Generator {
         if ( $post->post_type !== 'cleanup_report' ) return $actions;
         $view = wp_nonce_url( admin_url('admin-post.php?action=crg_view_report&post='.$post->ID), 'crg_view_'.$post->ID );
         $pdf  = wp_nonce_url( admin_url('admin-post.php?action=crg_export_pdf&post='.$post->ID), 'crg_pdf_'.$post->ID );
+        if ( ! Cleanup_Report_Types::printable( $post->ID ) ) {
+            return $actions; // its type no longer exists: nothing to draw it with
+        }
         if ( Cleanup_Report_Admin::can_download( $post->ID ) ) {
             $actions['crg_pdf'] = '<a href="' . esc_url( $pdf ) . '">' . esc_html__( 'Download PDF', 'cleanup-report-generator' ) . '</a>';
         }
@@ -83,12 +86,14 @@ class Cleanup_Report_Generator {
 
     public static function handle_view_report() {
         $post_id = self::authorize_report_request( 'crg_view_' );
+        self::require_printable( $post_id );
         Cleanup_Report_Render::render_report_page( $post_id );
         exit;
     }
 
     public static function handle_export_pdf() {
         $post_id = self::authorize_report_request( 'crg_pdf_' );
+        self::require_printable( $post_id );
         if ( ! Cleanup_Report_Admin::can_download( $post_id ) ) {
             wp_die(
                 esc_html(
@@ -104,6 +109,23 @@ class Cleanup_Report_Generator {
         }
         Cleanup_Report_Admin::log( $post_id, 'Downloaded the PDF' );
         Cleanup_Report_PDF::generate_pdf( $post_id );
+    }
+
+    /** A report whose type no longer exists (and has no saved definition) is never drawn as another type. */
+    private static function require_printable( $post_id ) {
+        if ( ! Cleanup_Report_Types::printable( $post_id ) ) {
+            wp_die(
+                esc_html(
+                    sprintf(
+                        /* translators: %s: the key the report's type was saved under, e.g. site_migration */
+                        __( 'This report\'s type, "%s", no longer exists, so the report can\'t be previewed or printed. Its values are kept: they come back if the type is added again.', 'cleanup-report-generator' ),
+                        Cleanup_Report_Types::of( $post_id )
+                    )
+                ),
+                esc_html__( 'Report type not found', 'cleanup-report-generator' ),
+                [ 'response' => 404, 'back_link' => true ]
+            );
+        }
     }
 
     /**

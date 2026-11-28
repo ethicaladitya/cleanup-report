@@ -17,7 +17,7 @@ Exit code is the number of problems (0 = pass). Pages are saved as PNGs in `test
 - macOS with Xcode command line tools (the checker uses PDFKit; tools are compiled on first run into `.build/`).
 - `composer install` done locally (the deploy copies `vendor/`).
 - SSH access to a **test** site with WP-CLI. The script copies the plugin over the site's copy
-  (`rsync --delete`, files in `.distignore` left out) and creates/overwrites six reports, so never point it at a
+  (`rsync --delete`, files in `.distignore` left out) and creates/overwrites eight reports, so never point it at a
   live site.
 
 | Variable | Default | |
@@ -40,6 +40,7 @@ screenshots are mock Defender scans (no real site data); they're uploaded to the
 | `optimization-minimal` | Layout test – optimization minimal | A Website optimization report with nothing filled in: no scores ("—"), no tests, standard texts only. |
 | `generic` | Layout test – generic type | A report type that exists only as a definition (`fixtures/_types.php`, also loaded by `render.php`), drawn by the generic template: every generic field type, a 15-row table with a long URL, long code. |
 | `builder` | Layout test – builder type | A report type made with Reports › Report types (stored in `crg_custom_types`), approved, then edited: the PDF is drawn from the report's snapshot, so the removed field and the old section title still show. |
+| `optional-types` | Layout test – unknown type | First checks that a ready-made type turned off with reports keeps its list view and prints as itself, one turned off without reports shows nowhere, and a report of an unknown type is listed as "Unknown type (…)" and can't print without the definition it was saved with (`crg_types_off` is put back). Then prints that report from its saved definition: generic layout, its own fields, nothing of a Malware cleanup report. |
 
 ## Checks (`tools/layoutcheck.swift`)
 

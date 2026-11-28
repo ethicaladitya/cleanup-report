@@ -1159,6 +1159,10 @@
 	background: var(--crg-green-soft);
 	color: var(--crg-green);
 }
+.crg-type-badge.crg-type-unknown {
+	background: var(--crg-line-soft);
+	color: #3c434a;
+}
 .crg-nav .crg-type-badge {
 	align-self: center;
 	margin-right: 6px;
@@ -1357,8 +1361,47 @@
 .crg-types-actions {
 	white-space: nowrap;
 }
-.crg-types-actions a + a {
+.crg-types-actions > * + * {
 	margin-left: 12px;
+}
+.crg-type-action {
+	display: inline;
+	margin-top: 0;
+	margin-bottom: 0;
+}
+.crg-types-actions .button-link {
+	vertical-align: baseline;
+	line-height: inherit;
+	font-size: inherit;
+}
+.crg-types-actions .button-link.crg-trash {
+	color: #b32d2e;
+}
+.crg-types-empty {
+	max-width: 900px;
+	margin: 8px 0 28px;
+}
+.crg-types-empty .crg-chooser-cards {
+	margin-top: 12px;
+}
+.crg-chooser-card.is-static:hover {
+	border-color: var(--crg-line);
+	box-shadow: none;
+}
+.crg-chooser-card.is-static .crg-chooser-title {
+	margin: 0;
+	font-size: 17px;
+}
+.crg-chooser-card.is-static .crg-type-action,
+.crg-chooser-card.is-static > .button {
+	margin-top: 6px;
+}
+.crg-chooser-card.is-static .button {
+	pointer-events: auto; /* a real button here, not part of a card link */
+}
+.crg-type-card-own .crg-chooser-icon {
+	background: var(--crg-blue-soft);
+	color: var(--crg-blue);
 }
 .crg-type-editor form {
 	max-width: 900px;
@@ -1564,8 +1607,19 @@
 		content: attr(data-label) ": ";
 		color: var(--crg-muted);
 	}
-	.crg-types-actions {
+	.crg-types-table td.crg-types-actions {
 		white-space: normal;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 16px;
+	}
+	.crg-types-actions > * + * {
+		margin-left: 0;
+	}
+	.crg-types-actions a,
+	.crg-types-actions .button-link {
+		display: inline-block;
+		padding: 6px 0; /* a bigger tap target */
 	}
 	.crg-type-toggle {
 		flex-wrap: wrap;

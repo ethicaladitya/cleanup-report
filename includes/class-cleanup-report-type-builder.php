@@ -460,20 +460,12 @@ class Cleanup_Report_Type_Builder {
 
     /* ================================================================== reports of custom types */
 
-    /** @var array|null report counts by type, for this request */
-    private static $counts = null;
-
     /**
      * How many reports use a type: every status but auto-drafts, the Trash included (a type with reports in the Trash
-     * can't be deleted, so restoring them never leaves a report without its type). One query for all types.
+     * can't be deleted, so restoring them never leaves a report without its type). From Cleanup_Report_Types::counts().
      */
     public static function report_count( $type ) {
-        if ( null === self::$counts ) {
-            global $wpdb;
-            $rows         = $wpdb->get_results( $wpdb->prepare( "SELECT m.meta_value AS type, COUNT(*) AS n FROM {$wpdb->postmeta} m INNER JOIN {$wpdb->posts} p ON p.ID = m.post_id WHERE m.meta_key = %s AND p.post_type = 'cleanup_report' AND p.post_status NOT IN ( 'auto-draft', 'inherit' ) GROUP BY m.meta_value", Cleanup_Report_Types::META ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- admin screen: one grouped count instead of a query per type; fresh on every load
-            self::$counts = wp_list_pluck( $rows, 'n', 'type' );
-        }
-        return (int) ( self::$counts[ $type ] ?? 0 );
+        return Cleanup_Report_Types::count( $type, true );
     }
 
     /**
@@ -650,45 +642,120 @@ class Cleanup_Report_Type_Builder {
         }
     }
 
+    /**
+     * One action on a type (turn on, turn off, delete) as a small form with a real button: it changes something, so
+     * it's a POST with the type's nonce, not a link.
+     */
+    private static function action_button( $key, $do, $label, $class, $aria = '', $confirm = '' ) {
+        ?>
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crg-type-action">
+            <input type="hidden" name="action" value="crg_report_type_action">
+            <input type="hidden" name="type" value="<?php echo esc_attr( $key ); ?>">
+            <input type="hidden" name="do" value="<?php echo esc_attr( $do ); ?>">
+            <input type="hidden" name="_wpnonce" value="<?php echo esc_attr( wp_create_nonce( 'crg_type_' . $key ) ); ?>">
+            <button type="submit" class="<?php echo esc_attr( $class ); ?>"<?php echo '' !== $aria ? ' aria-label="' . esc_attr( $aria ) . '"' : ''; ?><?php echo '' !== $confirm ? ' data-confirm="' . esc_attr( $confirm ) . '"' : ''; ?>><?php echo esc_html( $label ); ?></button>
+        </form>
+        <?php
+    }
+
+    /**
+     * No type turned on (a new install starts so): the ready-made types as cards, each with "Turn on", and a card to
+     * create one's own.
+     */
+    private static function empty_state( array $all ) {
+        ?>
+        <section class="crg-types-empty" aria-labelledby="crg-types-empty-title">
+            <h2 id="crg-types-empty-title"><?php esc_html_e( 'Start with a ready-made type', 'cleanup-report-generator' ); ?></h2>
+            <p><?php esc_html_e( 'No report type is turned on yet, so no reports can be added. Turn on a ready-made type, or create your own.', 'cleanup-report-generator' ); ?></p>
+            <div class="crg-chooser-cards">
+                <?php foreach ( $all as $key => $def ) :
+                    if ( ! empty( $def['custom'] ) ) {
+                        continue;
+                    }
+                    ?>
+                    <div class="crg-chooser-card is-static crg-type-card-<?php echo esc_attr( $key ); ?>">
+                        <span class="crg-chooser-icon dashicons dashicons-<?php echo esc_attr( $def['icon'] ?? 'media-document' ); ?>" aria-hidden="true"></span>
+                        <h3 class="crg-chooser-title"><?php echo esc_html( $def['label'] ); ?></h3>
+                        <span class="crg-chooser-about"><?php echo esc_html( $def['about'] ); ?></span>
+                        <?php self::action_button( $key, 'enable', __( 'Turn on', 'cleanup-report-generator' ), 'button button-primary', sprintf( /* translators: %s: report type */ __( 'Turn on %s', 'cleanup-report-generator' ), $def['label'] ) ); ?>
+                    </div>
+                <?php endforeach; ?>
+                <div class="crg-chooser-card is-static crg-type-card-own">
+                    <span class="crg-chooser-icon dashicons dashicons-plus-alt2" aria-hidden="true"></span>
+                    <h3 class="crg-chooser-title"><?php esc_html_e( 'Your own type', 'cleanup-report-generator' ); ?></h3>
+                    <span class="crg-chooser-about"><?php esc_html_e( 'Choose the sections and fields your team fills in. It uses the standard report layout.', 'cleanup-report-generator' ); ?></span>
+                    <a class="button" href="<?php echo esc_url( self::url( [ 'new' => 1 ] ) ); ?>"><?php esc_html_e( 'Create your own', 'cleanup-report-generator' ); ?></a>
+                </div>
+            </div>
+        </section>
+        <?php
+    }
+
     private static function list_page() {
         $stored = self::stored();
         $all    = Cleanup_Report_Types::definitions();
+        $empty  = ! Cleanup_Report_Types::addable();
+        // With nothing on, the table is only needed for types of one's own or types that reports use.
+        $table  = ! $empty || $stored || array_filter( array_keys( $all ), [ __CLASS__, 'report_count' ] );
         ?>
         <div class="wrap crg-types">
             <h1 class="wp-heading-inline"><?php esc_html_e( 'Report types', 'cleanup-report-generator' ); ?></h1>
             <a href="<?php echo esc_url( self::url( [ 'new' => 1 ] ) ); ?>" class="page-title-action"><?php esc_html_e( 'Add report type', 'cleanup-report-generator' ); ?></a>
             <hr class="wp-header-end">
             <?php self::notice(); ?>
-            <p class="crg-lead"><?php esc_html_e( 'The kinds of report your team can write. Built-in types come with the plugin; your own types use the fields you choose and the standard report layout.', 'cleanup-report-generator' ); ?></p>
+            <p class="crg-lead"><?php esc_html_e( 'The kinds of report your team can write. Ready-made types come with the plugin: turn on the ones you use. Your own types use the fields you choose and the standard report layout.', 'cleanup-report-generator' ); ?></p>
+            <?php if ( $empty ) { self::empty_state( $all ); } ?>
+            <?php if ( $table ) : ?>
+            <?php if ( $empty ) : ?><h2><?php esc_html_e( 'All report types', 'cleanup-report-generator' ); ?></h2><?php endif; ?>
             <table class="widefat striped crg-types-table">
                 <thead><tr><th><?php esc_html_e( 'Report type', 'cleanup-report-generator' ); ?></th><th><?php esc_html_e( 'Sections', 'cleanup-report-generator' ); ?></th><th><?php esc_html_e( 'Reports', 'cleanup-report-generator' ); ?></th><th><?php esc_html_e( 'Status', 'cleanup-report-generator' ); ?></th><th><span class="screen-reader-text"><?php esc_html_e( 'Actions', 'cleanup-report-generator' ); ?></span></th></tr></thead>
                 <tbody>
                 <?php foreach ( $all as $key => $def ) :
-                    $custom  = isset( $stored[ $key ] );
-                    $count   = self::report_count( $key );
-                    $act     = static function ( $do ) use ( $key ) { return wp_nonce_url( admin_url( 'admin-post.php?action=crg_report_type_action&do=' . $do . '&type=' . $key ), 'crg_type_' . $key ); };
+                    $custom = isset( $stored[ $key ] );
+                    $count  = self::report_count( $key );
+                    $on     = empty( $def['hidden'] );
                     ?>
                     <tr>
                         <td>
                             <strong><?php echo $custom ? '<a href="' . esc_url( self::url( [ 'edit' => $key ] ) ) . '">' . esc_html( $def['label'] ) . '</a>' : esc_html( $def['label'] ); ?></strong>
-                            <span class="crg-muted"> · <?php echo $custom ? esc_html__( 'Your type', 'cleanup-report-generator' ) : esc_html__( 'Built in', 'cleanup-report-generator' ); ?></span>
+                            <span class="crg-muted"> · <?php echo $custom ? esc_html__( 'Your type', 'cleanup-report-generator' ) : esc_html__( 'Ready-made', 'cleanup-report-generator' ); ?></span>
                             <?php if ( '' !== (string) $def['about'] ) : ?><br><span class="crg-muted"><?php echo esc_html( $def['about'] ); ?></span><?php endif; ?>
                         </td>
                         <td data-label="<?php esc_attr_e( 'Sections', 'cleanup-report-generator' ); ?>"><?php echo (int) ( count( Cleanup_Report_Types::get( $key )['sections'] ) - 1 ); // not counting "Member & website" ?></td>
                         <td data-label="<?php esc_attr_e( 'Reports', 'cleanup-report-generator' ); ?>"><?php echo $count ? '<a href="' . esc_url( admin_url( 'edit.php?post_type=cleanup_report&crg_type=' . $key ) ) . '">' . (int) $count . '</a>' : '0'; ?></td>
-                        <td><?php echo empty( $def['hidden'] ) ? '<span class="crg-status-badge crg-status-approved">' . esc_html__( 'On', 'cleanup-report-generator' ) . '</span>' : '<span class="crg-status-badge">' . esc_html__( 'Off', 'cleanup-report-generator' ) . '</span>'; ?></td>
+                        <td data-label="<?php esc_attr_e( 'Status', 'cleanup-report-generator' ); ?>"><?php echo $on ? '<span class="crg-status-badge crg-status-approved">' . esc_html__( 'On', 'cleanup-report-generator' ) . '</span>' : '<span class="crg-status-badge">' . esc_html__( 'Off', 'cleanup-report-generator' ) . '</span>'; ?></td>
                         <td class="crg-types-actions">
                             <?php if ( $custom ) : ?>
-                                <a href="<?php echo esc_url( self::url( [ 'edit' => $key ] ) ); ?>"><?php esc_html_e( 'Edit', 'cleanup-report-generator' ); ?></a>
-                                <a href="<?php echo esc_url( $act( empty( $def['hidden'] ) ? 'disable' : 'enable' ) ); ?>"><?php echo empty( $def['hidden'] ) ? esc_html__( 'Turn off', 'cleanup-report-generator' ) : esc_html__( 'Turn on', 'cleanup-report-generator' ); ?></a>
-                                <?php if ( ! $count ) : ?><a class="crg-trash crg-type-delete" href="<?php echo esc_url( $act( 'delete' ) ); ?>" data-confirm="<?php echo esc_attr( sprintf( /* translators: %s: report type */ __( 'Delete the report type "%s"? This can\'t be undone.', 'cleanup-report-generator' ), $def['label'] ) ); ?>"><?php esc_html_e( 'Delete', 'cleanup-report-generator' ); ?></a><?php endif; ?>
+                                <a href="<?php echo esc_url( self::url( [ 'edit' => $key ] ) ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: report type */ __( 'Edit %s', 'cleanup-report-generator' ), $def['label'] ) ); ?>"><?php esc_html_e( 'Edit', 'cleanup-report-generator' ); ?></a>
                             <?php endif; ?>
-                            <a href="<?php echo esc_url( self::url( [ 'new' => 1, 'from' => $key ] ) ); ?>"><?php esc_html_e( 'Duplicate', 'cleanup-report-generator' ); ?></a>
+                            <?php
+                            if ( $on ) {
+                                /* translators: %s: report type */
+                                self::action_button( $key, 'disable', __( 'Turn off', 'cleanup-report-generator' ), 'button-link', sprintf( __( 'Turn off %s', 'cleanup-report-generator' ), $def['label'] ) );
+                            } else {
+                                /* translators: %s: report type */
+                                self::action_button( $key, 'enable', __( 'Turn on', 'cleanup-report-generator' ), 'button-link', sprintf( __( 'Turn on %s', 'cleanup-report-generator' ), $def['label'] ) );
+                            }
+                            if ( $custom && ! $count ) {
+                                self::action_button(
+                                    $key,
+                                    'delete',
+                                    __( 'Delete', 'cleanup-report-generator' ),
+                                    'button-link crg-trash crg-type-delete',
+                                    /* translators: %s: report type */
+                                    sprintf( __( 'Delete %s', 'cleanup-report-generator' ), $def['label'] ),
+                                    /* translators: %s: report type */
+                                    sprintf( __( 'Delete the report type "%s"? This can\'t be undone.', 'cleanup-report-generator' ), $def['label'] )
+                                );
+                            }
+                            ?>
+                            <a href="<?php echo esc_url( self::url( [ 'new' => 1, 'from' => $key ] ) ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: report type */ __( 'Duplicate %s', 'cleanup-report-generator' ), $def['label'] ) ); ?>"><?php esc_html_e( 'Duplicate', 'cleanup-report-generator' ); ?></a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
+            <?php endif; ?>
         </div>
         <?php
     }
@@ -938,16 +1005,25 @@ class Cleanup_Report_Type_Builder {
         exit;
     }
 
+    /**
+     * Turn on, turn off or delete a type (a POST from the list). A ready-made type (the plugin's, or one added by
+     * code) can only be turned on or off: it isn't stored here, so there's nothing to delete.
+     */
     public static function handle_action() {
-        $key = sanitize_key( wp_unslash( $_GET['type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the nonce is checked on the next line
+        $key = sanitize_key( wp_unslash( $_POST['type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- the nonce is checked on the next line
         check_admin_referer( 'crg_type_' . $key );
         self::guard();
         $stored = self::stored();
+        $do     = sanitize_key( wp_unslash( $_POST['do'] ?? '' ) );
         if ( ! isset( $stored[ $key ] ) ) {
+            if ( Cleanup_Report_Types::exists( $key ) && in_array( $do, [ 'enable', 'disable' ], true ) ) {
+                Cleanup_Report_Types::set_on( $key, 'enable' === $do );
+                wp_safe_redirect( self::url( [ 'crg_done' => 'enable' === $do ? 'enabled' : 'disabled' ] ) );
+                exit;
+            }
             wp_safe_redirect( self::url() );
             exit;
         }
-        $do = sanitize_key( wp_unslash( $_GET['do'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the nonce is checked on the next line
         if ( 'delete' === $do ) {
             if ( self::report_count( $key ) ) {
                 wp_safe_redirect( self::url( [ 'crg_done' => 'in_use' ] ) );

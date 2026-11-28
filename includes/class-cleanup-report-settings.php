@@ -114,10 +114,10 @@ class Cleanup_Report_Settings {
         return $tabs;
     }
 
-    /** Every report type's own tabs: key => [ label, type label, render callable or null ]. */
+    /** The report types' own tabs: key => [ label, type label, render callable or null ]. Not for a type that's off and unused. */
     private static function type_tabs() {
         $out = [];
-        foreach ( Cleanup_Report_Types::definitions() as $def ) {
+        foreach ( Cleanup_Report_Types::listed() as $def ) {
             foreach ( (array) $def['settings'] as $key => $tab ) {
                 $key = sanitize_key( $key );
                 if ( '' === $key || isset( $out[ $key ] ) || ( in_array( $key, [ 'general', 'review', 'plugins' ], true ) ) ) {
