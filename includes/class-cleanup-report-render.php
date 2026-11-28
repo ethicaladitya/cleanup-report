@@ -255,7 +255,7 @@ class Cleanup_Report_Render {
     /**
      * Hosting & access checks from the team's report template (Work done & verification on the edit screen; the
      * report's Verification table): key => [ question on the edit screen, label in the report, answers ].
-     * Stored as crg_<key> (the answer) and crg_<key>_note. The Hub check is part of the WPMU DEV preset.
+     * Stored as crg_<key> (the answer) and crg_<key>_note. The Hub check is part of the Defender & managed hosting preset.
      */
     public static function site_checks_config() {
         $yes_no = [ 'yes' => __( 'Yes', 'cleanup-report-generator' ), 'no' => __( 'No', 'cleanup-report-generator' ) ];

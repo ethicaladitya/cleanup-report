@@ -39,7 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
         <table class="meta"><tr>
             <td style="width:28%"><div class="k"><?php esc_html_e( 'Completed', 'cleanup-report-generator' ); ?></div><div class="v"><?php echo esc_html( $date ); ?></div></td>
             <td style="width:22%"><div class="k"><?php esc_html_e( 'Report ID', 'cleanup-report-generator' ); ?></div><div class="v"><?php echo esc_html( sprintf( /* translators: %d: report number */ __( '#%d', 'cleanup-report-generator' ), (int) $data['post_id'] ) ); ?></div></td>
-            <td style="width:50%"><div class="k"><?php esc_html_e( 'Prepared by', 'cleanup-report-generator' ); ?></div><div class="v"><?php echo esc_html( sprintf( /* translators: 1: brand name, e.g. "WPMU DEV", 2: team, e.g. "Security Team" */ __( '%1$s %2$s', 'cleanup-report-generator' ), $brand_short, $cover['prepared_by'] ) ); ?></div></td>
+            <td style="width:50%"><div class="k"><?php esc_html_e( 'Prepared by', 'cleanup-report-generator' ); ?></div><div class="v"><?php echo esc_html( sprintf( /* translators: 1: brand name, e.g. "Acme", 2: team, e.g. "Security Team" */ __( '%1$s %2$s', 'cleanup-report-generator' ), $brand_short, $cover['prepared_by'] ) ); ?></div></td>
         </tr></table>
     </div>
 

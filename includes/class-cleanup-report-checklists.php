@@ -86,7 +86,9 @@ class Cleanup_Report_Checklists {
             'check_admins'    => __( 'We reviewed the administrators and removed accounts that weren\'t yours.', 'cleanup-report-generator' ),
             'reset_passwords' => __( 'We reset the passwords of all users.', 'cleanup-report-generator' ),
             'mask_login'      => __( 'We set a custom login URL in Defender.', 'cleanup-report-generator' ),
-            'automate'        => __( 'We enabled WPMU DEV Automate to keep plugins and themes updated.', 'cleanup-report-generator' ),
+            'automate'        => Cleanup_Report_Presets::is( 'wpmudev' )
+                ? __( 'We enabled WPMU DEV Automate to keep plugins and themes updated.', 'cleanup-report-generator' )
+                : __( 'We turned on automatic updates for plugins and themes.', 'cleanup-report-generator' ),
             'review_content'  => __( 'We reviewed posts and comments and removed the spam.', 'cleanup-report-generator' ),
         ];
         return $texts[ $key ] ?? __( 'Done during the cleanup.', 'cleanup-report-generator' );
@@ -193,10 +195,10 @@ class Cleanup_Report_Checklists {
             $f( 'cloudflare', __( 'Configure Cloudflare', 'cleanup-report-generator' ), __( 'Cloudflare caches the site globally and adds security.', 'cleanup-report-generator' ), __( 'Once configured, Cloudflare caches and protects your site across its worldwide network.', 'cleanup-report-generator' ), __( 'Already in place.', 'cleanup-report-generator' ) ),
             $f( 'php_update', __( 'Update PHP Version', 'cleanup-report-generator' ), __( 'Running a supported PHP version improves security and speed.', 'cleanup-report-generator' ), __( 'The latest PHP version gives better security and performance.', 'cleanup-report-generator' ), __( 'Running a supported version.', 'cleanup-report-generator' ), 'required', 'https://www.php.net/supported-versions.php' ),
             $f( 'check_admins', __( 'Check any suspect admins', 'cleanup-report-generator' ), __( 'Any administrator accounts the member should confirm?', 'cleanup-report-generator' ), __( 'Review Users and remove any administrator you don\'t recognise.', 'cleanup-report-generator' ), __( 'No unknown administrators found.', 'cleanup-report-generator' ) ),
-            $f( 'reset_passwords', __( 'Login & Access - Password Rules', 'cleanup-report-generator' ), __( 'Force users to change their passwords at their next login after the breach.', 'cleanup-report-generator' ), __( 'Force users to change their passwords at their next login, because of the security breach.', 'cleanup-report-generator' ), __( 'Not needed.', 'cleanup-report-generator' ), 'required', self::DEFENDER_DOCS . '#reset-passwords' ),
+            $f( 'reset_passwords', __( 'Login & Access - Password Rules', 'cleanup-report-generator' ), __( 'Force users to change their passwords at their next login after the breach.', 'cleanup-report-generator' ), __( 'Force users to change their passwords at their next login, because of the security breach.', 'cleanup-report-generator' ), __( 'Not needed.', 'cleanup-report-generator' ), 'required', Cleanup_Report_Presets::is( 'wpmudev' ) ? self::DEFENDER_DOCS . '#reset-passwords' : '' ), // Defender's docs only where Defender is the tool
             // Off by default: Hide Login URL is in the Defender checklist's member part.
             $f( 'mask_login', __( 'Hide Login URL', 'cleanup-report-generator' ), __( 'Setting a custom login URL needs the site owner.', 'cleanup-report-generator' ), __( 'Set a custom login URL in Defender and share it with your team.', 'cleanup-report-generator' ), __( 'Already configured.', 'cleanup-report-generator' ), 'recommended', self::DEFENDER_DOCS . '#hide-login-url', false ),
-            $f( 'automate', __( 'Enable WPMU DEV Automate', 'cleanup-report-generator' ), __( 'Keeps plugins and themes updated automatically.', 'cleanup-report-generator' ), __( 'Keeps plugins and themes updated automatically.', 'cleanup-report-generator' ), __( 'Already enabled.', 'cleanup-report-generator' ), 'required', '', (bool) Cleanup_Report_Presets::get( 'product_items' ) ), // WPMU DEV preset
+            $f( 'automate', Cleanup_Report_Presets::is( 'wpmudev' ) ? __( 'Enable WPMU DEV Automate', 'cleanup-report-generator' ) : __( 'Turn on automatic updates', 'cleanup-report-generator' ), __( 'Keeps plugins and themes updated automatically.', 'cleanup-report-generator' ), __( 'Keeps plugins and themes updated automatically.', 'cleanup-report-generator' ), __( 'Already enabled.', 'cleanup-report-generator' ), 'required', '', (bool) Cleanup_Report_Presets::get( 'product_items' ) ), // on with the Defender & managed hosting preset
             $f( 'review_content', __( 'Review Post/Comment Section', 'cleanup-report-generator' ), __( 'Check for spam the attacker may have added.', 'cleanup-report-generator' ), __( 'Check recent posts and comments for spam the attacker may have added.', 'cleanup-report-generator' ), __( 'Nothing suspicious found.', 'cleanup-report-generator' ) ),
         ];
     }
@@ -241,7 +243,7 @@ class Cleanup_Report_Checklists {
                 'pending_note' => $pending,
                 'link'         => self::DEFENDER_LINKS[ $key ] ?? '',
                 'docs'         => self::DEFENDER_DOCS . '#' . $anchor,
-                'enabled'      => (bool) Cleanup_Report_Presets::get( 'product_items' ), // on with the WPMU DEV preset; can be switched on in Settings
+                'enabled'      => (bool) Cleanup_Report_Presets::get( 'product_items' ), // on with the Defender & managed hosting preset; can be switched on in Settings
             ];
         }
         return $out;

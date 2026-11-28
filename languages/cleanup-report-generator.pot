@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-28T05:02:10+00:00\n"
+"POT-Creation-Date: 2026-11-28T05:11:58+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: cleanup-report-generator\n"
@@ -26,7 +26,6 @@ msgstr ""
 
 #. Author of the plugin
 #: cleanup-report-generator.php
-#: includes/class-cleanup-report-presets.php:23
 msgid "WPMU DEV"
 msgstr ""
 
@@ -130,154 +129,154 @@ msgstr ""
 msgid "Notes"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:374
+#: includes/class-cleanup-report-admin.php:379
 msgid "Edits, review steps and PDF downloads will be noted here."
 msgstr ""
 
 #. translators: %d: number of older history entries
-#: includes/class-cleanup-report-admin.php:392
+#: includes/class-cleanup-report-admin.php:397
 #, php-format
 msgid "Show %d earlier"
 msgid_plural "Show %d earlier"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-cleanup-report-admin.php:416
+#: includes/class-cleanup-report-admin.php:421
 msgid "Save & review"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:418
+#: includes/class-cleanup-report-admin.php:423
 #: includes/class-cleanup-report-cpt.php:9
 #: includes/class-cleanup-report-pdf.php:73
 msgid "Report"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:419
+#: includes/class-cleanup-report-admin.php:424
 msgid "History"
 msgstr ""
 
 #. translators: %s: the report type's title suffix, e.g. Malware cleanup report
-#: includes/class-cleanup-report-admin.php:444
+#: includes/class-cleanup-report-admin.php:449
 #, php-format
 msgid "Report title, e.g. Acme Bakery – %s"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:453
+#: includes/class-cleanup-report-admin.php:458
 msgid "Report sections"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:466
+#: includes/class-cleanup-report-admin.php:471
 msgid "Save the report to preview it or download the PDF."
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:474
-#: includes/class-cleanup-report-admin.php:476
+#: includes/class-cleanup-report-admin.php:479
+#: includes/class-cleanup-report-admin.php:481
 #: includes/class-cleanup-report-plugin.php:74
 #: templates/parts/head.php:224
 msgid "Download PDF"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:478
+#: includes/class-cleanup-report-admin.php:483
 msgid "Preview in browser"
 msgstr ""
 
 #. translators: %s: the mark on reports that aren't approved yet, e.g. NOT FINAL
-#: includes/class-cleanup-report-admin.php:486
+#: includes/class-cleanup-report-admin.php:491
 #, php-format
 msgid "The PDF can be downloaded once the report is approved. Until then the preview is marked <strong>%s</strong>."
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:494
+#: includes/class-cleanup-report-admin.php:499
 msgid "Uses the last saved version."
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:495
+#: includes/class-cleanup-report-admin.php:500
 msgid "You have unsaved changes. Save to include them."
 msgstr ""
 
 #. translators: %s: date and time
-#: includes/class-cleanup-report-admin.php:509
+#: includes/class-cleanup-report-admin.php:514
 #, php-format
 msgid "Submitted %s"
 msgstr ""
 
 #. translators: 1: a person's name, 2: date and time
-#: includes/class-cleanup-report-admin.php:511
+#: includes/class-cleanup-report-admin.php:516
 #, php-format
 msgid "Submitted by %1$s, %2$s"
 msgstr ""
 
 #. translators: %s: date and time
-#: includes/class-cleanup-report-admin.php:515
+#: includes/class-cleanup-report-admin.php:520
 #, php-format
 msgid "Approved %s"
 msgstr ""
 
 #. translators: 1: a person's name, 2: date and time
-#: includes/class-cleanup-report-admin.php:517
+#: includes/class-cleanup-report-admin.php:522
 #, php-format
 msgid "Approved by %1$s, %2$s"
 msgstr ""
 
 #. translators: %s: date and time
-#: includes/class-cleanup-report-admin.php:521
+#: includes/class-cleanup-report-admin.php:526
 #, php-format
 msgid "Completed %s"
 msgstr ""
 
 #. translators: 1: a person's name, 2: date and time
-#: includes/class-cleanup-report-admin.php:523
+#: includes/class-cleanup-report-admin.php:528
 #, php-format
 msgid "Completed by %1$s, %2$s"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:554
+#: includes/class-cleanup-report-admin.php:559
 #: includes/class-cleanup-report-pdf.php:112
 msgid "NOT FINAL"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:594
+#: includes/class-cleanup-report-admin.php:599
 msgid "Save draft"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:594
-#: includes/class-cleanup-report-admin.php:603
+#: includes/class-cleanup-report-admin.php:599
+#: includes/class-cleanup-report-admin.php:608
 msgid "Save"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:597
+#: includes/class-cleanup-report-admin.php:602
 msgid "Move back to draft"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:598
+#: includes/class-cleanup-report-admin.php:603
 msgid "Resubmit for review"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:598
+#: includes/class-cleanup-report-admin.php:603
 msgid "Submit for review"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:599
+#: includes/class-cleanup-report-admin.php:604
 msgid "Send back for revision"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:600
+#: includes/class-cleanup-report-admin.php:605
 msgid "Approve"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:601
+#: includes/class-cleanup-report-admin.php:606
 msgid "Mark completed"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:637
+#: includes/class-cleanup-report-admin.php:642
 msgid "Buddylead's notes"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:640
+#: includes/class-cleanup-report-admin.php:645
 msgid "Notes from the author"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:643
+#: includes/class-cleanup-report-admin.php:648
 #: includes/class-cleanup-report-settings.php:570
 #: includes/class-cleanup-report-type-builder.php:540
 #: templates/types/malware-cleanup-body.php:169
@@ -286,74 +285,74 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:652
+#: includes/class-cleanup-report-admin.php:657
 msgid "Approved. Once the report is sent to the member, mark it Completed."
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:654
+#: includes/class-cleanup-report-admin.php:659
 msgid "As an administrator, you can approve this report or send it back for changes."
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:656
+#: includes/class-cleanup-report-admin.php:661
 msgid "As a Buddylead, you can approve this report or send it back for changes."
 msgstr ""
 
 #. translators: %s: names of the Buddyleads, e.g. "Ana, Ben"
-#: includes/class-cleanup-report-admin.php:660
+#: includes/class-cleanup-report-admin.php:665
 #, php-format
 msgid "Buddyleads (%s) and administrators approve reports. Submit it for review when it's ready."
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:663
+#: includes/class-cleanup-report-admin.php:668
 msgid "Buddyleads and administrators approve reports. Submit it for review when it's ready."
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:668
+#: includes/class-cleanup-report-admin.php:673
 msgid "Notes for the author"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:669
+#: includes/class-cleanup-report-admin.php:674
 msgid "What needs changing, or why it's approved"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:674
+#: includes/class-cleanup-report-admin.php:679
 msgid "Notes for the Buddylead"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:675
+#: includes/class-cleanup-report-admin.php:680
 msgid "Anything they should check"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:686
+#: includes/class-cleanup-report-admin.php:691
 msgid "Move to Trash"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:786
+#: includes/class-cleanup-report-admin.php:791
 #: includes/class-cleanup-report-type-builder.php:34
 msgid "Date"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:789
+#: includes/class-cleanup-report-admin.php:794
 #: includes/class-cleanup-report-fields.php:274
 #: includes/class-cleanup-report-settings.php:587
 msgid "Type"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:790
+#: includes/class-cleanup-report-admin.php:795
 #: includes/class-cleanup-report-types.php:165
 msgid "Prepared for"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:791
+#: includes/class-cleanup-report-admin.php:796
 msgid "Website"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:792
+#: includes/class-cleanup-report-admin.php:797
 #: includes/class-cleanup-report-settings.php:104
 msgid "Review"
 msgstr ""
 
-#: includes/class-cleanup-report-admin.php:793
+#: includes/class-cleanup-report-admin.php:798
 #: includes/class-cleanup-report-types.php:167
 msgid "Report date"
 msgstr ""
@@ -382,253 +381,261 @@ msgstr ""
 msgid "We set a custom login URL in Defender."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:89
+#: includes/class-cleanup-report-checklists.php:90
 msgid "We enabled WPMU DEV Automate to keep plugins and themes updated."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:90
-msgid "We reviewed posts and comments and removed the spam."
+#: includes/class-cleanup-report-checklists.php:91
+msgid "We turned on automatic updates for plugins and themes."
 msgstr ""
 
 #: includes/class-cleanup-report-checklists.php:92
+msgid "We reviewed posts and comments and removed the spam."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:94
 msgid "Done during the cleanup."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:97
+#: includes/class-cleanup-report-checklists.php:99
 #: includes/class-cleanup-report-settings.php:752
 msgid "Not configured yet."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:192
+#: includes/class-cleanup-report-checklists.php:194
 msgid "Configure SSL"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:192
+#: includes/class-cleanup-report-checklists.php:194
 msgid "Does the site need an SSL certificate?"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:192
+#: includes/class-cleanup-report-checklists.php:194
 msgid "Install an SSL certificate so all traffic is encrypted."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:192
+#: includes/class-cleanup-report-checklists.php:194
 msgid "Your site already has SSL."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:193
+#: includes/class-cleanup-report-checklists.php:195
 msgid "Configure Cloudflare"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:193
+#: includes/class-cleanup-report-checklists.php:195
 msgid "Cloudflare caches the site globally and adds security."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:193
+#: includes/class-cleanup-report-checklists.php:195
 msgid "Once configured, Cloudflare caches and protects your site across its worldwide network."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:193
+#: includes/class-cleanup-report-checklists.php:195
 msgid "Already in place."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:194
+#: includes/class-cleanup-report-checklists.php:196
 msgid "Update PHP Version"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:194
+#: includes/class-cleanup-report-checklists.php:196
 msgid "Running a supported PHP version improves security and speed."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:194
+#: includes/class-cleanup-report-checklists.php:196
 msgid "The latest PHP version gives better security and performance."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:194
+#: includes/class-cleanup-report-checklists.php:196
 msgid "Running a supported version."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:195
+#: includes/class-cleanup-report-checklists.php:197
 msgid "Check any suspect admins"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:195
+#: includes/class-cleanup-report-checklists.php:197
 msgid "Any administrator accounts the member should confirm?"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:195
+#: includes/class-cleanup-report-checklists.php:197
 msgid "Review Users and remove any administrator you don't recognise."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:195
+#: includes/class-cleanup-report-checklists.php:197
 msgid "No unknown administrators found."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:196
+#: includes/class-cleanup-report-checklists.php:198
 msgid "Login & Access - Password Rules"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:196
+#: includes/class-cleanup-report-checklists.php:198
 msgid "Force users to change their passwords at their next login after the breach."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:196
+#: includes/class-cleanup-report-checklists.php:198
 msgid "Force users to change their passwords at their next login, because of the security breach."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:196
+#: includes/class-cleanup-report-checklists.php:198
 msgid "Not needed."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:198
-#: includes/class-cleanup-report-checklists.php:227
+#: includes/class-cleanup-report-checklists.php:200
+#: includes/class-cleanup-report-checklists.php:229
 msgid "Hide Login URL"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:198
+#: includes/class-cleanup-report-checklists.php:200
 msgid "Setting a custom login URL needs the site owner."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:198
+#: includes/class-cleanup-report-checklists.php:200
 msgid "Set a custom login URL in Defender and share it with your team."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:198
+#: includes/class-cleanup-report-checklists.php:200
 msgid "Already configured."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:199
+#: includes/class-cleanup-report-checklists.php:201
 msgid "Enable WPMU DEV Automate"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:199
+#: includes/class-cleanup-report-checklists.php:201
+msgid "Turn on automatic updates"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:201
 msgid "Keeps plugins and themes updated automatically."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:199
+#: includes/class-cleanup-report-checklists.php:201
 msgid "Already enabled."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:200
+#: includes/class-cleanup-report-checklists.php:202
 msgid "Review Post/Comment Section"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:200
+#: includes/class-cleanup-report-checklists.php:202
 msgid "Check for spam the attacker may have added."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:200
+#: includes/class-cleanup-report-checklists.php:202
 msgid "Check recent posts and comments for spam the attacker may have added."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:200
+#: includes/class-cleanup-report-checklists.php:202
 msgid "Nothing suspicious found."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:208
+#: includes/class-cleanup-report-checklists.php:210
 msgid "Defender Hardening"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:209
+#: includes/class-cleanup-report-checklists.php:211
 msgid "Enabling Audit Log"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:210
+#: includes/class-cleanup-report-checklists.php:212
 msgid "Firewalls - Global Firewall"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:211
+#: includes/class-cleanup-report-checklists.php:213
 msgid "Local Firewall - Login Protection"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:212
+#: includes/class-cleanup-report-checklists.php:214
 msgid "Local Firewall - 404 Detection"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:213
+#: includes/class-cleanup-report-checklists.php:215
 msgid "Local Firewall - Malicious Bot Detector"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:214
+#: includes/class-cleanup-report-checklists.php:216
 msgid "Local Firewall - Trap Bots That Ignore robots.txt"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:215
+#: includes/class-cleanup-report-checklists.php:217
 msgid "Local Firewall - Catch Fake Bots"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:216
+#: includes/class-cleanup-report-checklists.php:218
 msgid "Local Firewall - Empty Headers"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:217
+#: includes/class-cleanup-report-checklists.php:219
 msgid "Custom Rules - User Agent"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:218
+#: includes/class-cleanup-report-checklists.php:220
 msgid "Password Rules - Pwned Passwords"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:219
+#: includes/class-cleanup-report-checklists.php:221
 msgid "Password Rules - Strong Password"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:220
+#: includes/class-cleanup-report-checklists.php:222
 msgid "Password Rules - Reset Passwords"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:221
+#: includes/class-cleanup-report-checklists.php:223
 msgid "Tools > Issues Scan"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:222
+#: includes/class-cleanup-report-checklists.php:224
 msgid "Tools > Firewall Detect IP Addresses"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:223
+#: includes/class-cleanup-report-checklists.php:225
 msgid "Tools > Blocklist Monitor"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:224
+#: includes/class-cleanup-report-checklists.php:226
 msgid "Tools > Security Headers"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:225
+#: includes/class-cleanup-report-checklists.php:227
 msgid "Reports & Alerts - Scheduled Reports"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:227
+#: includes/class-cleanup-report-checklists.php:229
 msgid "Choose a custom login URL and share it with your team."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:228
+#: includes/class-cleanup-report-checklists.php:230
 msgid "Login & Access - Two-Factor Auth"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:228
+#: includes/class-cleanup-report-checklists.php:230
 msgid "Each administrator needs to set up 2FA on their own account."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:229
+#: includes/class-cleanup-report-checklists.php:231
 msgid "Login & Access - Session Security"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:229
+#: includes/class-cleanup-report-checklists.php:231
 msgid "Set an idle timeout and session lock to protect your users from session hijacking."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:230
+#: includes/class-cleanup-report-checklists.php:232
 msgid "Login & Access - Bot Protection"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:230
+#: includes/class-cleanup-report-checklists.php:232
 msgid "Add a CAPTCHA (Google reCAPTCHA or Cloudflare Turnstile) to your login, registration and comment forms. It needs your own API keys."
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:231
+#: includes/class-cleanup-report-checklists.php:233
 msgid "Custom Rules - User Agent - Scripts"
 msgstr ""
 
-#: includes/class-cleanup-report-checklists.php:231
+#: includes/class-cleanup-report-checklists.php:233
 msgid "Block the Scripts preset (automated clients) if none of your own services reach the site that way."
 msgstr ""
 
@@ -1658,12 +1665,12 @@ msgstr ""
 msgid "No plugins or themes found. Paste the output of the command above."
 msgstr ""
 
-#: includes/class-cleanup-report-plugin-registry.php:227
+#: includes/class-cleanup-report-plugin-registry.php:230
 #: includes/class-cleanup-report-settings.php:83
 msgid "You are not allowed to change these settings."
 msgstr ""
 
-#: includes/class-cleanup-report-plugin-registry.php:227
+#: includes/class-cleanup-report-plugin-registry.php:230
 #: includes/class-cleanup-report-plugin.php:125
 #: includes/class-cleanup-report-settings.php:83
 #: includes/class-cleanup-report-settings.php:139
@@ -1742,25 +1749,28 @@ msgstr ""
 msgid "Draft saved."
 msgstr ""
 
-#: includes/class-cleanup-report-presets.php:22
+#: includes/class-cleanup-report-presets.php:24
 msgid "Generic"
 msgstr ""
 
-#: includes/class-cleanup-report-presets.php:55
-#: includes/class-cleanup-report-presets.php:57
+#: includes/class-cleanup-report-presets.php:25
+msgid "Defender & managed hosting"
+msgstr ""
+
+#: includes/class-cleanup-report-presets.php:75
 #: templates/parts/setup.php:47
 msgid "Our team"
 msgstr ""
 
-#: includes/class-cleanup-report-presets.php:64
+#: includes/class-cleanup-report-presets.php:84
 msgid "WPMU DEV hosting"
 msgstr ""
 
-#: includes/class-cleanup-report-presets.php:64
+#: includes/class-cleanup-report-presets.php:84
 msgid "Our hosting"
 msgstr ""
 
-#: includes/class-cleanup-report-presets.php:65
+#: includes/class-cleanup-report-presets.php:85
 msgid "Third-party hosting"
 msgstr ""
 
@@ -1967,7 +1977,7 @@ msgid "Defaults"
 msgstr ""
 
 #: includes/class-cleanup-report-settings.php:184
-msgid "What reports start with when nothing is set: <strong>WPMU DEV</strong> uses the WPMU DEV support team's brand, the Defender checklist, the Hub check and WPMU DEV products in the standard texts; <strong>Generic</strong> uses this site's name and neutral texts. Your saved settings and checklists always win."
+msgid "What reports start with when nothing is set. <strong>Generic</strong>: neutral texts, no product names. <strong>Defender &amp; managed hosting</strong>: for sites that run Defender, the Hub, Automate and Snapshot on your own hosting: adds the Defender checklist, the Hub check and those products in the standard texts. The brand comes from the fields below, whichever you pick; your saved settings and checklists always win."
 msgstr ""
 
 #: includes/class-cleanup-report-settings.php:187
@@ -3614,7 +3624,7 @@ msgstr ""
 msgid "Prepared by"
 msgstr ""
 
-#. translators: 1: brand name, e.g. "WPMU DEV", 2: team, e.g. "Security Team"
+#. translators: 1: brand name, e.g. "Acme", 2: team, e.g. "Security Team"
 #: templates/parts/cover.php:42
 #, php-format
 msgid "%1$s %2$s"
@@ -3800,7 +3810,7 @@ msgstr ""
 msgid "Installed"
 msgstr ""
 
-#. translators: %s: brand name, e.g. "WPMU DEV"
+#. translators: %s: brand name, e.g. "Acme"
 #: templates/types/malware-cleanup-body.php:105
 #, php-format
 msgid "Every %s cleanup includes"
