@@ -59,7 +59,6 @@ $brand_short  = $clip( preg_replace( '/\s+Services$/i', '', (string) $data['bran
 $glow         = $glow_k > 0 ? $asset( 'assets/cover-glow.png' ) : ''; // not loaded when the cover gradient is off
 $has     = static function ( $html ) { return '' !== trim( wp_strip_all_tags( (string) $html ) ); };
 
-$text_block = [ 'Cleanup_Report_Render', 'text_to_html' ]; // plain-text notes → paragraphs and lists
 $note_html  = [ 'Cleanup_Report_Render', 'note_html' ];    // SEO / Staying protected: editor HTML, or plain text from older reports
 
 /**
@@ -95,22 +94,29 @@ $shot_labels = [ 'before' => 'Before cleanup', 'after' => 'After cleanup', 'evid
 // Defender counts.
 $def_applied = count( array_filter( $data['defender_checklist'], static function ( $r ) { return 'applied' === $r['status']; } ) );
 $def_pending = count( array_filter( $data['defender_checklist'], static function ( $r ) { return 'pending' === $r['status']; } ) );
+// Two parts, as in the team's template: what we configured, and what the member has to (their own settings, and any
+// of ours marked for them).
+$def_parts = [ 'agent' => [], 'member' => [] ];
+foreach ( $data['defender_checklist'] as $r ) {
+    $def_parts[ ( 'member' === ( $r['owner'] ?? 'agent' ) || 'pending' === $r['status'] ) ? 'member' : 'agent' ][] = $r;
+}
 
 // Recommended actions (follow-ups), wording from the report's saved checklist.
 $follow = $data['followups'];
 $follow_open = count( array_filter( $follow, static function ( $f ) { return in_array( $f['status'], [ 'required', 'recommended' ], true ); } ) );
 
-$pending_html = $text_block( $data['pending_actions'] );
+$pending_html = Cleanup_Report_Render::note_html( $data['pending_actions'] ); // editor HTML, or plain lines from older reports
 $has_next     = null; // set below once reinstall/replace are parsed
 $reinstall    = $list_rows( $data['reinstall_list'] );
 $replace      = $list_rows( $data['replace_list'] );
-$has_next     = $pending_html || $follow || $reinstall || $replace;
+$delist       = array_values( $data['delist_vendors'] ); // blocklists the member asks to delist the site
+$has_next     = $pending_html || $follow || $reinstall || $replace || $delist;
 
 // "Items for you to action": everything the member has to do. Follow-ups and Defender settings marked for the
-// member, each Pending actions line (list item, or paragraph when it isn't a list), and each plugin/theme to
-// replace or reinstall.
+// member, each Pending actions line (list item, or paragraph when it isn't a list), each plugin/theme to
+// replace or reinstall, and each blocklist to request delisting from.
 $pending_count = substr_count( $pending_html, '<li>' ) ?: substr_count( $pending_html, '<p>' );
-$todo_count    = $follow_open + $def_pending + $pending_count + count( $replace ) + count( $reinstall );
+$todo_count    = $follow_open + $def_pending + $pending_count + count( $replace ) + count( $reinstall ) + count( $delist );
 
 // Resources: report's own links, then standard ones not already listed.
 $doc_links = [];
@@ -132,8 +138,8 @@ $link_key = static function ( $u ) { return untrailingslashit( preg_replace( '#^
 $listed   = array_map( $link_key, wp_list_pluck( $doc_links, 'url' ) );
 foreach ( [
     'https://wpmudev.com/docs/wpmu-dev-plugins/defender/'                           => 'Defender documentation',
-    'https://wpmudev.com/docs/wpmu-dev-plugins/defender/#two-factor-authentication' => 'Setting up two-factor authentication',
-    'https://wpmudev.com/docs/wpmu-dev-plugins/defender/#mask-login-area'           => 'Masking the login area',
+    'https://wpmudev.com/docs/wpmu-dev-plugins/defender/#two-factor-auth' => 'Setting up two-factor authentication',
+    'https://wpmudev.com/docs/wpmu-dev-plugins/defender/#hide-login-url'  => 'Hiding the login URL',
 ] as $url => $title ) {
     if ( ! in_array( $link_key( $url ), $listed, true ) ) {
         $doc_links[] = [ 'title' => $title, 'url' => $url ];
@@ -163,15 +169,8 @@ $h2  = static function ( $key ) use ( $sections, $num ) {
     return '<h2><span class="n">' . $num( $key ) . '</span> ' . esc_html( $sections[ $key ] ) . '</h2>';
 };
 
-// Short "key finding" for the summary page: first sentence(s) of the infection summary.
-$key_finding = '';
-if ( $has( $data['infection_summary'] ) ) {
-    // Drop code snippets, URLs and long tokens (payloads) so the summary page stays readable and one page long.
-    $plain = preg_replace( '#<code>.*?</code>#is', '', (string) $data['infection_summary'] );
-    $plain = trim( preg_replace( '/\s+/', ' ', html_entity_decode( wp_strip_all_tags( $plain ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
-    $plain = trim( preg_replace( [ '#https?://\S+#', '/\S{40,}/u', '/\s+([,.;:])/' ], [ '', '', '$1' ], $plain ) );
-    $key_finding = preg_match( '/^(.{60,280}?[.!?])(\s|$)/u', $plain, $m ) ? $m[1] : wp_trim_words( $plain, 40 );
-}
+// The summary page's key finding: the report's own line (older reports: the summary's first sentence).
+$key_finding = (string) $data['key_finding'];
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -512,16 +511,16 @@ body { padding: 72px 0 48px; }
         <h3>Every <?php echo esc_html( $brand_short ); ?> cleanup includes</h3>
         <table class="two"><tr><td>
             <ul>
-                <li>A backup before any change, whenever possible</li>
-                <li>An evaluation of the infection and its entry point</li>
-                <li>A manual check of known malware locations</li>
-                <li>Scans with external tools for hidden backdoors</li>
+                <li>A backup, whenever possible</li>
+                <li>An evaluation of the infection</li>
+                <li>A manual check by our expert for known malware</li>
+                <li>External tools to find potential backdoors and malware</li>
             </ul>
         </td><td>
             <ul>
-                <li>Reinstalling WordPress, plugins and theme from clean copies</li>
-                <li>Configuring Defender to keep protecting the site</li>
-                <li>A quality review before this report is shared</li>
+                <li>Cleanup by reinstalling WordPress, plugins and theme</li>
+                <li>Defender configured to keep protecting your site</li>
+                <li>A quality review (Q&amp;A) before this report is shared</li>
             </ul>
         </td></tr></table>
     </div>
@@ -536,7 +535,20 @@ body { padding: 72px 0 48px; }
             <thead><tr><th style="width:38%">Check</th><th>Result</th></tr></thead>
             <tbody>
                 <tr><td class="name">Additional sites on the hosting account</td><td><?php echo $data['additional_sites'] ? nl2br( esc_html( $data['additional_sites'] ) ) : esc_html( $no_problem ); ?><div class="muted" style="font-size:7.5pt">Sharing one hosting account between sites can re-infect a cleaned site.</div></td></tr>
-                <tr><td class="name">Security blocklists (delist request)</td><td><?php echo $data['delist'] ? nl2br( esc_html( $data['delist'] ) ) : esc_html( $no_problem ); ?><div class="muted" style="font-size:7.5pt">Some providers flag infected sites; a delist request removes the warning.</div></td></tr>
+                <tr><td class="name">Security blocklists (delist request)</td><td><?php
+                    if ( $delist ) {
+                        echo esc_html( sprintf( 'Listed by %s: %s. Please request delisting (see Your next steps).', 1 === count( $delist ) ? '1 security vendor' : count( $delist ) . ' security vendors', implode( ', ', wp_list_pluck( $delist, 'label' ) ) ) );
+                    }
+                    if ( $data['delist'] ) {
+                        echo ( $delist ? '<br>' : '' ) . nl2br( esc_html( $data['delist'] ) );
+                    }
+                    if ( ! $delist && ! $data['delist'] ) {
+                        echo esc_html( $no_problem );
+                    }
+                    ?><div class="muted" style="font-size:7.5pt">Some security providers may list an infected site as suspicious; a delist request removes the warning.</div></td></tr>
+                <?php foreach ( $data['site_checks'] as $c ) : ?>
+                    <tr><td class="name"><?php echo esc_html( $c['label'] ); ?></td><td><?php echo esc_html( $c['answer'] ); ?><?php if ( '' !== $c['note'] ) : ?><?php echo $c['answer'] ? '<br>' : ''; ?><span class="muted"><?php echo wp_kses_post( make_clickable( esc_html( $c['note'] ) ) ); ?></span><?php endif; ?></td></tr>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
@@ -546,22 +558,34 @@ body { padding: 72px 0 48px; }
 <!-- ======================= DEFENDER ======================= -->
 <div class="sec">
     <div class="head"><?php echo wp_kses_post( $h2( 'defender' ) ); ?>
-    <div class="sub">We configured WPMU DEV Defender to keep protecting your site. Items marked <strong>Your action</strong> need you to finish them; <strong>Pending</strong> ones aren't configured yet.</div></div>
-    <table class="grid">
-        <thead><tr><th style="width:36%">Setting</th><th style="width:15%">Status</th><th>Notes</th></tr></thead>
-        <tbody>
-        <?php foreach ( $data['defender_checklist'] as $row ) :
-            [ $cls, $label ] = [ 'applied' => [ 'ok', 'Applied' ], 'in_progress' => [ 'rec', 'Pending' ], 'pending' => [ 'todo', 'Your action' ] ][ $row['status'] ] ?? [ 'na', 'N/A' ]; ?>
-            <tr>
-                <td class="name"><?php echo esc_html( $row['setting'] ); ?></td>
-                <td><span class="pill <?php echo esc_attr( $cls ); ?>"><?php echo esc_html( $label ); ?></span></td>
-                <td><?php echo esc_html( $row['notes'] ); ?><?php if ( ! empty( $row['link'] ) ) : ?><div class="go"><a href="<?php echo esc_url( $row['link'] ); ?>">Visit to configure ›</a></div><?php endif; ?></td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
+    <div class="sub">We configured WPMU DEV Defender to keep protecting your site. Some settings need your attention: please apply the ones listed under <strong>To be done by you</strong> as soon as possible.</div></div>
+    <?php
+    foreach ( [
+        'agent'  => [ 'Configured by our team', '' ],
+        'member' => [ 'To be done by you', 'Configuration must be done by you: these settings need your own choices or accounts, or couldn\'t be completed on our side.' ],
+    ] as $part => [ $part_title, $part_sub ] ) :
+        $rows = $def_parts[ $part ];
+        if ( ! $rows ) {
+            continue;
+        }
+        ?>
+        <div class="<?php echo count( $rows ) <= 6 ? 'keep' : 'flow'; ?>"><div class="head"><h3><?php echo esc_html( $part_title ); ?></h3><?php if ( $part_sub ) : ?><div class="sub"><?php echo esc_html( $part_sub ); ?></div><?php endif; ?></div>
+        <table class="grid">
+            <thead><tr><th style="width:36%">Setting</th><th style="width:15%">Status</th><th>Notes</th></tr></thead>
+            <tbody>
+            <?php foreach ( $rows as $row ) :
+                [ $cls, $label ] = [ 'applied' => [ 'ok', 'Applied' ], 'in_progress' => [ 'rec', 'Pending' ], 'pending' => [ 'todo', 'Your action' ] ][ $row['status'] ] ?? [ 'na', 'N/A' ]; ?>
+                <tr>
+                    <td class="name"><?php echo esc_html( $row['setting'] ); ?></td>
+                    <td><span class="pill <?php echo esc_attr( $cls ); ?>"><?php echo esc_html( $label ); ?></span></td>
+                    <td><?php echo esc_html( $row['notes'] ); ?><?php if ( ! empty( $row['link'] ) || ! empty( $row['docs'] ) ) : ?><div class="go"><?php if ( ! empty( $row['link'] ) ) : ?><a href="<?php echo esc_url( $row['link'] ); ?>">Visit to configure ›</a><?php endif; ?><?php if ( ! empty( $row['link'] ) && ! empty( $row['docs'] ) ) : ?> &nbsp;·&nbsp; <?php endif; ?><?php if ( ! empty( $row['docs'] ) ) : ?><a href="<?php echo esc_url( $row['docs'] ); ?>">Public doc ›</a><?php endif; ?></div><?php endif; ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table></div>
+    <?php endforeach; ?>
     <?php if ( $data['site'] ) : ?>
-        <p class="muted" style="font-size:8pt">Each "Visit to configure" link opens that setting in Defender on <?php echo esc_html( $host ); ?> (log in first). Defender documentation: <a href="https://wpmudev.com/docs/wpmu-dev-plugins/defender/">wpmudev.com/docs › Defender</a></p>
+        <p class="muted" style="font-size:8pt">Each "Visit to configure" link opens that setting in Defender on <?php echo esc_html( $host ); ?> (log in first). "Public doc" opens its section of the <a href="https://wpmudev.com/docs/wpmu-dev-plugins/defender/">Defender documentation</a>.</p>
     <?php endif; ?>
 </div>
 <?php endif; ?>
@@ -569,7 +593,7 @@ body { padding: 72px 0 48px; }
 <!-- ======================= NEXT STEPS ======================= -->
 <div class="sec">
     <div class="head"><?php echo wp_kses_post( $h2( 'next' ) ); ?>
-    <div class="sub"><?php echo $has_next ? "Some actions could not be completed on our side because of access limits or premium files that weren't provided. Please complete these to keep your site secure." : 'There is nothing you need to do. We will let you know if anything changes.'; ?></div>
+    <div class="sub"><?php echo $has_next ? "Some actions could not be completed on our side because of access limits, content familiarity, or premium plugin and theme files that weren't provided before the cleanup. Please complete these to keep your site secure." : 'There is nothing you need to do. We will let you know if anything changes.'; ?></div>
     <?php if ( $pending_html ) : ?><div class="box amber cap"><h3>Pending actions</h3></div><?php endif; ?></div>
 
     <?php if ( $pending_html ) : /* The box title sits in .head so it can't be left alone at a page bottom; the list flows. */ ?>
@@ -604,6 +628,27 @@ body { padding: 72px 0 48px; }
         <table class="grid">
             <thead><tr><th style="width:30%">Plugin / theme</th><th style="width:25%">Folder (slug)</th><th>Why</th></tr></thead>
             <tbody><?php foreach ( $replace as $r ) : ?><tr><td class="name"><?php echo esc_html( $r['name'] ); ?></td><td><?php echo $r['slug'] ? '<code>' . esc_html( $r['slug'] ) . '</code>' : '—'; ?></td><td><?php echo esc_html( $r['note'] ? ucfirst( $r['note'] ) : 'No longer maintained.' ); ?></td></tr><?php endforeach; ?></tbody>
+        </table></div>
+    <?php endif; ?>
+
+    <?php if ( $delist ) : ?>
+        <div class="<?php echo esc_attr( $short( $delist ) ); ?>"><div class="head"><h3>Request delisting from these blocklists</h3>
+        <div class="sub">These security providers still list <?php echo esc_html( $host ?: 'your site' ); ?> as suspicious. The malware is removed, so ask each one to review the site and remove the listing.</div></div>
+        <table class="grid">
+            <thead><tr><th style="width:30%">Blocklist</th><th>Where to request delisting</th></tr></thead>
+            <tbody><?php foreach ( $delist as $v ) : ?><tr><td class="name"><?php echo esc_html( $v['label'] ); ?></td><td><?php
+                $ways = [];
+                if ( ! empty( $v['url'] ) ) {
+                    $ways[] = '<a href="' . esc_url( $v['url'] ) . '">' . esc_html( $clip( preg_replace( '#^https?://(www\.)?#', '', untrailingslashit( $v['url'] ) ), 70 ) ) . '</a>';
+                }
+                if ( ! empty( $v['email'] ) ) {
+                    $ways[] = '<a href="mailto:' . esc_attr( $v['email'] ) . '">' . esc_html( $v['email'] ) . '</a>';
+                }
+                echo $ways ? wp_kses_post( implode( '<br>', $ways ) ) : esc_html( 'Contact the vendor\'s support.' );
+                if ( ! empty( $v['note'] ) ) {
+                    echo '<div class="muted" style="font-size:7.5pt">' . esc_html( $v['note'] ) . '</div>';
+                }
+                ?></td></tr><?php endforeach; ?></tbody>
         </table></div>
     <?php endif; ?>
 </div>

@@ -372,9 +372,80 @@
 	background: var(--crg-line-soft);
 	border-radius: 6px;
 }
+/* Defender: "To be done by agent" / "To be done by member" */
+.crg-def-part + .crg-def-part {
+	margin-top: 18px;
+}
+.crg-def-title {
+	margin: 0 0 6px;
+	font-size: 13px;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+	color: var(--crg-muted);
+}
+
+/* Hosting & access */
+.crg-site-check {
+	display: grid;
+	grid-template-columns: minmax(200px, 1fr) minmax(150px, auto) minmax(180px, 1.2fr);
+	gap: 6px 10px;
+	align-items: center;
+	margin-top: 6px;
+}
+.crg-site-check label {
+	font-weight: 400;
+}
+.crg-site-check input[type=text] {
+	width: 100%;
+}
+
+/* Security blocklists */
+.crg-delist-bar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 6px 0;
+}
+.crg-delist-count {
+	font-size: 12px;
+	color: var(--crg-muted);
+}
+.crg-delist-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+	gap: 2px 12px;
+	max-height: 260px;
+	overflow: auto;
+	padding: 8px 10px;
+	border: 1px solid var(--crg-line);
+	border-radius: 6px;
+	background: #fff;
+}
+.crg-delist-grid label {
+	font-weight: 400;
+	padding: 3px 0;
+}
+.crg-delist-grid label[hidden] {
+	display: none;
+}
+.crg-sub-label {
+	display: block;
+	margin: 10px 0 4px;
+	font-weight: 600;
+}
+.crg-delist textarea {
+	width: 100%;
+}
+
 @media (max-width: 1100px) {
 	.crg-check {
 		grid-template-columns: 1fr auto;
+	}
+	.crg-site-check {
+		grid-template-columns: 1fr auto;
+	}
+	.crg-site-check input[type=text] {
+		grid-column: 1 / -1;
 	}
 	.crg-check-note {
 		grid-column: 1 / -1;

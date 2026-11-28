@@ -125,6 +125,7 @@
 		initComponents();
 		initPluginCheck();
 		initChecklists();
+		initDelist();
 
 		/* Severity counts: "Vulnerable components" can be taken from the table. */
 		var $useCount = $( '.crg-count-components' );
@@ -501,6 +502,33 @@
 			$list.find( '.crg-check' ).each( function () { refreshRow( $( this ) ); } );
 			refreshCount( $list );
 		} );
+		// Security blocklists: VirusTotal's report for the website, to see which vendors still flag it.
+		$( '.crg-vt' ).attr( 'href', site ? 'https://www.virustotal.com/gui/search/' + encodeURIComponent( site ) : '#' );
+		$( '.crg-vt-wrap' ).prop( 'hidden', ! site );
+	}
+
+	/* Security blocklists: filter the vendor list and count the ticked ones. */
+	function initDelist() {
+		var $box = $( '.crg-delist' );
+		if ( ! $box.length ) {
+			return;
+		}
+		var count = function () {
+			var n = $box.find( '.crg-delist-grid input:checked' ).length;
+			$box.find( '.crg-delist-count' ).text( n ? n + ( 1 === n ? ' vendor ticked' : ' vendors ticked' ) : '' );
+		};
+		$box.on( 'input', '.crg-delist-filter', function () {
+			var q = $.trim( $( this ).val() ).toLowerCase();
+			$box.find( '.crg-delist-grid label' ).each( function () {
+				var $l = $( this );
+				$l.prop( 'hidden', q && -1 === $l.text().toLowerCase().indexOf( q ) && ! $l.find( 'input' ).prop( 'checked' ) );
+			} );
+		} ).on( 'keydown', '.crg-delist-filter', function ( e ) {
+			if ( 'Enter' === e.key ) {
+				e.preventDefault(); // don't submit the post form
+			}
+		} ).on( 'change', '.crg-delist-grid input', count );
+		count();
 	}
 
 	function initChecklists() {

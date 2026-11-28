@@ -18,6 +18,51 @@ class Cleanup_Report_Checklists {
 
     const FOLLOWUP_OPTION = 'crg_followup_items';
     const DEFENDER_OPTION = 'crg_defender_items';
+    const BLOCKLIST_OPTION = 'crg_blocklists';
+
+    /**
+     * Security vendors that can list a site (URL engines on VirusTotal, named as VirusTotal shows them), with where the
+     * member requests delisting: [ name, web form, email, how ]. Edited under Reports › Settings › Blocklists.
+     * Checked in November 2026 against each vendor's site; addresses found only on VirusTotal's false-positive contacts
+     * page (docs.virustotal.com/docs/false-positive-contacts) are kept as VirusTotal gives them.
+     */
+    const DEFAULT_BLOCKLISTS = [
+        [ 'alphaMountain.ai', 'https://alphamountain.freshdesk.com/support/tickets/new', '', '' ],
+        [ 'Antiy-AVL', '', 'avlsdk_support@antiy.cn', '' ],
+        [ 'Avira', 'https://www.avira.com/en/analysis/submit-url', '', 'Choose "False Positive URLs (Not Malware)" and enter the full URL.' ],
+        [ 'BitDefender', 'https://www.bitdefender.com/submit/', '', '' ],
+        [ 'Certego', '', 'fp@certego.net', '' ],
+        [ 'CRDF', 'https://threatcenter.crdf.fr/false_positive.html', '', '' ],
+        [ 'Criminal IP', '', 'support@aispera.com', '' ],
+        [ 'CyRadar', '', 'contact@cyradar.com', '' ],
+        [ 'Dr.Web', 'https://support.drweb.com/new/detection_issue/', '', '' ],
+        [ 'Emsisoft', '', 'submit@emsisoft.com', 'Include the blocked web address.' ],
+        [ 'Ermes', '', 'support-vt@ermes.company', '' ],
+        [ 'ESET', '', 'samples@eset.com', 'Subject "Domain whitelist" followed by the domain; include the URL, why it is a false positive and a screenshot.' ],
+        [ 'Forcepoint ThreatSeeker', 'https://support.forcepoint.com/s/site-lookup', '', 'Look up the site and ask for it to be re-evaluated.' ],
+        [ 'Fortinet', 'https://www.fortiguard.com/faq/malurl', '', '' ],
+        [ 'G-Data', 'https://su.gdatasoftware.com/url-submission', '', '' ],
+        [ 'Google Safebrowsing', 'https://search.google.com/search-console/security-issues', '', 'Verify the site in Google Search Console, then click Request Review.' ],
+        [ 'Gridinsoft', 'https://portal.gridinsoft.com/false-positive', '', '' ],
+        [ 'Heimdal Security', '', 'report-vt@heimdalsecurity.com', '' ],
+        [ 'Kaspersky', 'https://opentip.kaspersky.com/', '', 'Look up the URL, then click Submit to reanalyze.' ],
+        [ 'Lionic', '', 'support@lionic.com', '' ],
+        [ 'Netcraft', 'https://report.netcraft.com/report/mistake', '', '' ],
+        [ 'OpenPhish', '', 'support@openphish.com', '' ],
+        [ 'Phishing Database', 'https://github.com/Phishing-Database/Phishing.Database/issues', '', 'Open an issue with the false-positive template.' ],
+        [ 'Phishtank', 'https://www.phishtank.com/phish_archive.php', '', 'Open the site\'s entry and choose "Site is not a phish" (needs a PhishTank account).' ],
+        [ 'Quttera', '', 'support@quttera.com', '' ],
+        [ 'Seclookup', '', 'info@seclookup.com', '' ],
+        [ 'SOCRadar', '', 'vt@socradar.io', '' ],
+        [ 'Sophos', 'https://support.sophos.com/support/s/filesubmission', '', 'Choose "Web Address (URL)".' ],
+        [ 'Spamhaus', 'https://check.spamhaus.org/', '', 'Look up the domain and follow the removal steps.' ],
+        [ 'Sucuri SiteCheck', '', 'soc@sucuri.net', '' ],
+        [ 'Trustwave', 'https://support.levelblue.com/submit-url.asp', '', 'Choose "Remove URL from Database".' ],
+        [ 'URLhaus', 'https://urlhaus.abuse.ch/browse/', '', 'Open the URL\'s entry, then Actions › Report a False Positive.' ],
+        [ 'Webroot', 'https://support.threatintel.opentext.com/tools/change-request.php', '', '' ],
+        [ 'Xcitium Verdict Cloud', '', 'support@xcitium.com', '' ],
+        [ 'Yandex Safebrowsing', 'https://webmaster.yandex.com/', '', 'Verify the site in Yandex Webmaster, then Security and violations › Violation fixed.' ],
+    ];
 
     /** not_required = "Already configured" (nothing to do), fixed = "Done" (we did it during the cleanup), required = "Member to do". */
     const FOLLOWUP_STATUSES = [ 'not_required', 'fixed', 'required' ];
@@ -71,6 +116,7 @@ class Cleanup_Report_Checklists {
         'google_recaptcha'          => '{wp_admin}/admin.php?page=wdf-advanced-tools&view=bot-protection',
         'ip_detection'              => '{wp_admin}/admin.php?page=wdf-setting&view=tools',
         'blocklist_monitor'         => '{wp_admin}/admin.php?page=wdf-setting&view=tools',
+        'reports_alerts'            => '{wp_admin}/admin.php?page=wdf-notification',
     ];
 
     const FOLLOWUP_LINKS = [
@@ -80,25 +126,21 @@ class Cleanup_Report_Checklists {
         'review_content'  => '{wp_admin}/edit-comments.php',
     ];
 
-    public static function default_followups() {
-        // done = report text when already configured; fixed = when we did it during the cleanup; todo = when the member must.
-        $f = static function ( $key, $label, $hint, $todo, $done, $tone = 'required', $docs = '' ) {
-            return compact( 'key', 'label', 'hint', 'docs', 'todo', 'done', 'tone' ) + [ 'fixed' => self::DEFAULT_FIXED[ $key ] ?? '', 'link' => self::FOLLOWUP_LINKS[ $key ] ?? '', 'enabled' => true ];
-        };
-        return [
-            $f( 'ssl', 'Configure SSL', 'Does the site need an SSL certificate?', 'Install an SSL certificate so all traffic is encrypted.', 'Your site already has SSL.' ),
-            $f( 'cloudflare', 'Configure Cloudflare', 'Cloudflare caches the site globally and adds security.', 'Cloudflare caches and protects your site across its global network.', 'Already in place.' ),
-            $f( 'php_update', 'Update PHP version', 'Running a supported PHP version improves security and speed.', 'A supported PHP version is more secure and faster.', 'Running a supported version.', 'required', 'https://www.php.net/supported-versions.php' ),
-            $f( 'check_admins', 'Check for suspicious admins', 'Any administrator accounts the member should confirm?', 'Review Users and remove any administrator you don\'t recognise.', 'No unknown administrators found.' ),
-            $f( 'reset_passwords', 'Reset all passwords', 'Should every user set a new password after the breach?', 'Make every user set a new password after the breach.', 'Not needed.' ),
-            $f( 'mask_login', 'Hide the login URL', 'Masking the login URL and its notifications needs the site owner.', 'Set a custom login URL in Defender and share it with your team.', 'Already configured.', 'recommended', 'https://wpmudev.com/docs/wpmu-dev-plugins/defender/#mask-login-area' ),
-            $f( 'automate', 'Enable WPMU DEV Automate', 'Keeps plugins and themes updated automatically.', 'Keeps plugins and themes updated automatically.', 'Already enabled.' ),
-            $f( 'review_content', 'Review posts & comments', 'Check for spam the attacker may have added.', 'Check recent posts and comments for spam the attacker may have added.', 'Nothing suspicious found.' ),
-        ];
-    }
+    /** Defender's documentation; each item links to its section (anchors as in the docs, checked against Defender 6.4). */
+    const DEFENDER_DOCS = 'https://wpmudev.com/docs/wpmu-dev-plugins/defender/';
 
-    public static function default_defender() {
-        $labels = [
+    /**
+     * Who does each Defender setting by default: the agent during the cleanup, or the member (things that need the
+     * site owner's choices or accounts). Settings › Defender checklist can change it per item.
+     */
+    const MEMBER_ITEMS = [ 'mask_login', 'two_factor_auth', 'session_protection', 'google_recaptcha', 'user_agent_script_presets' ];
+
+    /**
+     * Names before 2.1.0 switched to the wording of the team's report template (and Defender's screens). Saved lists
+     * and unfinished reports still using one of these are renamed once by Cleanup_Report_Admin::upgrade().
+     */
+    const OLD_LABELS = [
+        'defender' => [
             'defender_recommendations'  => 'Defender recommendations',
             'malware_scanning'          => 'Scheduled malware scanning',
             'audit_logging'             => 'Audit logging',
@@ -121,24 +163,136 @@ class Cleanup_Report_Checklists {
             'google_recaptcha'          => 'Google reCAPTCHA',
             'ip_detection'              => 'Correct IP detection',
             'blocklist_monitor'         => 'Blocklist monitor',
+        ],
+        'followups' => [
+            'php_update'      => 'Update PHP version',
+            'check_admins'    => 'Check for suspicious admins',
+            'reset_passwords' => 'Reset all passwords',
+            'mask_login'      => 'Hide the login URL',
+            'review_content'  => 'Review posts & comments',
+        ],
+    ];
+
+    public static function default_followups() {
+        // done = report text when already configured; fixed = when we did it during the cleanup; todo = when the member must.
+        $f = static function ( $key, $label, $hint, $todo, $done, $tone = 'required', $docs = '', $enabled = true ) {
+            return compact( 'key', 'label', 'hint', 'docs', 'todo', 'done', 'tone' ) + [ 'fixed' => self::DEFAULT_FIXED[ $key ] ?? '', 'link' => self::FOLLOWUP_LINKS[ $key ] ?? '', 'enabled' => $enabled ];
+        };
+        // Names as in the team's report template.
+        return [
+            $f( 'ssl', 'Configure SSL', 'Does the site need an SSL certificate?', 'Install an SSL certificate so all traffic is encrypted.', 'Your site already has SSL.' ),
+            $f( 'cloudflare', 'Configure Cloudflare', 'Cloudflare caches the site globally and adds security.', 'Once configured, Cloudflare caches and protects your site across its worldwide network.', 'Already in place.' ),
+            $f( 'php_update', 'Update PHP Version', 'Running a supported PHP version improves security and speed.', 'The latest PHP version gives better security and performance.', 'Running a supported version.', 'required', 'https://www.php.net/supported-versions.php' ),
+            $f( 'check_admins', 'Check any suspect admins', 'Any administrator accounts the member should confirm?', 'Review Users and remove any administrator you don\'t recognise.', 'No unknown administrators found.' ),
+            $f( 'reset_passwords', 'Login & Access - Password Rules', 'Force users to change their passwords at their next login after the breach.', 'Force users to change their passwords at their next login, because of the security breach.', 'Not needed.', 'required', self::DEFENDER_DOCS . '#reset-passwords' ),
+            // Off by default: Hide Login URL is in the Defender checklist's member part.
+            $f( 'mask_login', 'Hide Login URL', 'Setting a custom login URL needs the site owner.', 'Set a custom login URL in Defender and share it with your team.', 'Already configured.', 'recommended', self::DEFENDER_DOCS . '#hide-login-url', false ),
+            $f( 'automate', 'Enable WPMU DEV Automate', 'Keeps plugins and themes updated automatically.', 'Keeps plugins and themes updated automatically.', 'Already enabled.' ),
+            $f( 'review_content', 'Review Post/Comment Section', 'Check for spam the attacker may have added.', 'Check recent posts and comments for spam the attacker may have added.', 'Nothing suspicious found.' ),
         ];
-        $pending = [
-            'two_factor_auth' => 'Each administrator needs to set up 2FA on their own account.',
-            'mask_login'      => 'Choose a custom login URL and share it with your team.',
+    }
+
+    public static function default_defender() {
+        // [ name as in the team's report template, docs anchor, report text when the member needs to act ]
+        $items = [
+            // To be done by the agent.
+            'defender_recommendations'  => [ 'Defender Hardening', 'security-recommendations', '' ],
+            'audit_logging'             => [ 'Enabling Audit Log', 'audit-log', '' ],
+            'firewall_antibot'          => [ 'Firewalls - Global Firewall', 'antibot-global-firewall', '' ],
+            'login_protection'          => [ 'Local Firewall - Login Protection', 'login-protection', '' ],
+            'firewall_404'              => [ 'Local Firewall - 404 Detection', '404-detection', '' ],
+            'malicious_bot'             => [ 'Local Firewall - Malicious Bot Detector', 'malicious-bot-detector', '' ],
+            'user_agent_bot_trap'       => [ 'Local Firewall - Trap Bots That Ignore robots.txt', 'trap-bots-that-ignore-robots-txt', '' ],
+            'fake_bots'                 => [ 'Local Firewall - Catch Fake Bots', 'catch-fake-bots-impersonating-legitimate-crawlers', '' ],
+            'user_agent_empty_headers'  => [ 'Local Firewall - Empty Headers', 'empty-headers', '' ],
+            'user_agent_banning'        => [ 'Custom Rules - User Agent', 'user-agent-banning', '' ],
+            'pwned_passwords'           => [ 'Password Rules - Pwned Passwords', 'pwned-passwords', '' ],
+            'strong_passwords'          => [ 'Password Rules - Strong Password', 'strong-passwords', '' ],
+            'password_reset'            => [ 'Password Rules - Reset Passwords', 'reset-passwords', '' ],
+            'malware_scanning'          => [ 'Tools > Issues Scan', 'issues-scan', '' ],
+            'ip_detection'              => [ 'Tools > Firewall Detect IP Addresses', 'firewall-tools', '' ],
+            'blocklist_monitor'         => [ 'Tools > Blocklist Monitor', 'blocklist-monitor', '' ],
+            'security_headers'          => [ 'Tools > Security Headers', 'security-policies', '' ],
+            'reports_alerts'            => [ 'Reports & Alerts - Scheduled Reports', 'reports-alerts', '' ],
+            // To be done by the member.
+            'mask_login'                => [ 'Hide Login URL', 'hide-login-url', 'Choose a custom login URL and share it with your team.' ],
+            'two_factor_auth'           => [ 'Login & Access - Two-Factor Auth', 'two-factor-auth', 'Each administrator needs to set up 2FA on their own account.' ],
+            'session_protection'        => [ 'Login & Access - Session Security', 'session-security', 'Set an idle timeout and session lock to protect your users from session hijacking.' ],
+            'google_recaptcha'          => [ 'Login & Access - Bot Protection', 'bot-protection', 'Add a CAPTCHA (Google reCAPTCHA or Cloudflare Turnstile) to your login, registration and comment forms. It needs your own API keys.' ],
+            'user_agent_script_presets' => [ 'Custom Rules - User Agent - Scripts', 'blocklist-presets', 'Block the Scripts preset (automated clients) if none of your own services reach the site that way.' ],
         ];
-        $items = [];
-        foreach ( $labels as $key => $label ) {
-            $items[] = [
+        $out = [];
+        foreach ( $items as $key => [ $label, $anchor, $pending ] ) {
+            $out[] = [
                 'key'          => $key,
                 'label'        => $label,
+                'owner'        => in_array( $key, self::MEMBER_ITEMS, true ) ? 'member' : 'agent',
                 'hint'         => '',
                 'applied_note' => '',
-                'pending_note' => $pending[ $key ] ?? '',
+                'pending_note' => $pending,
                 'link'         => self::DEFENDER_LINKS[ $key ] ?? '',
+                'docs'         => self::DEFENDER_DOCS . '#' . $anchor,
                 'enabled'      => true,
             ];
         }
+        return $out;
+    }
+
+    /** "agent" or "member": who does this Defender setting (items saved before 2.1.0 get their default). */
+    public static function owner( array $item ) {
+        $owner = $item['owner'] ?? '';
+        if ( in_array( $owner, [ 'agent', 'member' ], true ) ) {
+            return $owner;
+        }
+        return in_array( $item['key'] ?? '', self::MEMBER_ITEMS, true ) ? 'member' : 'agent';
+    }
+
+    /**
+     * Renames items still called by a pre-2.1.0 default name to today's default (an item someone renamed is left
+     * alone), and gives Defender items their owner and docs link. $kind: 'defender' or 'followups'.
+     */
+    private static function renamed( array $items, $kind ) {
+        $defaults = self::keyed( 'defender' === $kind ? self::default_defender() : self::default_followups() );
+        foreach ( $items as $i => $item ) {
+            $key = $item['key'] ?? '';
+            if ( ! isset( $defaults[ $key ] ) ) {
+                continue;
+            }
+            if ( ( $item['label'] ?? '' ) === ( self::OLD_LABELS[ $kind ][ $key ] ?? null ) ) {
+                $items[ $i ]['label'] = $defaults[ $key ]['label'];
+            }
+            if ( 'defender' === $kind ) {
+                $items[ $i ]['owner'] = self::owner( $item );
+                $items[ $i ]['docs']  = ( $item['docs'] ?? '' ) ?: $defaults[ $key ]['docs'];
+            }
+        }
         return $items;
+    }
+
+    /** One-time rename in the saved checklists (Cleanup_Report_Admin::upgrade()). */
+    public static function rename_saved_labels() {
+        foreach ( [ 'defender' => self::DEFENDER_OPTION, 'followups' => self::FOLLOWUP_OPTION ] as $kind => $option ) {
+            $items = get_option( $option, null );
+            if ( is_array( $items ) ) {
+                $new = self::renamed( $items, $kind );
+                if ( $new !== $items ) {
+                    update_option( $option, $new, false );
+                }
+            }
+        }
+    }
+
+    /** One-time rename in a report's saved checklists (only for reports not yet approved). */
+    public static function rename_report_labels( $post_id ) {
+        foreach ( [ 'defender' => 'crg_defender', 'followups' => 'crg_followups' ] as $kind => $meta ) {
+            $rows = get_post_meta( $post_id, $meta, true );
+            if ( is_array( $rows ) && $rows ) {
+                $new = self::renamed( $rows, $kind );
+                if ( $new !== $rows ) {
+                    update_post_meta( $post_id, $meta, wp_slash( $new ) );
+                }
+            }
+        }
     }
 
     /** All configured follow-up items (enabled or not), in order. */
@@ -150,6 +304,60 @@ class Cleanup_Report_Checklists {
     public static function defender_items() {
         $items = get_option( self::DEFENDER_OPTION, null );
         return is_array( $items ) ? $items : self::default_defender();
+    }
+
+    public static function default_blocklists() {
+        $out = [];
+        foreach ( self::DEFAULT_BLOCKLISTS as [ $label, $url, $email, $note ] ) {
+            $out[] = [
+                'key'     => substr( trim( preg_replace( '/[^a-z0-9]+/', '_', strtolower( remove_accents( $label ) ) ), '_' ), 0, 40 ),
+                'label'   => $label,
+                'url'     => $url,
+                'email'   => $email,
+                'note'    => $note,
+                'enabled' => true,
+            ];
+        }
+        return $out;
+    }
+
+    public static function blocklist_items() {
+        $items = get_option( self::BLOCKLIST_OPTION, null );
+        return is_array( $items ) ? $items : self::default_blocklists();
+    }
+
+    public static function sanitize_blocklists( $input ) {
+        return self::sanitize_items( $input, [
+            'label' => 'sanitize_text_field',
+            'url'   => static function ( $v ) { return esc_url_raw( $v, [ 'http', 'https' ] ); },
+            'email' => 'sanitize_email',
+            'note'  => 'sanitize_text_field',
+        ] );
+    }
+
+    /** The blocklists a report says list the site, in settings order: key => [ key, label, url, email, note ]. */
+    public static function report_blocklists( $post_id ) {
+        $saved = get_post_meta( $post_id, 'crg_delist_vendors', true );
+        return is_array( $saved ) ? $saved : [];
+    }
+
+    /**
+     * Saves the ticked blocklists with their contact details as they are now (a report keeps them if settings
+     * change). A vendor no longer in settings stays as the report saved it.
+     *
+     * @param string[] $keys $_POST['crg_delist_vendors'] (sanitised keys)
+     */
+    public static function save_report_blocklists( $post_id, array $keys ) {
+        $defs = self::keyed( self::blocklist_items() );
+        $old  = self::report_blocklists( $post_id );
+        $rows = [];
+        foreach ( array_map( 'sanitize_key', $keys ) as $key ) {
+            $def = $defs[ $key ] ?? $old[ $key ] ?? null;
+            if ( $def ) {
+                $rows[ $key ] = [ 'key' => $key, 'label' => $def['label'], 'url' => $def['url'] ?? '', 'email' => $def['email'] ?? '', 'note' => $def['note'] ?? '' ];
+            }
+        }
+        update_post_meta( $post_id, 'crg_delist_vendors', wp_slash( $rows ) );
     }
 
     /* ------------------------------------------------------------------ settings sanitizing */
@@ -176,7 +384,10 @@ class Cleanup_Report_Checklists {
             'pending_note' => 'sanitize_textarea_field',
             'progress_note' => 'sanitize_textarea_field',
             'link'         => [ __CLASS__, 'sanitize_link' ],
-        ] );
+            'docs'         => 'esc_url_raw',
+        ], static function ( $raw ) {
+            return [ 'owner' => self::owner( $raw ) ];
+        } );
     }
 
     /** A link template: {wp_admin}/… , {site}/… or a full https:// URL. Anything else is dropped. */
@@ -305,6 +516,8 @@ class Cleanup_Report_Checklists {
             'pending_note' => $def['pending_note'] ?? '',
             'progress_note' => $def['progress_note'] ?? '',
             'link'         => $def['link'] ?? ( self::DEFENDER_LINKS[ $def['key'] ] ?? '' ),
+            'docs'         => $def['docs'] ?? '',
+            'owner'        => self::owner( $def ),
             'status'       => $status,
             'notes'        => $notes,
         ];
@@ -435,6 +648,8 @@ class Cleanup_Report_Checklists {
                 'status'  => $row['status'],
                 'notes'   => self::fill( '' !== (string) $row['notes'] ? $row['notes'] : $fallback, $site_url ),
                 'link'    => self::link( $row['link'] ?? ( self::DEFENDER_LINKS[ $row['key'] ] ?? '' ), $site_url ),
+                'docs'    => esc_url_raw( (string) ( $row['docs'] ?? '' ) ),
+                'owner'   => self::owner( $row ),
             ];
         }
         return $out;

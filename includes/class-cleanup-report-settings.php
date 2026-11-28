@@ -16,6 +16,7 @@ class Cleanup_Report_Settings {
         // Branding (crg_settings) and Review (crg_review) keep the default: administrators only.
         add_filter( 'option_page_capability_crg_followups', [ __CLASS__, 'checklist_capability' ] );
         add_filter( 'option_page_capability_crg_defender', [ __CLASS__, 'checklist_capability' ] );
+        add_filter( 'option_page_capability_crg_blocklists', [ __CLASS__, 'checklist_capability' ] );
         add_filter( 'plugin_action_links_' . plugin_basename( CLEANUP_REPORT_PATH . 'cleanup-report-generator.php' ), [ __CLASS__, 'plugin_links' ] );
     }
 
@@ -59,6 +60,7 @@ class Cleanup_Report_Settings {
         register_setting( 'crg_review', Cleanup_Report_Retention::OPTION, [ 'type' => 'integer', 'default' => Cleanup_Report_Retention::DEFAULT_DAYS, 'sanitize_callback' => [ 'Cleanup_Report_Retention', 'sanitize_days' ] ] );
         register_setting( 'crg_review', Cleanup_Report_Admin::BUDDYLEADS_OPTION, [ 'type' => 'array', 'default' => [], 'sanitize_callback' => [ __CLASS__, 'sanitize_buddyleads' ] ] );
         register_setting( 'crg_defender', Cleanup_Report_Checklists::DEFENDER_OPTION, [ 'type' => 'array', 'sanitize_callback' => [ 'Cleanup_Report_Checklists', 'sanitize_defender_items' ] ] );
+        register_setting( 'crg_blocklists', Cleanup_Report_Checklists::BLOCKLIST_OPTION, [ 'type' => 'array', 'sanitize_callback' => [ 'Cleanup_Report_Checklists', 'sanitize_blocklists' ] ] );
     }
 
     public static function sanitize_primary( $value ) {
@@ -72,7 +74,7 @@ class Cleanup_Report_Settings {
         if ( ! Cleanup_Report_Access::can_manage_checklists() ) {
             wp_die( 'You are not allowed to change these settings.', 'Forbidden', [ 'response' => 403, 'back_link' => true ] );
         }
-        $options = [ 'followups' => Cleanup_Report_Checklists::FOLLOWUP_OPTION, 'defender' => Cleanup_Report_Checklists::DEFENDER_OPTION ];
+        $options = [ 'followups' => Cleanup_Report_Checklists::FOLLOWUP_OPTION, 'defender' => Cleanup_Report_Checklists::DEFENDER_OPTION, 'blocklists' => Cleanup_Report_Checklists::BLOCKLIST_OPTION ];
         if ( isset( $options[ $list ] ) ) {
             delete_option( $options[ $list ] );
         }
@@ -86,6 +88,7 @@ class Cleanup_Report_Settings {
             'general'   => 'Branding',
             'followups' => 'Follow-ups',
             'defender'  => 'Defender checklist',
+            'blocklists' => 'Blocklists',
             'plugins'   => 'Plugin list',
             'review'    => 'Review',
         ];
@@ -96,6 +99,7 @@ class Cleanup_Report_Settings {
         if ( Cleanup_Report_Access::can_manage_checklists() ) {
             $mine['followups'] = $tabs['followups'];
             $mine['defender']  = $tabs['defender'];
+            $mine['blocklists'] = $tabs['blocklists'];
         }
         if ( Cleanup_Report_Access::can_manage_plugin_list() ) {
             $mine['plugins'] = $tabs['plugins'];
@@ -128,6 +132,8 @@ class Cleanup_Report_Settings {
                 self::tab_followups();
             } elseif ( 'defender' === $tab ) {
                 self::tab_defender();
+            } elseif ( 'blocklists' === $tab ) {
+                self::tab_blocklists();
             } elseif ( 'plugins' === $tab ) {
                 self::tab_plugins();
             } elseif ( 'review' === $tab ) {
@@ -241,7 +247,7 @@ class Cleanup_Report_Settings {
         ?>
         <form method="post" action="options.php" class="crg-settings-form">
             <?php settings_fields( 'crg_defender' ); ?>
-            <p class="crg-lead">The <strong>Defender settings</strong> staff mark as <strong>Applied</strong> or <strong>Pending</strong> on every report. They appear in the report's <em>Defender security configuration</em> table.</p>
+            <p class="crg-lead">The <strong>Defender settings</strong> staff mark on every report, in two parts: <strong>to be done by the agent</strong> (what we configure during the cleanup) and <strong>to be done by the member</strong> (what needs the site owner). They appear in the report's <em>Defender security configuration</em> section.</p>
             <?php self::checklist_notes(); ?>
             <div class="crg-items" data-name="<?php echo esc_attr( Cleanup_Report_Checklists::DEFENDER_OPTION ); ?>">
                 <?php foreach ( $items as $i => $item ) { self::defender_item( $i, $item ); } ?>
@@ -250,6 +256,41 @@ class Cleanup_Report_Settings {
             <p><button type="button" class="button crg-item-add"><span class="dashicons dashicons-plus-alt2"></span> Add Defender setting</button></p>
             <?php self::checklist_footer( 'defender' ); ?>
         </form>
+        <?php
+    }
+
+    private static function tab_blocklists() {
+        $items = Cleanup_Report_Checklists::blocklist_items();
+        ?>
+        <form method="post" action="options.php" class="crg-settings-form">
+            <?php settings_fields( 'crg_blocklists' ); ?>
+            <p class="crg-lead">The <strong>security vendors</strong> staff can tick under <em>Security blocklists (delist request)</em> when VirusTotal or another scanner still flags a site. Each one ticked appears in the report with where the member requests delisting.</p>
+            <ul class="crg-notes">
+                <li>Drag <span class="dashicons dashicons-menu"></span> to change the order. Turn a vendor off to hide it from new reports without deleting it.</li>
+                <li>Use the vendor's name as VirusTotal shows it, so staff can find it quickly.</li>
+                <li>Reports keep the contact details they were saved with.</li>
+            </ul>
+            <div class="crg-items" data-name="<?php echo esc_attr( Cleanup_Report_Checklists::BLOCKLIST_OPTION ); ?>">
+                <?php foreach ( $items as $i => $item ) { self::blocklist_item( $i, $item ); } ?>
+            </div>
+            <template class="crg-item-template"><?php self::blocklist_item( '__i__', [ 'enabled' => true ], true ); ?></template>
+            <p><button type="button" class="button crg-item-add"><span class="dashicons dashicons-plus-alt2"></span> Add vendor</button></p>
+            <?php self::checklist_footer( 'blocklists' ); ?>
+        </form>
+        <?php
+    }
+
+    private static function blocklist_item( $i, array $item, $is_template = false ) {
+        $name = Cleanup_Report_Checklists::BLOCKLIST_OPTION;
+        self::item_head( $name, $i, $item, $is_template );
+        ?>
+            <div class="crg-item-body">
+                <?php self::field( $name, $i, 'label', 'Vendor', $item['label'] ?? '', 'As VirusTotal shows it.' ); ?>
+                <?php self::field( $name, $i, 'url', 'Delisting form', $item['url'] ?? '', 'Where the site owner reports a false positive or asks for a review.', 'url', 'https://' ); ?>
+                <?php self::field( $name, $i, 'email', 'Email', $item['email'] ?? '', 'Optional. Only if the vendor accepts delisting requests by email.', 'email', 'falsepositive@vendor.com' ); ?>
+                <?php self::field( $name, $i, 'note', 'How to ask', $item['note'] ?? '', 'Optional. Shown in the report under the contact, e.g. a required subject line or the option to choose.' ); ?>
+            </div>
+        </details>
         <?php
     }
 
@@ -532,16 +573,24 @@ class Cleanup_Report_Settings {
     }
 
     private static function defender_item( $i, array $item, $is_template = false ) {
-        $name = Cleanup_Report_Checklists::DEFENDER_OPTION;
-        self::item_head( $name, $i, $item, $is_template );
+        $name  = Cleanup_Report_Checklists::DEFENDER_OPTION;
+        $owner = $is_template ? 'agent' : Cleanup_Report_Checklists::owner( $item );
+        self::item_head( $name, $i, $item, $is_template, 'member' === $owner ? 'Member' : '' );
         ?>
             <div class="crg-item-body">
                 <?php self::field( $name, $i, 'label', 'Setting', $item['label'] ?? '', 'As it appears in the report.' ); ?>
+                <div class="crg-field">
+                    <span class="crg-field-label">To be done by</span>
+                    <label class="crg-radio"><input type="radio" name="<?php echo esc_attr( "{$name}[{$i}][owner]" ); ?>" value="agent" <?php checked( 'agent', $owner ); ?>> Agent</label>
+                    <label class="crg-radio"><input type="radio" name="<?php echo esc_attr( "{$name}[{$i}][owner]" ); ?>" value="member" <?php checked( 'member', $owner ); ?>> Member</label>
+                    <p class="description">Which part of the report's Defender section it's listed in by default: what we configure during the cleanup, or what the member has to set up.</p>
+                </div>
                 <?php self::field( $name, $i, 'hint', 'Hint for staff', $item['hint'] ?? '', 'Edit screen only: where to find it, what to check.' ); ?>
                 <?php self::field( $name, $i, 'applied_note', 'Report text when applied', $item['applied_note'] ?? '', 'Used when the report has no note of its own.', 'textarea', 'Configured to recommended settings.' ); ?>
                 <?php self::field( $name, $i, 'progress_note', 'Report text when pending', $item['progress_note'] ?? '', 'Not configured yet. Used when the report has no note of its own.', 'textarea', 'Not configured yet.' ); ?>
                 <?php self::field( $name, $i, 'pending_note', 'Report text when the member needs to act', $item['pending_note'] ?? '', 'Tell the member what to do. Used when the report has no note of its own.', 'textarea', 'e.g. Turn this on in {wp_admin} › Defender.' ); ?>
                 <?php self::field( $name, $i, 'link', 'Defender screen for this setting', $item['link'] ?? '', 'Shown in the report as "Visit to configure". {wp_admin} is filled in from the report\'s website URL, e.g. {wp_admin}/admin.php?page=wdf-ip-lockout&view=local-firewall', 'text', '{wp_admin}/admin.php?page=wdf-…' ); ?>
+                <?php self::field( $name, $i, 'docs', 'Public doc', $item['docs'] ?? '', 'Optional. Shown in the report as "Public doc", like the team\'s report template.', 'url', Cleanup_Report_Checklists::DEFENDER_DOCS . '#…' ); ?>
             </div>
         </details>
         <?php

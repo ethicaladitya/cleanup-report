@@ -21,6 +21,8 @@ $meta = [
         [ 'url' => crg_fixture_image( 'sample-scan-after', $img ), 'title' => 'Post-cleanup: Defender scan', 'type' => 'after' ],
     ],
 
+    'crg_key_finding' => 'A self-healing backdoor hidden in the theme, plugins and database re-created deleted files on every page load.',
+
     'crg_infection_summary' =>
         '<p>The website was severely compromised by an aggressive, <strong>self-healing backdoor</strong> (tracked as <em>WPanel</em>), together with an obfuscated <strong>SEO spam / cloaking injector</strong>. The malware set up persistence across several layers of the installation to resist removal:</p>'
       . '<ul>'
@@ -80,14 +82,21 @@ $meta = [
       . '<li><strong>Reduce the attack surface:</strong> if the homepage animations aren\'t essential, replace Slider Revolution with native blocks.</li>'
       . '</ul>',
     'crg_additional_sites' => 'No problem identified',
-    'crg_delist'           => 'No problem identified',
+    'crg_delist'           => '',
 
     'crg_pending_actions' =>
-          "1. Review the two files Defender still reports in the site root and delete them if they are legacy files.
-"
-        . "2. Review the user account linked to the injection. We changed its role to Subscriber; delete it if you don't recognise it.
-"
-        . "3. Finish the Defender settings marked Your action in section 06 (2FA, login URL, session security, bot protection).",
+        '<ol>'
+      . '<li>Review the two files Defender still reports in the site root and delete them if they are legacy files.</li>'
+      . '<li>Review the user account linked to the injection. We changed its role to <strong>Subscriber</strong>; delete it if you don\'t recognise it.</li>'
+      . '<li>Finish the Defender settings listed under <em>To be done by you</em>.</li>'
+      . '</ol>',
+
+    'crg_hosting_type'      => 'wpmudev',
+    'crg_backups'           => 'both',
+    'crg_backups_note'      => 'https://wpmudev.com/hub2/site/123456/hosting/backups',
+    'crg_ssh_accounts'      => 'yes',
+    'crg_ssh_accounts_note' => 'One sFTP account belonging to the site owner; kept.',
+    'crg_hub_member'        => 'no',
 
     'crg_documentation_links' =>
           "Defender documentation: https://wpmudev.com/docs/wpmu-dev-plugins/defender/\n"
@@ -110,23 +119,27 @@ $meta = [
 
 $defender = [
     'defender_recommendations'  => [ 'applied', 'Hardening recommendations reviewed and applied' ],
-    'malware_scanning'          => [ 'applied', 'Issues scan enabled with scheduled reports' ],
-    'audit_logging'             => [ 'applied', 'Helps you spot unwanted changes' ],
-    'firewall_antibot'          => [ 'applied', 'Global AntiBot firewall and malicious bot detector on' ],
+    'audit_logging'             => [ 'applied', 'Audit logging will help you to identify unwanted actions' ],
+    'firewall_antibot'          => [ 'applied', '' ],
+    'login_protection'          => [ 'applied', '' ],
     'firewall_404'              => [ 'applied', 'Bans IPs that repeatedly request missing pages' ],
-    'user_agent_banning'        => [ 'applied', 'Custom user-agent blocking rules' ],
-    'user_agent_bot_trap'       => [ 'applied', 'Traps bots that ignore robots.txt; blocks fake crawlers' ],
+    'malicious_bot'             => [ 'applied', '' ],
+    'user_agent_bot_trap'       => [ 'applied', '' ],
+    'fake_bots'                 => [ 'applied', '' ],
     'user_agent_empty_headers'  => [ 'applied', 'Blocks requests with missing or empty headers' ],
-    'user_agent_script_presets' => [ 'pending', 'Block automated scripts — needs your review of legitimate integrations' ],
-    'two_factor_auth'           => [ 'pending', 'Each administrator must set up 2FA' ],
-    'mask_login'                => [ 'pending', 'Choose a custom login URL and share it with your team' ],
-    'security_headers'          => [ 'applied', 'Protects against code injection and clickjacking' ],
+    'user_agent_banning'        => [ 'applied', '' ],
     'pwned_passwords'           => [ 'applied', 'Checks passwords against known breaches' ],
     'strong_passwords'          => [ 'applied', 'Weak passwords must be reset on next login' ],
     'password_reset'            => [ 'pending', 'Force all users to change their password after the breach' ],
-    'session_protection'        => [ 'pending', 'Protects against session hijacking' ],
-    'google_recaptcha'          => [ 'in_progress', 'Bot protection (CAPTCHA) for login and forms: we will turn this on once the contact form is tested' ],
+    'malware_scanning'          => [ 'applied', '' ],
     'ip_detection'              => [ 'applied', 'Visitor IP detection method set for this host' ],
+    'security_headers'          => [ 'applied', 'Protects against code injection and clickjacking' ],
+    'reports_alerts'            => [ 'in_progress', 'We will set up scheduled scan reports once you confirm who should receive them' ],
+    'mask_login'                => [ 'pending', '' ],
+    'two_factor_auth'           => [ 'pending', '' ],
+    'session_protection'        => [ 'pending', '' ],
+    'google_recaptcha'          => [ 'pending', '' ],
+    'user_agent_script_presets' => [ 'pending', '' ],
 ];
 // Checklists are saved the way the edit screen saves them (wording from Reports › Settings).
 $followups = [
@@ -135,7 +148,6 @@ $followups = [
     'php_update'      => 'required',
     'check_admins'    => 'fixed',
     'reset_passwords' => 'required',
-    'mask_login'      => 'required',
     'automate'        => 'required',
     'review_content'  => 'required',
 ];
@@ -144,4 +156,5 @@ Cleanup_Report_Checklists::save_report(
     array_map( static function ( $status ) { return [ 'status' => $status, 'note' => '' ]; }, $followups ),
     array_map( static function ( $row ) { return [ 'status' => $row[0], 'notes' => $row[1] ]; }, $defender )
 );
+Cleanup_Report_Checklists::save_report_blocklists( $id, [ 'google_safebrowsing', 'eset', 'sophos' ] );
 crg_fixture_save( $id, $meta );

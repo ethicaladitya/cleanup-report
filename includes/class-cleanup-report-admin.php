@@ -41,7 +41,7 @@ class Cleanup_Report_Admin {
     ];
 
     /** Bump to run upgrade() once more on every site (stored in the autoloaded option crg_db_version). */
-    const DB_VERSION = 2;
+    const DB_VERSION = 3;
 
     /** The review status this request changed the report to, for the "saved" message. */
     private static $changed_to = '';
@@ -49,8 +49,8 @@ class Cleanup_Report_Admin {
     /** History: the fields in each section, so an edit is noted as "Edited Findings, Defender". */
     const HISTORY_FIELDS = [
         'Member & website'         => [ 'crg_client_name', 'crg_site_url', 'crg_report_date', 'crg_request_link', 'crg_task_url' ],
-        'Findings'                 => [ 'crg_screenshots', 'crg_infection_summary', 'crg_summary_critical', 'crg_summary_medium', 'crg_summary_low', 'crg_components', 'crg_improvements', 'crg_plugin_list' ],
-        'Work done & verification' => [ 'crg_highlights', 'crg_verification_summary', 'crg_additional_sites', 'crg_delist' ],
+        'Findings'                 => [ 'crg_screenshots', 'crg_key_finding', 'crg_infection_summary', 'crg_summary_critical', 'crg_summary_medium', 'crg_summary_low', 'crg_components', 'crg_improvements', 'crg_plugin_list' ],
+        'Work done & verification' => [ 'crg_highlights', 'crg_verification_summary', 'crg_additional_sites', 'crg_delist', 'crg_delist_vendors', 'crg_hosting_type', 'crg_hosting_type_note', 'crg_backups', 'crg_backups_note', 'crg_ssh_accounts', 'crg_ssh_accounts_note', 'crg_hub_member', 'crg_hub_member_note' ],
         'Defender'                 => [ 'crg_defender' ],
         'Member next steps'        => [ 'crg_pending_actions', 'crg_followups', 'crg_reinstall_list', 'crg_replace_list' ],
         'Member guidance'          => [ 'crg_documentation_links', 'crg_seo_note', 'crg_protect_note' ],
@@ -121,6 +121,8 @@ class Cleanup_Report_Admin {
      *  - The old default Verification bullet that named a third-party scanner brand gets the current wording.
      *  - The two checklist settings stop loading on every front-end page (see checklists_not_autoloaded()).
      *  - A saved footer starting "© 2026" gets "© {year}", so it stays current (DB_VERSION 2).
+     *  - Checklist items still named as before 2.1.0 take the report template's names, in the saved lists and in
+     *    reports not yet approved (DB_VERSION 3; see Cleanup_Report_Checklists::rename_old_labels()).
      * Every step is safe to repeat, so a version bump simply runs them all again once.
      */
     public static function upgrade() {
@@ -137,14 +139,18 @@ class Cleanup_Report_Admin {
                 $wpdb->update( $wpdb->posts, [ 'post_status' => $want ], [ 'ID' => $post->ID ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time fix; wp_update_post() would change the modified date; the cache is cleared next
                 clean_post_cache( $post->ID );
             }
+            if ( ! self::is_final( $post->ID ) ) {
+                Cleanup_Report_Checklists::rename_report_labels( $post->ID );
+            }
             $text = (string) get_post_meta( $post->ID, 'crg_verification_summary', true );
             $new  = preg_replace( '#Front-end scan with \S+ SiteCheck and VirusTotal#i', 'Front-end scan with external malware scanners such as VirusTotal', $text );
             if ( $new !== $text ) {
                 update_post_meta( $post->ID, 'crg_verification_summary', wp_slash( $new ) );
             }
         }
+        Cleanup_Report_Checklists::rename_saved_labels();
         if ( function_exists( 'wp_set_options_autoload' ) ) {
-            wp_set_options_autoload( [ Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION ], false );
+            wp_set_options_autoload( [ Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION, Cleanup_Report_Checklists::BLOCKLIST_OPTION ], false );
         }
         $footer = get_option( 'crg_footer_text' ); // a saved "© 2026 …" froze the year: make it follow the date
         if ( is_string( $footer ) ) {
@@ -161,7 +167,7 @@ class Cleanup_Report_Admin {
 
     /** The checklists are only needed in wp-admin: when first saved, keep them out of every page's autoload. */
     public static function checklists_not_autoloaded( $option ) {
-        if ( in_array( $option, [ Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION ], true ) && function_exists( 'wp_set_option_autoload' ) ) {
+        if ( in_array( $option, [ Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION, Cleanup_Report_Checklists::BLOCKLIST_OPTION ], true ) && function_exists( 'wp_set_option_autoload' ) ) {
             wp_set_option_autoload( $option, false );
         }
     }
@@ -364,7 +370,18 @@ class Cleanup_Report_Admin {
             <button type="button" class="button crg-shot-add"><span class="dashicons dashicons-format-image"></span> Add screenshot</button>
         </div>
 
-        <?php self::editor( $post, 'crg_infection_summary', 'Infection summary', 'What was found and how the site was compromised. The first sentence becomes the <strong>Key finding</strong> on the summary page.', 8 ); ?>
+        <?php
+        // Reports saved before this field existed showed the summary's first sentence: start from it so saving keeps it.
+        $auto = Cleanup_Report_Render::auto_key_finding( (string) self::meta( $post, 'crg_infection_summary' ) );
+        $kf   = metadata_exists( 'post', $post->ID, 'crg_key_finding' ) ? (string) get_post_meta( $post->ID, 'crg_key_finding', true ) : $auto;
+        ?>
+        <div class="crg-field">
+            <label for="crg_key_finding">Key finding</label>
+            <input type="text" id="crg_key_finding" name="crg_key_finding" value="<?php echo esc_attr( $kf ); ?>" maxlength="300" placeholder="<?php echo esc_attr( $auto ?: 'e.g. A self-healing backdoor was hidden in the theme and re-created deleted files on every page load.' ); ?>">
+            <p class="description">One line, shown as <strong>Key finding</strong> on the summary page. Leave empty to leave it out.</p>
+        </div>
+
+        <?php self::editor( $post, 'crg_infection_summary', 'Infection summary', 'What was found and how the site was compromised.', 8 ); ?>
 
         <div class="crg-field">
             <span class="crg-field-label">Issues found</span>
@@ -460,12 +477,66 @@ class Cleanup_Report_Admin {
         $default = 'auto-draft' === $post->post_status ? Cleanup_Report_Render::default_texts()['verification'] : '';
         self::editor( $post, 'crg_highlights', 'Work carried out', 'What we did to clean the site. Shown under <strong>Actions taken</strong>, before the list of standard steps every cleanup includes.', 6 );
         self::editor( $post, 'crg_verification_summary', 'Verification', 'How the site was checked after the cleanup, and anything still showing.', 6, $default );
+        self::input( $post, 'crg_additional_sites', 'Additional sites on this hosting account', [ 'type' => 'textarea', 'rows' => 2, 'placeholder' => 'No problem identified', 'help' => 'Other sites found and what was done about them, one per line. Leave empty for "No problem identified".' ] );
+        self::site_checks( $post );
+        self::delist_field( $post );
+    }
+
+    /** Hosting & access: the four checks from the team's report template, each an answer plus a note. */
+    private static function site_checks( $post ) {
         ?>
-        <div class="crg-cols crg-cols-2">
-            <?php
-            self::input( $post, 'crg_additional_sites', 'Additional sites on this hosting account', [ 'type' => 'textarea', 'rows' => 3, 'placeholder' => 'No problem identified', 'help' => 'Other sites found and what was done about them, one per line. Leave empty for "No problem identified".' ] );
-            self::input( $post, 'crg_delist', 'Security blocklists (delist request)', [ 'type' => 'textarea', 'rows' => 3, 'placeholder' => 'No problem identified', 'help' => 'Where the site was listed and what was requested, one per line. Leave empty for "No problem identified".' ] );
-            ?>
+        <div class="crg-field crg-site-checks">
+            <span class="crg-field-label">Hosting &amp; access</span>
+            <p class="description">Shown in the report's Verification table. Leave a question unanswered to leave it out.</p>
+            <?php foreach ( Cleanup_Report_Render::SITE_CHECKS as $key => [ $question, , $answers ] ) :
+                $id = 'crg_' . $key; ?>
+                <div class="crg-site-check">
+                    <label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $question ); ?></label>
+                    <select id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $id ); ?>">
+                        <option value="">—</option>
+                        <?php foreach ( $answers as $value => $label ) : ?>
+                            <option value="<?php echo esc_attr( $value ); ?>" <?php selected( self::meta( $post, $id ), $value ); ?>><?php echo esc_html( $label ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <input type="text" name="<?php echo esc_attr( $id . '_note' ); ?>" value="<?php echo esc_attr( self::meta( $post, $id . '_note' ) ); ?>" placeholder="<?php echo esc_attr( [ 'hosting_type' => 'Note, e.g. the host or plan', 'backups' => 'Link to the backups, e.g. in the Hub', 'ssh_accounts' => 'Which accounts, and what was done', 'hub_member' => 'Note' ][ $key ] ?? 'Note' ); ?>" aria-label="<?php echo esc_attr( 'Note: ' . $question ); ?>">
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <?php
+    }
+
+    /** Security blocklists: tick the vendors still flagging the site; the report lists them with where to request delisting. */
+    private static function delist_field( $post ) {
+        $ticked = Cleanup_Report_Checklists::report_blocklists( $post->ID );
+        $items  = [];
+        foreach ( Cleanup_Report_Checklists::blocklist_items() as $item ) {
+            if ( ! empty( $item['enabled'] ) || isset( $ticked[ $item['key'] ] ) ) {
+                $items[ $item['key'] ] = $item;
+            }
+        }
+        $items += $ticked; // ticked earlier, since removed from settings
+        ?>
+        <div class="crg-field crg-delist">
+            <span class="crg-field-label">Security blocklists (delist request)</span>
+            <p class="description">Tick each vendor that still flags the site, e.g. on VirusTotal<span class="crg-vt-wrap" hidden> (<a href="#" class="crg-vt" target="_blank" rel="noopener">check this site on VirusTotal</a>)</span>. The report lists them with where to request delisting. Nothing ticked and no note: "No problem identified".</p>
+            <?php if ( $items ) : ?>
+                <div class="crg-delist-bar hide-if-no-js">
+                    <input type="search" class="crg-delist-filter" placeholder="Filter vendors…" aria-label="Filter vendors">
+                    <span class="crg-delist-count" aria-live="polite"></span>
+                </div>
+                <div class="crg-delist-grid">
+                    <?php foreach ( $items as $key => $item ) :
+                        $contact = implode( ' · ', array_filter( [ preg_replace( '#^https?://#', '', (string) ( $item['url'] ?? '' ) ), (string) ( $item['email'] ?? '' ) ] ) ); ?>
+                        <label title="<?php echo esc_attr( $contact ); ?>"><input type="checkbox" name="crg_delist_vendors[]" value="<?php echo esc_attr( $key ); ?>" <?php checked( isset( $ticked[ $key ] ) ); ?>> <?php echo esc_html( $item['label'] ); ?></label>
+                    <?php endforeach; ?>
+                </div>
+            <?php else : ?>
+                <p class="crg-empty">No blocklists are set up. <?php self::settings_link( 'blocklists', 'Add them in Settings' ); ?></p>
+            <?php endif; ?>
+            <input type="hidden" name="crg_delist_vendors[]" value="">
+            <label for="crg_delist" class="crg-sub-label">Other blocklists or notes</label>
+            <textarea id="crg_delist" name="crg_delist" rows="2" placeholder="e.g. Delist requested from Norton Safe Web on 6 November"><?php echo esc_textarea( self::meta( $post, 'crg_delist' ) ); ?></textarea>
+            <p class="crg-checklist-foot"><?php self::settings_link( 'blocklists', 'Edit the blocklists' ); ?></p>
         </div>
         <?php
     }
@@ -475,35 +546,60 @@ class Cleanup_Report_Admin {
     public static function box_defender( $post ) {
         $answers = Cleanup_Report_Checklists::report_defender( $post->ID );
         $items   = Cleanup_Report_Checklists::form_items( Cleanup_Report_Checklists::defender_items(), $answers );
-        ?>
-        <div class="crg-checklist" data-kind="defender">
-            <div class="crg-checklist-bar">
-                <p class="description"><strong>Applied</strong>: we configured it. <strong>Pending</strong>: not configured yet. <strong>Member to do</strong>: the member has to finish it. Click a selected button again to leave the setting out of the report.</p>
-                <span class="crg-checklist-count" aria-live="polite"></span>
-                <button type="button" class="button button-small crg-set-all" data-status="applied">Mark all applied</button>
-                <button type="button" class="button-link crg-set-all" data-status="">Clear</button>
-            </div>
-            <?php if ( ! $items ) : ?>
-                <p class="crg-empty">No Defender settings are set up. <?php self::settings_link( 'defender', 'Add them in Settings' ); ?></p>
-            <?php endif; ?>
-            <?php
-            foreach ( $items as $key => $item ) {
-                $answer = $answers[ $key ] ?? [];
-                self::check_row( 'crg_defender', $key, $item, $answer['status'] ?? '', $answer['notes'] ?? '', 'notes', [
-                    ''            => 'Leave out', // hidden: click the selected button again to clear
-                    'applied'     => 'Applied',
-                    'in_progress' => 'Pending',
-                    'pending'     => 'Member to do',
-                ], [
-                    ''            => 'Not in the report',
-                    'applied'     => ( $item['applied_note'] ?? '' ) ?: 'Configured to recommended settings.',
-                    'in_progress' => ( $item['progress_note'] ?? '' ) ?: Cleanup_Report_Checklists::PROGRESS_FALLBACK,
-                    'pending'     => ( $item['pending_note'] ?? '' ) ?: 'Note for the member: what they need to do',
-                ], true );
+        $groups  = [ 'agent' => [], 'member' => [] ];
+        foreach ( $items as $key => $item ) {
+            $groups[ Cleanup_Report_Checklists::owner( $item ) ][ $key ] = $item;
+        }
+        if ( ! $items ) : ?>
+            <p class="crg-empty">No Defender settings are set up. <?php self::settings_link( 'defender', 'Add them in Settings' ); ?></p>
+        <?php endif;
+        $parts = [
+            'agent'  => [
+                'title'   => 'To be done by agent',
+                'help'    => '<strong>Applied</strong>: we configured it. <strong>Pending</strong>: not configured yet. <strong>Member to do</strong>: we couldn\'t, so the member has to.',
+                'all'     => [ 'applied', 'Mark all applied' ],
+                'choices' => [ '' => 'Leave out', 'applied' => 'Applied', 'in_progress' => 'Pending', 'pending' => 'Member to do' ],
+            ],
+            'member' => [
+                'title'   => 'To be done by member',
+                'help'    => 'Settings that need the site owner. <strong>Member to do</strong>: listed for the member. <strong>Applied</strong>: already set up.',
+                'all'     => [ 'pending', 'Mark all member to do' ],
+                'choices' => [ '' => 'Leave out', 'pending' => 'Member to do', 'applied' => 'Applied' ],
+            ],
+        ];
+        foreach ( $parts as $owner => $part ) {
+            if ( ! $groups[ $owner ] ) {
+                continue;
             }
             ?>
-            <p class="crg-checklist-foot"><?php self::settings_link( 'defender', 'Edit the Defender checklist' ); ?></p>
-        </div>
+            <div class="crg-checklist crg-def-part" data-kind="defender">
+                <h3 class="crg-def-title"><?php echo esc_html( $part['title'] ); ?></h3>
+                <div class="crg-checklist-bar">
+                    <p class="description"><?php echo wp_kses( $part['help'], self::HELP_TAGS ); ?> Click a selected button again to leave the setting out of the report.</p>
+                    <span class="crg-checklist-count" aria-live="polite"></span>
+                    <button type="button" class="button button-small crg-set-all" data-status="<?php echo esc_attr( $part['all'][0] ); ?>"><?php echo esc_html( $part['all'][1] ); ?></button>
+                    <button type="button" class="button-link crg-set-all" data-status="">Clear</button>
+                </div>
+                <?php
+                foreach ( $groups[ $owner ] as $key => $item ) {
+                    $answer  = $answers[ $key ] ?? [];
+                    $choices = $part['choices'];
+                    if ( ! empty( $answer['status'] ) && ! isset( $choices[ $answer['status'] ] ) ) {
+                        $choices[ $answer['status'] ] = $parts['agent']['choices'][ $answer['status'] ] ?? $answer['status']; // keep an answer given before the item moved part
+                    }
+                    self::check_row( 'crg_defender', $key, $item, $answer['status'] ?? '', $answer['notes'] ?? '', 'notes', $choices, [
+                        ''            => 'Not in the report',
+                        'applied'     => ( $item['applied_note'] ?? '' ) ?: 'Configured to recommended settings.',
+                        'in_progress' => ( $item['progress_note'] ?? '' ) ?: Cleanup_Report_Checklists::PROGRESS_FALLBACK,
+                        'pending'     => ( $item['pending_note'] ?? '' ) ?: 'Note for the member: what they need to do',
+                    ], true );
+                }
+                ?>
+            </div>
+            <?php
+        }
+        ?>
+        <p class="crg-checklist-foot"><?php self::settings_link( 'defender', 'Edit the Defender checklist' ); ?></p>
         <?php
     }
 
@@ -512,12 +608,17 @@ class Cleanup_Report_Admin {
     public static function box_next( $post ) {
         $answers = Cleanup_Report_Checklists::report_followups( $post->ID );
         $items   = Cleanup_Report_Checklists::form_items( Cleanup_Report_Checklists::followup_items(), $answers );
-        self::input( $post, 'crg_pending_actions', 'Pending actions', [
-            'type'        => 'textarea',
-            'rows'        => 4,
-            'placeholder' => "1. Review the two files Defender still reports in the site root.\n2. …",
-            'help'        => 'Anything the member must still do, one per line (numbered or "•" lines become a list). Leave empty if nothing is pending.',
-        ] );
+        $pending = (string) self::meta( $post, 'crg_pending_actions' );
+        if ( '' !== trim( $pending ) && ! preg_match( '/<[a-z]/i', $pending ) ) {
+            $pending = Cleanup_Report_Render::text_to_html( $pending ); // plain lines from before 2.1.0
+        }
+        ?>
+        <div class="crg-field crg-field-editor">
+            <label for="crg_pending_actions">Pending actions</label>
+            <p class="description">Anything the member must still do, as a bulleted or numbered list. Leave empty if nothing is pending.</p>
+            <?php wp_editor( $pending, 'crg_pending_actions', [ 'textarea_name' => 'crg_pending_actions', 'textarea_rows' => 5 ] + self::EDITOR ); ?>
+        </div>
+        <?php
         ?>
         <div class="crg-field">
             <span class="crg-field-label">Follow-ups</span>
@@ -596,7 +697,7 @@ class Cleanup_Report_Admin {
             'type'        => 'textarea',
             'rows'        => 3,
             'placeholder' => "Supported PHP versions: https://www.php.net/supported-versions.php",
-            'help'        => 'One per line as <code>Title: https://…</code>. Links to the Defender docs, 2FA and login masking are always added.',
+            'help'        => 'One per line as <code>Title: https://…</code>. Links to the Defender docs, 2FA and Hide Login URL are always added.',
         ] );
         ?>
         <?php
@@ -887,12 +988,17 @@ class Cleanup_Report_Admin {
             isset( $_POST['crg_defender'] ) ? map_deep( wp_unslash( $_POST['crg_defender'] ), 'sanitize_text_field' ) : null
         );
 
+        if ( isset( $_POST['crg_delist_vendors'] ) && is_array( $_POST['crg_delist_vendors'] ) ) {
+            Cleanup_Report_Checklists::save_report_blocklists( $post_id, array_filter( array_map( 'sanitize_key', wp_unslash( $_POST['crg_delist_vendors'] ) ) ) );
+        }
+
         $fields = [
-            'text'  => [ 'crg_client_name', 'crg_report_date' ],
+            'text'  => [ 'crg_client_name', 'crg_report_date', 'crg_key_finding', 'crg_hosting_type_note', 'crg_backups_note', 'crg_ssh_accounts_note', 'crg_hub_member_note' ],
+            'pick'  => array_map( static function ( $k ) { return 'crg_' . $k; }, array_keys( Cleanup_Report_Render::SITE_CHECKS ) ),
             'url'   => [ 'crg_site_url', 'crg_request_link', 'crg_task_url' ],
             'int'   => [ 'crg_summary_critical', 'crg_summary_medium', 'crg_summary_low' ],
-            'plain' => [ 'crg_plugin_list', 'crg_components', 'crg_pending_actions', 'crg_documentation_links', 'crg_delist', 'crg_additional_sites' ],
-            'html'  => [ 'crg_infection_summary', 'crg_highlights', 'crg_improvements', 'crg_verification_summary', 'crg_reinstall_list', 'crg_replace_list', 'crg_seo_note', 'crg_protect_note' ],
+            'plain' => [ 'crg_plugin_list', 'crg_components', 'crg_documentation_links', 'crg_delist', 'crg_additional_sites' ],
+            'html'  => [ 'crg_pending_actions', 'crg_infection_summary', 'crg_highlights', 'crg_improvements', 'crg_verification_summary', 'crg_reinstall_list', 'crg_replace_list', 'crg_seo_note', 'crg_protect_note' ],
         ];
         foreach ( $fields as $type => $keys ) {
             foreach ( $keys as $key ) {
@@ -903,6 +1009,10 @@ class Cleanup_Report_Admin {
                 switch ( $type ) {
                     case 'int':
                         $value = max( 0, (int) $raw );
+                        break;
+                    case 'pick': // one of the check's answers, or none
+                        $value = sanitize_key( $raw );
+                        $value = isset( Cleanup_Report_Render::SITE_CHECKS[ substr( $key, 4 ) ][2][ $value ] ) ? $value : '';
                         break;
                     case 'url':
                         $value = esc_url_raw( self::normalize_url( sanitize_text_field( $raw ), 'crg_site_url' === $key ) );

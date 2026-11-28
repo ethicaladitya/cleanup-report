@@ -102,10 +102,60 @@ class Cleanup_Report_Render {
             'defender_checklist' => Cleanup_Report_Checklists::defender_for_output( Cleanup_Report_Checklists::report_defender( $post_id ), $m['crg_site_url'] ?? '' ),
             'documentation_links' => $m['crg_documentation_links'] ?? '',
             'pending_actions' => $m['crg_pending_actions'] ?? '',
+            'key_finding' => self::key_finding( $post_id ),
+            'site_checks' => self::site_checks( $m ),
+            'delist_vendors' => Cleanup_Report_Checklists::report_blocklists( $post_id ),
             'seo_note' => $m['crg_seo_note'] ?? '',
             'protect_note' => $m['crg_protect_note'] ?? '',
             'brand' => $brand,
         ];
+    }
+
+    /**
+     * Hosting & access checks from the team's report template (Work done & verification on the edit screen; the
+     * report's Verification table): key => [ question on the edit screen, label in the report, answers ].
+     * Stored as crg_<key> (the answer) and crg_<key>_note.
+     */
+    const SITE_CHECKS = [
+        'hosting_type' => [ 'Hosting Type', 'Hosting type', [ 'wpmudev' => 'WPMU DEV hosting', 'third_party' => 'Third-party hosting' ] ],
+        'backups'      => [ 'Are backups created before and after the cleanup?', 'Backups before and after the cleanup', [ 'both' => 'Yes, before and after', 'before' => 'Before the cleanup only', 'after' => 'After the cleanup only', 'none' => 'No' ] ],
+        'ssh_accounts' => [ 'Any sFTP/SSH accounts present?', 'sFTP/SSH accounts', [ 'yes' => 'Yes', 'no' => 'No' ] ],
+        'hub_member'   => [ 'HUB team member', 'Hub team member', [ 'yes' => 'Yes', 'no' => 'No' ] ],
+    ];
+
+    /** The answered site checks, in order: [ label, answer, note ]. */
+    private static function site_checks( array $m ) {
+        $out = [];
+        foreach ( self::SITE_CHECKS as $key => [ , $label, $answers ] ) {
+            $answer = $answers[ $m[ 'crg_' . $key ] ?? '' ] ?? '';
+            $note   = trim( (string) ( $m[ 'crg_' . $key . '_note' ] ?? '' ) );
+            if ( '' !== $answer || '' !== $note ) {
+                $out[] = [ 'label' => $label, 'answer' => $answer, 'note' => $note ];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * The summary page's key finding: the report's own line (Findings › Key finding). Reports saved before that
+     * field existed use the first sentence of the infection summary, as they did then.
+     */
+    public static function key_finding( $post_id ) {
+        if ( metadata_exists( 'post', $post_id, 'crg_key_finding' ) ) {
+            return trim( (string) get_post_meta( $post_id, 'crg_key_finding', true ) );
+        }
+        return self::auto_key_finding( (string) get_post_meta( $post_id, 'crg_infection_summary', true ) );
+    }
+
+    /** First sentence(s) of a summary, without code, URLs or long tokens (payloads), at most about 280 characters. */
+    public static function auto_key_finding( $html ) {
+        $plain = preg_replace( '#<code>.*?</code>#is', '', (string) $html );
+        $plain = trim( preg_replace( '/\s+/', ' ', html_entity_decode( wp_strip_all_tags( $plain ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
+        $plain = trim( preg_replace( [ '#https?://\S+#', '/\S{40,}/u', '/\s+([,.;:])/' ], [ '', '', '$1' ], $plain ) );
+        if ( '' === $plain ) {
+            return '';
+        }
+        return preg_match( '/^(.{60,280}?[.!?])(\s|$)/u', $plain, $m ) ? $m[1] : wp_trim_words( $plain, 40 );
     }
 
     const SEVERITIES = [ 'critical', 'high', 'medium', 'low' ];
@@ -228,8 +278,9 @@ class Cleanup_Report_Render {
      */
     public static function default_texts( $host = '' ) {
         return [
-            'seo'     => "IMPORTANT: Because the site was infected, search results may show spam pages or warnings for a while.\n\nRECOMMENDED ACTIONS:\n• Search Google for site:" . ( $host ?: 'yourdomain.com' ) . " and look for pages you don't recognise\n• Resubmit your sitemap in Google Search Console and Bing Webmaster Tools\n• Request a review in Search Console if Google shows a security warning\n\nTIMELINE: Search engines usually update their results within 1–4 weeks.",
-            'protect' => "• Turn on two-factor authentication for every administrator (Defender)\n• Keep WordPress core, plugins and theme up to date (Automate)\n• Keep the scheduled malware scan enabled and act on its alerts\n• Use strong, unique passwords and remove accounts you no longer need\n• Keep regular off-site backups",
+            // Both follow the team's report template ("It is important to know").
+            'seo'     => "IMPORTANT: Because of the malware, your site's SEO may be affected and Google may show unwanted content for it.\n\nRECOMMENDED ACTIONS:\n• Search Google for site:" . ( $host ?: 'yourdomain.com' ) . " and look for unexpected content, such as pharmaceutical results\n• If you find any, resubmit your sitemap in Google Search Console and Bing Webmaster Tools\n• Request a review in Search Console if Google shows a security warning\n\nNOTE: It takes time for search engines to update their results.",
+            'protect' => "• Configure and force two-factor authentication with WPMU DEV Defender\n• Keep your plugins and theme updated with WPMU DEV Automate\n• Keep safe backups with the Snapshot plugin (not needed for sites hosted with WPMU DEV)\n• If you use shared hosting, move other sites off this account (for example to WPMU DEV hosting) to avoid cross-site infection\n• Use WPMU DEV uptime monitoring: a spike in response time is sometimes the first sign of an attack",
             'verification' => '<p>We performed a full malware check on the website:</p><ul><li>WordPress core, plugin and theme integrity</li><li>Database scan for malware signatures</li><li>Hidden PHP files inside the uploads folder</li><li>Front-end scan with external malware scanners such as VirusTotal</li><li>Security audit of plugins and theme</li><li>Manual check of the theme\'s functions.php, header.php and footer.php</li><li>Audit of administrator accounts, including application passwords</li></ul>',
         ];
     }
