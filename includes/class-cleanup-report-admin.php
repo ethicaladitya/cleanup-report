@@ -125,7 +125,7 @@ class Cleanup_Report_Admin {
             foreach ( $section['fields'] as $f ) {
                 $keys = array_merge( $keys, Cleanup_Report_Fields::meta_keys( $f ) );
             }
-            $out[ $section['title'] ] = $keys;
+            $out[ $section['title'] ] = array_merge( $out[ $section['title'] ] ?? [], $keys ); // two sections may share a title
         }
         $out['Notes'] = [ 'crg_author_notes', 'crg_review_notes' ]; // stored in English in the history; translated on display
         return $out;

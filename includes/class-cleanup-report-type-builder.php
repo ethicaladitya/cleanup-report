@@ -252,17 +252,17 @@ class Cleanup_Report_Type_Builder {
                         $field['rows'] = max( 2, min( 20, (int) ( $f['rows'] ?? 5 ) ) );
                         break;
                     case 'select':
-                        $field['answers'] = self::parse_answers( $f['answers'] ?? '' );
+                        $field['answers'] = self::parse_answers( is_array( $f['answers'] ?? '' ) ? self::answers_text( $f['answers'] ) : ( $f['answers'] ?? '' ) );
                         $field['note']    = ! empty( $f['note'] );
                         break;
                     case 'questions':
-                        $field['questions'] = self::parse_questions( $f['questions'] ?? '' );
+                        $field['questions'] = self::parse_questions( is_array( $f['questions'] ?? '' ) ? self::questions_text( $f['questions'] ) : ( $f['questions'] ?? '' ) );
                         break;
                     case 'table':
-                        $field['columns'] = self::parse_columns( $f['columns'] ?? '' );
+                        $field['columns'] = self::parse_columns( is_array( $f['columns'] ?? '' ) ? self::columns_text( $f['columns'] ) : ( $f['columns'] ?? '' ) );
                         break;
                     case 'checklist':
-                        $field['items'] = self::parse_items( $f['items'] ?? '' );
+                        $field['items'] = self::parse_items( is_array( $f['items'] ?? '' ) ? self::items_text( $f['items'] ) : ( $f['items'] ?? '' ) );
                         break;
                     case 'note':
                         $field['standard'] = wp_kses_post( (string) ( $f['standard'] ?? '' ) );
@@ -572,6 +572,16 @@ class Cleanup_Report_Type_Builder {
         /* translators: %s: report type */
         $out     = [ 'label' => sprintf( __( '%s (copy)', 'cleanup-report-generator' ), $def['label'] ), 'about' => $def['about'], 'enabled' => true, 'sections' => [], 'skipped' => [] ];
         $allowed = self::field_types();
+        $special = [
+            'key_finding'     => __( 'Key finding', 'cleanup-report-generator' ),
+            'severity_counts' => __( 'Issue counts', 'cleanup-report-generator' ),
+            'plugin_check'    => __( 'Plugin check', 'cleanup-report-generator' ),
+            'components'      => __( 'Vulnerable components', 'cleanup-report-generator' ),
+            'blocklists'      => __( 'Blocklists', 'cleanup-report-generator' ),
+            'defender'        => __( 'Defender checklist', 'cleanup-report-generator' ),
+            'followups'       => __( 'Follow-ups', 'cleanup-report-generator' ),
+            'scores'          => __( 'PageSpeed scores', 'cleanup-report-generator' ),
+        ];
         foreach ( $def['sections'] as $skey => $section ) {
             if ( 'site' === $skey ) {
                 continue;
@@ -579,8 +589,11 @@ class Cleanup_Report_Type_Builder {
             $fields = [];
             foreach ( $section['fields'] as $f ) {
                 $f = Cleanup_Report_Fields::defaults( $f );
+                if ( isset( $allowed[ $f['type'] ] ) && '' === (string) $f['label'] ) {
+                    $f['label'] = $section['title']; // e.g. a checklist that is its section's only content
+                }
                 if ( ! isset( $allowed[ $f['type'] ] ) || '' === (string) $f['label'] ) {
-                    $out['skipped'][] = $f['label'] ?: $f['key'];
+                    $out['skipped'][] = $f['label'] ?: ( $special[ $f['type'] ] ?? $f['type'] );
                     continue;
                 }
                 $copy = [ 'id' => '', 'type' => $f['type'], 'label' => $f['label'], 'help' => wp_strip_all_tags( (string) $f['help'] ), 'placeholder' => $f['placeholder'], 'rows' => $f['rows'] ];
