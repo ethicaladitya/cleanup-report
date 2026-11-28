@@ -3,64 +3,70 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Cleanup_Report_Render {
 
+    /**
+     * Everything the report template needs. Shared keys for every type (brand, website, dates, review state), plus the
+     * type's own data: a Malware cleanup report's fields, a Website optimization report's 'opt', or a generic report's
+     * 'generic'. A report only reads its own type's fields, so values of another type can never show up in it.
+     */
     public static function get_data( $post_id ) {
-        $m = array_map(function($a){ return $a[0]; }, get_post_meta($post_id));
-        $brand = [
-            'name' => get_option( 'crg_brand_name', '' ) ?: Cleanup_Report_Presets::get( 'brand_name' ),
+        $m        = array_map( static function ( $a ) { return $a[0]; }, get_post_meta( $post_id ) );
+        $type     = Cleanup_Report_Types::of( $post_id );
+        $info     = Cleanup_Report_Types::get( $type );
+        $template = $info['template'];
+        $data     = [
+            'post_id'      => $post_id,
+            'type'         => $type,
+            'type_info'    => $info,
+            'final'        => Cleanup_Report_Admin::is_final( $post_id ), // approved or completed; otherwise watermarked
+            'watermark'    => Cleanup_Report_Admin::watermark(),
+            'title'        => get_the_title( $post_id ),
+            'client'       => $m['crg_client_name'] ?? '',
+            'site'         => $m['crg_site_url'] ?? '',
+            'date'         => $m['crg_report_date'] ?? '',
+            'request_link' => $m['crg_request_link'] ?? '',
+            'brand'        => self::brand(),
+            'screenshots'  => [], // a Malware cleanup report's evidence; the other types keep theirs in their own data
+            'opt'          => 'site-optimization' === $template ? self::optimization( $post_id, $m ) : [],
+            'generic'      => 'generic' === $template ? self::generic_sections( $post_id, $info, $m ) : [],
+        ];
+        return 'malware-cleanup' === $template ? self::malware_cleanup( $post_id, $m ) + $data : $data;
+    }
+
+    /** Branding from Settings › Branding (or the preset's defaults). */
+    private static function brand() {
+        $dark = 'dark' === get_option( 'crg_report_theme', 'light' );
+        return [
+            'name'    => get_option( 'crg_brand_name', '' ) ?: Cleanup_Report_Presets::get( 'brand_name' ),
             // A dark logo on the light cover, a white one on the dark cover; with no matching logo the cover shows the name.
-            'logo' => 'dark' === get_option( 'crg_report_theme', 'light' ) ? get_option( 'crg_brand_logo', '' ) : get_option( 'crg_brand_logo_light', '' ),
-            'colors' => self::colors(),
-            'primary' => get_option('crg_brand_primary','#0059FF'),
+            'logo'    => $dark ? get_option( 'crg_brand_logo', '' ) : get_option( 'crg_brand_logo_light', '' ),
+            'colors'  => self::colors(),
+            'primary' => get_option( 'crg_brand_primary', '#0059FF' ),
             'footer'  => self::footer(),
-            'theme'   => 'dark' === get_option( 'crg_report_theme', 'light' ) ? 'dark' : 'light',
+            'theme'   => $dark ? 'dark' : 'light',
             'glow'    => self::cover_glow( get_option( 'crg_cover_glow', 100 ) ),
         ];
-        
-        // Handle screenshots (new format)
-        $screenshots = get_post_meta($post_id, 'crg_screenshots', true);
-        if (!is_array($screenshots)) {
-            // Migrate old format if exists
+    }
+
+    /** A Malware cleanup report's own data (see templates/types/malware-cleanup.php). */
+    private static function malware_cleanup( $post_id, array $m ) {
+        $screenshots = get_post_meta( $post_id, 'crg_screenshots', true );
+        if ( ! is_array( $screenshots ) ) { // reports from 1.x: one before and one after image
             $screenshots = [];
-            if (!empty($m['crg_ss_before'])) {
-                $screenshots[] = [
-                    'url' => $m['crg_ss_before'],
-                    'title' => 'Security Scan - Before Cleaning',
-                    'type' => 'before'
-                ];
-            }
-            if (!empty($m['crg_ss_after'])) {
-                $screenshots[] = [
-                    'url' => $m['crg_ss_after'],
-                    'title' => 'Security Scan - After Cleaning',
-                    'type' => 'after'
-                ];
+            foreach ( [ 'before' => [ 'crg_ss_before', 'Security Scan - Before Cleaning' ], 'after' => [ 'crg_ss_after', 'Security Scan - After Cleaning' ] ] as $kind => [ $key, $title ] ) {
+                if ( ! empty( $m[ $key ] ) ) {
+                    $screenshots[] = [ 'url' => $m[ $key ], 'title' => $title, 'type' => $kind ];
+                }
             }
         }
-        
-        // Filter out empty screenshots
-        $screenshots = array_filter($screenshots, function($screenshot) {
-            return !empty($screenshot['url']);
-        });
-        
-        // Parse actions
-        $actions_raw = $m['crg_actions'] ?? '';
-        $lines = preg_split('/\r\n|\r|\n/', $actions_raw);
-        $actions = [];
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (!$line) continue;
-            if (preg_match('/^\[(CRITICAL|RECOMMENDED|OPTIONAL)\]\s*(.*)$/i', $line, $matches)) {
-                $actions[] = ['level'=>strtoupper($matches[1]), 'text'=>$matches[2]];
-            } else {
-                $actions[] = ['level'=>'OPTIONAL', 'text'=>preg_replace('/^\[(.*?)\]\s*/','',$line)];
-            }
-        }
-        
+        $screenshots = array_filter( $screenshots, static function ( $shot ) { return ! empty( $shot['url'] ); } );
+
         // Vulnerable / outdated components: one per line, "Name | Installed version | Issue | Severity".
         $components = [];
-        foreach (preg_split('/\r\n|\r|\n/', (string) ($m['crg_components'] ?? '')) as $line) {
-            $cols = array_map('trim', explode('|', $line));
-            if ($cols[0] === '') continue;
+        foreach ( preg_split( '/\r\n|\r|\n/', (string) ( $m['crg_components'] ?? '' ) ) as $line ) {
+            $cols = array_map( 'trim', explode( '|', $line ) );
+            if ( '' === $cols[0] ) {
+                continue;
+            }
             $components[] = [
                 'name'     => $cols[0],
                 'version'  => $cols[1] ?? '',
@@ -68,51 +74,31 @@ class Cleanup_Report_Render {
                 'severity' => self::severity( $cols[3] ?? '' ) ?: 'medium',
             ];
         }
-
-        $type = Cleanup_Report_Types::of( $post_id );
+        $site = $m['crg_site_url'] ?? '';
         return [
-            'post_id' => $post_id,
-            'type'    => $type,
-            'type_info' => Cleanup_Report_Types::get( $type ),
-            'opt'     => 'site_optimization' === $type ? self::optimization( $post_id, $m ) : [],
-            'generic' => 'generic' === Cleanup_Report_Types::get( $type )['template'] ? self::generic_sections( $post_id, Cleanup_Report_Types::get( $type ), $m ) : [],
-            'final'   => Cleanup_Report_Admin::is_final( $post_id ), // approved or completed; otherwise watermarked
-            'watermark' => Cleanup_Report_Admin::watermark(),
-            'components' => $components,
-            'improvements' => wpautop($m['crg_improvements'] ?? ''),
-            'additional_sites' => $m['crg_additional_sites'] ?? '',
-            'delist' => $m['crg_delist'] ?? '',
-            'title' => get_the_title($post_id),
-            'client' => $m['crg_client_name'] ?? '',
-            'site' => $m['crg_site_url'] ?? '',
-            'date' => $m['crg_report_date'] ?? '',
-            'request_link' => $m['crg_request_link'] ?? '',
-            // Legacy screenshot support
-            'ss_before' => $m['crg_ss_before'] ?? '',
-            'ss_after' => $m['crg_ss_after'] ?? '',
-            // New multiple screenshots support
-            'screenshots' => $screenshots,
-            // WYSIWYG content (apply wpautop for proper formatting)
-            'infection_summary' => wpautop($m['crg_infection_summary'] ?? ''),
-            's_critical' => max(0, intval($m['crg_summary_critical'] ?? 0)),
-            's_medium' => max(0, intval($m['crg_summary_medium'] ?? 0)),
-            's_low' => max(0, intval($m['crg_summary_low'] ?? 0)),
-            'highlights' => wpautop($m['crg_highlights'] ?? ''),
-            'actions' => $actions,
-            'reinstall_list' => wpautop($m['crg_reinstall_list'] ?? ''),
-            'replace_list' => wpautop($m['crg_replace_list'] ?? ''),
+            'screenshots'          => $screenshots,
+            'components'           => $components,
+            'improvements'         => wpautop( $m['crg_improvements'] ?? '' ),
+            'additional_sites'     => $m['crg_additional_sites'] ?? '',
+            'delist'               => $m['crg_delist'] ?? '',
+            'infection_summary'    => wpautop( $m['crg_infection_summary'] ?? '' ),
+            's_critical'           => max( 0, intval( $m['crg_summary_critical'] ?? 0 ) ),
+            's_medium'             => max( 0, intval( $m['crg_summary_medium'] ?? 0 ) ),
+            's_low'                => max( 0, intval( $m['crg_summary_low'] ?? 0 ) ),
+            'highlights'           => wpautop( $m['crg_highlights'] ?? '' ),
+            'reinstall_list'       => wpautop( $m['crg_reinstall_list'] ?? '' ),
+            'replace_list'         => wpautop( $m['crg_replace_list'] ?? '' ),
             // Follow-ups: [ label, status (done | required | recommended), note ], wording as saved with the report.
-            'followups' => Cleanup_Report_Checklists::followups_for_output( Cleanup_Report_Checklists::report_followups( $post_id ), $m['crg_site_url'] ?? '' ),
-            'verification_summary' => wpautop($m['crg_verification_summary'] ?? ''),
-            'defender_checklist' => Cleanup_Report_Checklists::defender_for_output( Cleanup_Report_Checklists::report_defender( $post_id ), $m['crg_site_url'] ?? '' ),
-            'documentation_links' => $m['crg_documentation_links'] ?? '',
-            'pending_actions' => $m['crg_pending_actions'] ?? '',
-            'key_finding' => self::key_finding( $post_id ),
-            'site_checks' => self::site_checks( $m ),
-            'delist_vendors' => Cleanup_Report_Checklists::report_blocklists( $post_id ),
-            'seo_note' => $m['crg_seo_note'] ?? '',
-            'protect_note' => $m['crg_protect_note'] ?? '',
-            'brand' => $brand,
+            'followups'            => Cleanup_Report_Checklists::followups_for_output( Cleanup_Report_Checklists::report_followups( $post_id ), $site ),
+            'verification_summary' => wpautop( $m['crg_verification_summary'] ?? '' ),
+            'defender_checklist'   => Cleanup_Report_Checklists::defender_for_output( Cleanup_Report_Checklists::report_defender( $post_id ), $site ),
+            'documentation_links'  => $m['crg_documentation_links'] ?? '',
+            'pending_actions'      => $m['crg_pending_actions'] ?? '',
+            'key_finding'          => self::key_finding( $post_id ),
+            'site_checks'          => self::site_checks( $m ),
+            'delist_vendors'       => Cleanup_Report_Checklists::report_blocklists( $post_id ),
+            'seo_note'             => $m['crg_seo_note'] ?? '',
+            'protect_note'         => $m['crg_protect_note'] ?? '',
         ];
     }
 
@@ -318,7 +304,6 @@ class Cleanup_Report_Render {
         return preg_match( '/^(.{60,280}?[.!?])(\s|$)/u', $plain, $m ) ? $m[1] : wp_trim_words( $plain, 40 );
     }
 
-    const SEVERITIES = [ 'critical', 'high', 'medium', 'low' ];
 
     /** Status colours (Settings › Branding): key => [ label, what it's used for, default ]. */
     const COLORS = [

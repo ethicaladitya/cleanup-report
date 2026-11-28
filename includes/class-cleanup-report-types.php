@@ -33,6 +33,7 @@ class Cleanup_Report_Types {
         add_filter( 'submenu_file', [ __CLASS__, 'submenu_file' ] );
         add_action( 'restrict_manage_posts', [ __CLASS__, 'list_filter' ] );
         add_action( 'pre_get_posts', [ __CLASS__, 'filter_list' ] );
+        add_filter( 'views_edit-cleanup_report', [ __CLASS__, 'list_views' ] );
         add_action( 'admin_enqueue_scripts', [ __CLASS__, 'chooser_assets' ] );
     }
 
@@ -387,6 +388,36 @@ class Cleanup_Report_Types {
         <?php
     }
 
+    /** Reports list: one view per type with its count ("Malware cleanup (12) | Website optimization (3)"). */
+    public static function list_views( $views ) {
+        $current = self::requested();
+        foreach ( self::definitions() as $key => $def ) {
+            $q = new WP_Query( [
+                'post_type'              => 'cleanup_report',
+                'post_status'            => array_values( array_diff( get_post_stati( [ 'show_in_admin_all_list' => true ] ), [ 'trash', 'auto-draft' ] ) ),
+                'fields'                 => 'ids',
+                'posts_per_page'         => 1,
+                'update_post_meta_cache' => false,
+                'update_post_term_cache' => false,
+                'meta_query'             => [ self::meta_match( $key ) ], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- admin list counts, one small query per type
+            ] );
+            $views[ 'crg_type_' . $key ] = sprintf(
+                '<a href="%s"%s>%s <span class="count">(%s)</span></a>',
+                esc_url( add_query_arg( [ 'post_type' => 'cleanup_report', 'crg_type' => $key ], admin_url( 'edit.php' ) ) ),
+                $current === $key ? ' class="current" aria-current="page"' : '',
+                esc_html( $def['label'] ),
+                esc_html( number_format_i18n( $q->found_posts ) )
+            );
+        }
+        return $views;
+    }
+
+    /** Meta query clause for reports of a type (Malware cleanup includes reports saved before types existed). */
+    private static function meta_match( $type ) {
+        $match = [ 'key' => self::META, 'value' => $type ];
+        return self::DEFAULT_TYPE === $type ? [ 'relation' => 'OR', $match, [ 'key' => self::META, 'compare' => 'NOT EXISTS' ] ] : $match;
+    }
+
     public static function filter_list( $query ) {
         if ( ! is_admin() || ! $query->is_main_query() || 'cleanup_report' !== $query->get( 'post_type' ) ) {
             return;
@@ -395,10 +426,6 @@ class Cleanup_Report_Types {
         if ( ! $type ) {
             return;
         }
-        $match = [ 'key' => self::META, 'value' => $type ];
-        if ( self::DEFAULT_TYPE === $type ) {
-            $match = [ 'relation' => 'OR', $match, [ 'key' => self::META, 'compare' => 'NOT EXISTS' ] ]; // in case the upgrade hasn't run yet
-        }
-        $query->set( 'meta_query', [ $match ] ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- admin list filter only
+        $query->set( 'meta_query', [ self::meta_match( $type ) ] ); // Malware cleanup also matches reports the upgrade hasn't marked yet // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- admin list filter only
     }
 }

@@ -71,10 +71,8 @@ class Cleanup_Report_Checklists {
      * (the member has to finish it). "pending" keeps its 2.0 meaning, so older reports still read the same.
      */
     const DEFENDER_STATUSES = [ 'applied', 'in_progress', 'pending' ];
-    const PROGRESS_FALLBACK = 'Not configured yet.';
 
-    /** Placeholders allowed in client-facing texts. */
-    const PLACEHOLDERS = [ '{site}', '{host}', '{wp_admin}' ];
+
 
     const DEFAULT_FIXED = [
         'ssl'             => 'We installed an SSL certificate; all traffic is now encrypted.',
@@ -86,7 +84,6 @@ class Cleanup_Report_Checklists {
         'automate'        => 'We enabled WPMU DEV Automate to keep plugins and themes updated.',
         'review_content'  => 'We reviewed posts and comments and removed the spam.',
     ];
-    const FIXED_FALLBACK = 'Done during the cleanup.';
 
     /** The report text for a follow-up we did during the cleanup (DEFAULT_FIXED, translated), or the general one. */
     public static function fixed_text( $key ) {
