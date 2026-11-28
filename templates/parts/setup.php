@@ -30,7 +30,7 @@ if ( $host && false !== strpos( $host, 'xn--' ) && function_exists( 'idn_to_utf8
 }
 $date_ts = $data['date'] ? strtotime( $data['date'] ) : false;
 $date    = date_i18n( 'j F Y', $date_ts ?: time() );
-$client  = $data['client'] ?: ( $host ?: 'Your website' );
+$client  = $data['client'] ?: ( $host ?: __( 'Your website', 'cleanup-report-generator' ) );
 // Long names and domains are shortened with an ellipsis.
 $clip         = static function ( $text, $max ) { return mb_strlen( $text ) > $max ? rtrim( mb_substr( $text, 0, $max - 1 ) ) . '…' : $text; };
 // The cover headline is the website (a domain reads better than a first name); the name goes under it as "Prepared for".

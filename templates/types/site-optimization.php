@@ -17,7 +17,7 @@ $avg     = $opt['averages'];
 $targets = $opt['targets'];
 $reached = $opt['reached'];
 $fmt     = [ 'Cleanup_Report_Optimization', 'format_avg' ];
-$devices = [ 'mobile' => 'Mobile', 'desktop' => 'Desktop' ];
+$devices = [ 'mobile' => __( 'Mobile', 'cleanup-report-generator' ), 'desktop' => __( 'Desktop', 'cleanup-report-generator' ) ];
 
 // PageSpeed's own colour bands: 90–100 good, 50–89 needs improvement, 0–49 poor.
 $band = static function ( $score ) {
@@ -46,13 +46,13 @@ $pre_checks  = $opt['checks']['pre'];
 $post_checks = $opt['checks']['post'];
 
 $sections = array_filter( [
-    'scores' => 'Performance scores',
-    'pre'    => 'Pre-work checklist',
-    'steps'  => $has( $opt['steps'] ) || '' !== trim( $opt['code'] ) ? 'Optimization steps' : null,
-    'result' => 'Optimization result',
-    'post'   => 'Post-work checklist',
-    'info'   => 'Helpful information about the performance',
-    'code'   => '' !== trim( $opt['code'] ) ? 'Code added to your site' : null,
+    'scores' => __( 'Performance scores', 'cleanup-report-generator' ),
+    'pre'    => __( 'Pre-work checklist', 'cleanup-report-generator' ),
+    'steps'  => $has( $opt['steps'] ) || '' !== trim( $opt['code'] ) ? __( 'Optimization steps', 'cleanup-report-generator' ) : null,
+    'result' => __( 'Optimization result', 'cleanup-report-generator' ),
+    'post'   => __( 'Post-work checklist', 'cleanup-report-generator' ),
+    'info'   => __( 'Helpful information about the performance', 'cleanup-report-generator' ),
+    'code'   => '' !== trim( $opt['code'] ) ? __( 'Code added to your site', 'cleanup-report-generator' ) : null,
 ] );
 $num = static function ( $key ) use ( $sections ) { return sprintf( '%02d', array_search( $key, array_keys( $sections ), true ) + 1 ); };
 $h2  = static function ( $key ) use ( $sections, $num ) {
@@ -60,11 +60,17 @@ $h2  = static function ( $key ) use ( $sections, $num ) {
 };
 
 if ( ! $all_measured ) {
-    $chip = [ 'warn', 'Scores after the work not entered yet' ];
+    $chip = [ 'warn', __( 'Scores after the work not entered yet', 'cleanup-report-generator' ) ];
 } elseif ( $missed ) {
-    $chip = [ 'warn', 'Optimized · ' . implode( ' and ', array_map( 'strtolower', array_intersect_key( $devices, array_flip( $missed ) ) ) ) . ' target not reached' ];
+    // Whole phrases per case ($missed keeps the order of $reached: mobile, then desktop).
+    $missed_chips = [
+        'mobile'         => __( 'Optimized · mobile target not reached', 'cleanup-report-generator' ),
+        'desktop'        => __( 'Optimized · desktop target not reached', 'cleanup-report-generator' ),
+        'mobile,desktop' => __( 'Optimized · mobile and desktop target not reached', 'cleanup-report-generator' ),
+    ];
+    $chip = [ 'warn', $missed_chips[ implode( ',', $missed ) ] ];
 } else {
-    $chip = [ 'ok', 'Optimized · targets reached' ];
+    $chip = [ 'ok', __( 'Optimized · targets reached', 'cleanup-report-generator' ) ];
 }
 
 $cover = [
@@ -72,13 +78,25 @@ $cover = [
     'chip'        => $chip,
     'stats'       => [],
     'prepared_by' => $type_info['prepared_by'],
-    'foot'        => 'Describes the website\'s performance at the time of the optimization.',
+    'foot'        => __( 'Describes the website\'s performance at the time of the optimization.', 'cleanup-report-generator' ),
+];
+$stat_labels = [
+    'mobile'  => [
+        __( 'Mobile average score', 'cleanup-report-generator' ),
+        /* translators: %s: average score before the work */
+        __( 'Mobile average score, from %s', 'cleanup-report-generator' ),
+    ],
+    'desktop' => [
+        __( 'Desktop average score', 'cleanup-report-generator' ),
+        /* translators: %s: average score before the work */
+        __( 'Desktop average score, from %s', 'cleanup-report-generator' ),
+    ],
 ];
 foreach ( $devices as $device => $label ) {
     $before            = $avg[ $device . '_before' ]['avg'];
     $cover['stats'][] = [
         esc_html( call_user_func( $fmt, $avg[ $device . '_after' ]['avg'] ) ),
-        $label . ' average score' . ( null !== $before ? ', from ' . call_user_func( $fmt, $before ) : '' ),
+        null !== $before ? sprintf( $stat_labels[ $device ][1], call_user_func( $fmt, $before ) ) : $stat_labels[ $device ][0],
     ];
 }
-$cover['stats'][] = [ (int) $reached_n . '<small> / ' . count( $devices ) . '</small>', 'Targets reached' ];
+$cover['stats'][] = [ (int) $reached_n . '<small> / ' . count( $devices ) . '</small>', __( 'Targets reached', 'cleanup-report-generator' ) ];

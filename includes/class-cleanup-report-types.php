@@ -6,7 +6,7 @@
  * A type is a definition (see definitions()): its labels, its sections (each an edit-screen box and a group in the
  * history) and their fields (Cleanup_Report_Fields), the Settings tabs that belong to it, and the template that draws
  * its report. The edit screen, saving and the history come from the definition alone; a type without a template of
- * its own gets the generic report (templates/types/generic.php). Add or change types with the `handover_report_types`
+ * its own gets the generic report (templates/types/generic.php). Add or change types with the `cleanup_report_types`
  * filter.
  *
  * The type is picked when a report is added (Reports › Add … report, or the chooser behind the list's "Add report"
@@ -33,13 +33,21 @@ class Cleanup_Report_Types {
         add_filter( 'submenu_file', [ __CLASS__, 'submenu_file' ] );
         add_action( 'restrict_manage_posts', [ __CLASS__, 'list_filter' ] );
         add_action( 'pre_get_posts', [ __CLASS__, 'filter_list' ] );
+        add_action( 'admin_enqueue_scripts', [ __CLASS__, 'chooser_assets' ] );
+    }
+
+    /** The chooser page uses the plugin's admin stylesheet (the edit and settings screens load it themselves). */
+    public static function chooser_assets( $hook ) {
+        if ( 'cleanup_report_page_' . self::CHOOSER === $hook ) {
+            wp_enqueue_style( 'crg-admin', CLEANUP_REPORT_URL . 'assets/admin.css', [ 'dashicons' ], CLEANUP_REPORT_VERSION . '.' . filemtime( CLEANUP_REPORT_PATH . 'assets/admin.css' ) );
+        }
     }
 
     /* ================================================================== definitions */
 
     /**
      * Every report type: key => definition. A definition:
-     *  - label, add (menu item), about (chooser), eyebrow (cover), title (running header), file (PDF file name part),
+     *  - label, add (menu item), about and icon (chooser card; a Dashicons name), eyebrow (cover), title (running header), file (PDF file name part),
      *    suffix (suggested title), prepared_by (cover card: "<brand> <prepared_by>")
      *  - sections: key => [ title, fields => [ field, … ], columns (optional) ]; box ID crg_box_<key>. Fields are
      *    described in Cleanup_Report_Fields.
@@ -49,7 +57,7 @@ class Cleanup_Report_Types {
      */
     public static function definitions() {
         if ( null === self::$definitions ) {
-            $definitions = (array) apply_filters( 'handover_report_types', [
+            $definitions = (array) apply_filters( 'cleanup_report_types', [
                 'malware_cleanup'   => self::malware_cleanup(),
                 'site_optimization' => self::site_optimization(),
             ] );
@@ -144,6 +152,7 @@ class Cleanup_Report_Types {
         }
         return [
             'label'       => __( 'Malware cleanup', 'cleanup-report-generator' ),
+            'icon'        => 'shield',
             'add'         => __( 'Add cleanup report', 'cleanup-report-generator' ),
             'about'       => __( 'What was found and removed, how the site was verified, Defender settings and the member\'s next steps.', 'cleanup-report-generator' ),
             'eyebrow'     => __( 'Malware cleanup report', 'cleanup-report-generator' ),
@@ -213,6 +222,7 @@ class Cleanup_Report_Types {
         $checklist  = [ 'type' => 'checklist', 'items' => [ 'Cleanup_Report_Optimization', 'check_items' ], 'settings' => 'optimization' ];
         return [
             'label'       => __( 'Website optimization', 'cleanup-report-generator' ),
+            'icon'        => 'performance',
             'add'         => __( 'Add optimization report', 'cleanup-report-generator' ),
             'about'       => __( 'PageSpeed scores before and after, the pre- and post-work checklists, the optimization steps and the result against the targets.', 'cleanup-report-generator' ),
             'eyebrow'     => __( 'Website optimization report', 'cleanup-report-generator' ),
@@ -343,10 +353,11 @@ class Cleanup_Report_Types {
             <p class="crg-lead"><?php esc_html_e( 'Which kind of report? It can\'t be changed once the report is started.', 'cleanup-report-generator' ); ?></p>
             <div class="crg-chooser-cards">
                 <?php foreach ( self::definitions() as $key => $type ) : ?>
-                    <a class="crg-chooser-card" href="<?php echo esc_url( self::add_url( $key ) ); ?>">
-                        <?php self::badge( $key ); ?>
-                        <strong><?php echo esc_html( $type['add'] ); ?></strong>
-                        <span><?php echo esc_html( $type['about'] ); ?></span>
+                    <a class="crg-chooser-card crg-type-card-<?php echo esc_attr( $key ); ?>" href="<?php echo esc_url( self::add_url( $key ) ); ?>">
+                        <span class="crg-chooser-icon dashicons dashicons-<?php echo esc_attr( $type['icon'] ?? 'media-document' ); ?>" aria-hidden="true"></span>
+                        <strong class="crg-chooser-title"><?php echo esc_html( $type['label'] ); ?></strong>
+                        <span class="crg-chooser-about"><?php echo esc_html( $type['about'] ); ?></span>
+                        <span class="button button-primary"><?php echo esc_html( $type['add'] ); ?></span>
                     </a>
                 <?php endforeach; ?>
             </div>

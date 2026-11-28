@@ -2,7 +2,8 @@
 /**
  * Deleting the plugin (Plugins › Delete). Nothing is removed unless an administrator ticked "Delete all reports and
  * settings when the plugin is deleted" (Settings › Review). Then every report, setting, transient, scheduled event
- * and the plugin's cache folder (uploads/crg-cache) go, on each site of a network. Screenshots stay in the Media
+ * and the plugin's cache folders (uploads/crg-cache, and Dompdf's fonts in the temp folder) go, on each site of a
+ * network. Screenshots stay in the Media
  * Library: they're ordinary media and may be used elsewhere.
  */
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
@@ -23,27 +24,37 @@ function cleanup_report_uninstall_site() {
     foreach ( [ 'crg_refresh_plugin_list', 'crg_retention_cleanup' ] as $hook ) {
         wp_unschedule_hook( $hook );
     }
-    // Every option and transient this plugin stores starts with crg_.
-    $like  = $wpdb->esc_like( 'crg_' ) . '%';
-    $names = $wpdb->get_col( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s", $like, $wpdb->esc_like( '_transient_crg_' ) . '%', $wpdb->esc_like( '_transient_timeout_crg_' ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time cleanup on uninstall; options are listed, then deleted through the API
-    foreach ( $names as $name ) {
-        if ( 0 === strpos( $name, '_transient_timeout_' ) ) {
-            continue;
-        }
-        if ( 0 === strpos( $name, '_transient_' ) ) {
-            delete_transient( substr( $name, strlen( '_transient_' ) ) );
-        } else {
-            delete_option( $name );
-        }
+    // This plugin's options, by name (another plugin may use names starting with crg_ too).
+    $options = [
+        'crg_db_version', 'crg_defaults', 'crg_brand_name', 'crg_brand_logo', 'crg_brand_logo_light', 'crg_brand_primary',
+        'crg_report_theme', 'crg_cover_glow', 'crg_footer_text', 'crg_watermark_text', 'crg_pdf_requires_approval',
+        'crg_buddyleads', 'crg_retention_days', 'crg_retention_last_run', 'crg_plugin_recheck', 'crg_delete_data',
+        'crg_followup_items', 'crg_defender_items', 'crg_blocklists', 'crg_opt_checks', 'crg_opt_target_mobile',
+        'crg_opt_target_desktop', 'crg_plugin_registry', 'crg_premium_items', 'crg_post_status_synced', 'crg_scanner_line_replaced',
+    ];
+    foreach ( [ 'success', 'warning', 'high', 'danger', 'neutral' ] as $color ) {
+        $options[] = 'crg_color_' . $color;
     }
-    // Trimmed logos and Dompdf's font cache.
+    foreach ( $options as $name ) {
+        delete_option( $name );
+    }
+    delete_transient( 'crg_upgrading' );
+    delete_transient( 'crg_retention_running' );
+    // Cached lookups: transients named crg_pc_<hash> (plugin check) and crg_logo_<hash> (logo trimming).
+    $names = $wpdb->get_col( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s", $wpdb->esc_like( '_transient_crg_pc_' ) . '%', $wpdb->esc_like( '_transient_crg_logo_' ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one-time cleanup on uninstall; the transients are then deleted through the API
+    foreach ( $names as $name ) {
+        delete_transient( substr( $name, strlen( '_transient_' ) ) );
+    }
+    // Trimmed logos and Dompdf's font cache (in uploads, or the temp folder when uploads isn't writable).
     $uploads = wp_get_upload_dir();
-    $cache   = trailingslashit( $uploads['basedir'] ?? '' ) . 'crg-cache';
-    if ( ! empty( $uploads['basedir'] ) && is_dir( $cache ) ) {
-        require_once ABSPATH . 'wp-admin/includes/file.php';
-        if ( WP_Filesystem() ) {
-            global $wp_filesystem;
-            $wp_filesystem->rmdir( $cache, true );
+    $folders = array_filter( [ ! empty( $uploads['basedir'] ) ? trailingslashit( $uploads['basedir'] ) . 'crg-cache' : '', trailingslashit( get_temp_dir() ) . 'crg-fonts' ] );
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    if ( WP_Filesystem() ) {
+        global $wp_filesystem;
+        foreach ( $folders as $folder ) {
+            if ( is_dir( $folder ) ) {
+                $wp_filesystem->rmdir( $folder, true );
+            }
         }
     }
 }

@@ -21,12 +21,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
             <?php echo esc_html( $brand_short ); ?>
         <?php endif; ?>
     </div>
-    <div class="conf">Confidential</div>
+    <div class="conf"><?php esc_html_e( 'Confidential', 'cleanup-report-generator' ); ?></div>
 
     <div class="inner">
         <div class="eyebrow"><?php echo esc_html( $cover['eyebrow'] ); ?></div>
         <h1 style="font-size:<?php echo (int) $h1_size; ?>pt"><?php echo esc_html( $headline ); ?></h1>
-        <?php if ( $prepared_for ) : ?><div class="site">Prepared for <strong><?php echo esc_html( $prepared_for ); ?></strong></div><?php endif; ?>
+        <?php if ( $prepared_for ) : ?><div class="site"><?php echo wp_kses( sprintf( /* translators: %s: client name */ __( 'Prepared for <strong>%s</strong>', 'cleanup-report-generator' ), esc_html( $prepared_for ) ), [ 'strong' => [] ] ); ?></div><?php endif; ?>
         <div class="chip <?php echo esc_attr( $cover['chip'][0] ); ?>"><?php echo esc_html( $cover['chip'][1] ); ?></div>
     </div>
 
@@ -37,11 +37,11 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
             <?php endforeach; ?>
         </tr></table>
         <table class="meta"><tr>
-            <td style="width:28%"><div class="k">Completed</div><div class="v"><?php echo esc_html( $date ); ?></div></td>
-            <td style="width:22%"><div class="k">Report ID</div><div class="v">#<?php echo (int) $data['post_id']; ?></div></td>
-            <td style="width:50%"><div class="k">Prepared by</div><div class="v"><?php echo esc_html( $brand_short . ' ' . $cover['prepared_by'] ); ?></div></td>
+            <td style="width:28%"><div class="k"><?php esc_html_e( 'Completed', 'cleanup-report-generator' ); ?></div><div class="v"><?php echo esc_html( $date ); ?></div></td>
+            <td style="width:22%"><div class="k"><?php esc_html_e( 'Report ID', 'cleanup-report-generator' ); ?></div><div class="v"><?php echo esc_html( sprintf( /* translators: %d: report number */ __( '#%d', 'cleanup-report-generator' ), (int) $data['post_id'] ) ); ?></div></td>
+            <td style="width:50%"><div class="k"><?php esc_html_e( 'Prepared by', 'cleanup-report-generator' ); ?></div><div class="v"><?php echo esc_html( sprintf( /* translators: 1: brand name, e.g. "WPMU DEV", 2: team, e.g. "Security Team" */ __( '%1$s %2$s', 'cleanup-report-generator' ), $brand_short, $cover['prepared_by'] ) ); ?></div></td>
         </tr></table>
     </div>
 
-    <div class="foot"><span class="dot">●</span>&nbsp; Confidential<?php echo $foot_name ? ' — prepared for ' . esc_html( $foot_name ) : ''; ?>. <?php echo esc_html( $cover['foot'] ); ?></div>
+    <div class="foot"><span class="dot">●</span>&nbsp; <?php echo esc_html( $foot_name ? sprintf( /* translators: %s: client name or website */ __( 'Confidential — prepared for %s.', 'cleanup-report-generator' ), $foot_name ) : __( 'Confidential.', 'cleanup-report-generator' ) ); ?> <?php echo esc_html( $cover['foot'] ); ?></div>
 </div>

@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 <head>
 <meta charset="utf-8">
 <?php if ( $web ) : ?><meta name="viewport" content="width=860"><?php endif; ?>
-<title><?php echo esc_html( $type_info['eyebrow'] . ' – ' . ( $host ?: $client ) ); ?></title>
+<title><?php echo esc_html( sprintf( /* translators: 1: report type, 2: website or client name */ __( '%1$s – %2$s', 'cleanup-report-generator' ), $type_info['eyebrow'], $host ?: $client ) ); ?></title>
 <style>
 <?php
 // Roboto (wpmudev.com's typeface, SIL OFL 1.1, assets/fonts/OFL.txt). Characters Roboto lacks fall back to DejaVu Sans glyph by glyph.
@@ -206,13 +206,22 @@ body { padding: 72px 0 48px; }
 <?php if ( $web ) : ?>
 <div class="webbar">
     <?php if ( ! empty( $data['web']['fallback'] ) ) : ?>
-    <div class="t"><strong>Print view</strong> · <?php echo esc_html( $data['web']['fallback'] ); ?>. Use your browser's Save as PDF.</div>
+    <div class="t"><?php echo wp_kses( sprintf( /* translators: %s: why the PDF couldn't be made */ __( '<strong>Print view</strong> · %s. Use your browser\'s Save as PDF.', 'cleanup-report-generator' ), esc_html( $data['web']['fallback'] ) ), [ 'strong' => [] ] ); ?></div>
     <?php else : ?>
-    <div class="t"><strong>Preview</strong> · <?php echo esc_html( $host ?: $client ); ?> · <?php echo empty( $data['final'] ) ? 'not approved yet, so this isn\'t the final report' : 'this is how the PDF reads'; ?></div>
+    <div class="t"><?php
+    echo wp_kses(
+        empty( $data['final'] )
+            /* translators: %s: website or client name */
+            ? sprintf( __( '<strong>Preview</strong> · %s · not approved yet, so this isn\'t the final report', 'cleanup-report-generator' ), esc_html( $host ?: $client ) )
+            /* translators: %s: website or client name */
+            : sprintf( __( '<strong>Preview</strong> · %s · this is how the PDF reads', 'cleanup-report-generator' ), esc_html( $host ?: $client ) ),
+        [ 'strong' => [] ]
+    );
+    ?></div>
     <?php endif; ?>
     <?php if ( empty( $data['final'] ) ) : ?><span class="nf"><?php echo esc_html( $data['watermark'] ); ?></span><?php endif; ?>
-    <?php if ( ! empty( $data['web']['edit'] ) ) : ?><a href="<?php echo esc_url( $data['web']['edit'] ); ?>">Edit report</a><?php endif; ?>
-    <?php if ( ! empty( $data['web']['pdf'] ) ) : ?><a class="primary" href="<?php echo esc_url( $data['web']['pdf'] ); ?>">Download PDF</a><?php endif; ?>
+    <?php if ( ! empty( $data['web']['edit'] ) ) : ?><a href="<?php echo esc_url( $data['web']['edit'] ); ?>"><?php esc_html_e( 'Edit report', 'cleanup-report-generator' ); ?></a><?php endif; ?>
+    <?php if ( ! empty( $data['web']['pdf'] ) ) : ?><a class="primary" href="<?php echo esc_url( $data['web']['pdf'] ); ?>"><?php esc_html_e( 'Download PDF', 'cleanup-report-generator' ); ?></a><?php endif; ?>
 </div>
 <?php if ( empty( $data['final'] ) ) : ?><div class="notfinal" aria-hidden="true" style="font-size:<?php echo (int) min( 120, 1300 / max( 1, mb_strlen( $data['watermark'] ) * 0.72 ) ); ?>px"><?php echo esc_html( $data['watermark'] ); ?></div><?php endif; ?>
 <?php endif; ?>

@@ -339,6 +339,21 @@ class Cleanup_Report_Render {
         'bold'     => [ 'Bold', [ 'primary' => '#0059FF', 'success' => '#067647', 'warning' => '#FDB022', 'high' => '#C4320A', 'danger' => '#D92D20', 'neutral' => '#667085', 'glow' => 100 ] ],
     ];
 
+    /** Translated names for Settings › Branding: status colour key => [ label, what it's used for ], preset key => label. */
+    public static function color_labels() {
+        return [
+            'success' => [ __( 'Success', 'cleanup-report-generator' ), __( 'Done, Applied, Low', 'cleanup-report-generator' ) ],
+            'warning' => [ __( 'Warning', 'cleanup-report-generator' ), __( 'Recommended, Medium, Pending actions box', 'cleanup-report-generator' ) ],
+            'high'    => [ __( 'High', 'cleanup-report-generator' ), __( 'High severity', 'cleanup-report-generator' ) ],
+            'danger'  => [ __( 'Danger', 'cleanup-report-generator' ), __( 'Required, Pending, Critical', 'cleanup-report-generator' ) ],
+            'neutral' => [ __( 'Neutral', 'cleanup-report-generator' ), __( 'In place', 'cleanup-report-generator' ) ],
+        ];
+    }
+
+    public static function preset_labels() {
+        return [ 'subtle' => __( 'Subtle', 'cleanup-report-generator' ), 'balanced' => __( 'Balanced', 'cleanup-report-generator' ), 'bold' => __( 'Bold', 'cleanup-report-generator' ) ];
+    }
+
     /** Footer text (Settings › Branding) as saved, or the preset's; {year} becomes the current year when a report is made. */
     public static function footer_default() {
         return Cleanup_Report_Presets::get( 'footer' );
@@ -439,13 +454,25 @@ class Cleanup_Report_Render {
      * Client-guidance texts used when a report leaves them empty (also shown as placeholders on the edit screen).
      */
     public static function default_texts( $host = '' ) {
+        $li = static function ( array $items ) { return '<li>' . implode( '</li><li>', $items ) . '</li>'; };
         return [
-            // Both follow the team's report template ("It is important to know").
-            'seo'     => "IMPORTANT: Because of the malware, your site's SEO may be affected and Google may show unwanted content for it.\n\nRECOMMENDED ACTIONS:\n• Search Google for site:" . ( $host ?: 'yourdomain.com' ) . " and look for unexpected content, such as pharmaceutical results\n• If you find any, resubmit your sitemap in Google Search Console and Bing Webmaster Tools\n• Request a review in Search Console if Google shows a security warning\n\nNOTE: It takes time for search engines to update their results.",
+            // Both follow the team's report template ("It is important to know"). Plain text: "HEADING:" lines and "•" lists.
+            /* translators: %s: the website's domain, e.g. example.com. Keep the line breaks, the "•" bullets and the CAPITALS: headings. */
+            'seo'     => sprintf( __( "IMPORTANT: Because of the malware, your site's SEO may be affected and Google may show unwanted content for it.\n\nRECOMMENDED ACTIONS:\n• Search Google for site:%s and look for unexpected content, such as pharmaceutical results\n• If you find any, resubmit your sitemap in Google Search Console and Bing Webmaster Tools\n• Request a review in Search Console if Google shows a security warning\n\nNOTE: It takes time for search engines to update their results.", 'cleanup-report-generator' ), $host ?: 'yourdomain.com' ),
             'protect' => Cleanup_Report_Presets::is( 'wpmudev' )
-                ? "• Configure and force two-factor authentication with WPMU DEV Defender\n• Keep your plugins and theme updated with WPMU DEV Automate\n• Keep safe backups with the Snapshot plugin (not needed for sites hosted with WPMU DEV)\n• If you use shared hosting, move other sites off this account (for example to WPMU DEV hosting) to avoid cross-site infection\n• Use WPMU DEV uptime monitoring: a spike in response time is sometimes the first sign of an attack"
-                : "• Turn on two-factor authentication for every administrator\n• Keep WordPress, your plugins and your theme updated\n• Keep regular backups stored away from the server\n• If you use shared hosting, move other sites off this account to avoid cross-site infection\n• Use uptime monitoring: a spike in response time is sometimes the first sign of an attack",
-            'verification' => '<p>We performed a full malware check on the website:</p><ul><li>WordPress core, plugin and theme integrity</li><li>Database scan for malware signatures</li><li>Hidden PHP files inside the uploads folder</li><li>Front-end scan with external malware scanners such as VirusTotal</li><li>Security audit of plugins and theme</li><li>Manual check of the theme\'s functions.php, header.php and footer.php</li><li>Audit of administrator accounts, including application passwords</li></ul>',
+                /* translators: keep the "•" bullets and line breaks. */
+                ? __( "• Configure and force two-factor authentication with WPMU DEV Defender\n• Keep your plugins and theme updated with WPMU DEV Automate\n• Keep safe backups with the Snapshot plugin (not needed for sites hosted with WPMU DEV)\n• If you use shared hosting, move other sites off this account (for example to WPMU DEV hosting) to avoid cross-site infection\n• Use WPMU DEV uptime monitoring: a spike in response time is sometimes the first sign of an attack", 'cleanup-report-generator' )
+                /* translators: keep the "•" bullets and line breaks. */
+                : __( "• Turn on two-factor authentication for every administrator\n• Keep WordPress, your plugins and your theme updated\n• Keep regular backups stored away from the server\n• If you use shared hosting, move other sites off this account to avoid cross-site infection\n• Use uptime monitoring: a spike in response time is sometimes the first sign of an attack", 'cleanup-report-generator' ),
+            'verification' => '<p>' . __( 'We performed a full malware check on the website:', 'cleanup-report-generator' ) . '</p><ul>' . $li( [
+                __( 'WordPress core, plugin and theme integrity', 'cleanup-report-generator' ),
+                __( 'Database scan for malware signatures', 'cleanup-report-generator' ),
+                __( 'Hidden PHP files inside the uploads folder', 'cleanup-report-generator' ),
+                __( 'Front-end scan with external malware scanners such as VirusTotal', 'cleanup-report-generator' ),
+                __( 'Security audit of plugins and theme', 'cleanup-report-generator' ),
+                __( 'Manual check of the theme\'s functions.php, header.php and footer.php', 'cleanup-report-generator' ),
+                __( 'Audit of administrator accounts, including application passwords', 'cleanup-report-generator' ),
+            ] ) . '</ul>',
         ];
     }
 

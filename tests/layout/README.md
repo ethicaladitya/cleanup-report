@@ -17,12 +17,12 @@ Exit code is the number of problems (0 = pass). Pages are saved as PNGs in `test
 - macOS with Xcode command line tools (the checker uses PDFKit; tools are compiled on first run into `.build/`).
 - `composer install` done locally (the deploy copies `vendor/`).
 - SSH access to a **test** site with WP-CLI. The script copies the plugin over the site's copy
-  (`rsync --delete`, files in `.distignore` left out) and creates/overwrites five reports, so never point it at a
+  (`rsync --delete`, files in `.distignore` left out) and creates/overwrites six reports, so never point it at a
   live site.
 
 | Variable | Default | |
 |---|---|---|
-| `CRG_SSH_HOST` | `iaditya` | ssh host of the test site |
+| `CRG_SSH_HOST` | `iaditya` | ssh host of the test site (e.g. `ocl`, with `CRG_WP_PATH=sites/madebyopenclaw/public_html`) |
 | `CRG_WP_PATH` | `site/public_html` | WordPress root on that host |
 | `CRG_NO_DEPLOY` | unset | `1` = don't copy the plugin, test what's on the site |
 
@@ -38,6 +38,7 @@ screenshots are mock Defender scans (no real site data); they're uploaded to the
 | `long` | Layout test – long | Every field at its worst: 150-character client name, long URL, base64 payload and 70-character slug with no spaces, 25 components, 20 pending actions, 6 screenshots. |
 | `optimization` | Sample – website optimization report | A full Website optimization report (invented site): 4 pages of scores including a long URL, both checklists, a screenshot, steps, and ~90 lines of code with a line too long for the page. |
 | `optimization-minimal` | Layout test – optimization minimal | A Website optimization report with nothing filled in: no scores ("—"), no tests, standard texts only. |
+| `generic` | Layout test – generic type | A report type that exists only as a definition (`fixtures/_types.php`, also loaded by `render.php`), drawn by the generic template: every generic field type, a 15-row table with a long URL, long code. |
 
 ## Checks (`tools/layoutcheck.swift`)
 

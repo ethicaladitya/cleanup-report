@@ -6,6 +6,7 @@
  * Author: WPMU DEV
  * License: GPLv2 or later
  * Text Domain: cleanup-report-generator
+ * Domain Path: /languages
  * Requires at least: 5.8
  * Requires PHP: 7.4
  */

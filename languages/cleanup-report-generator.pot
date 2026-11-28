@@ -1,0 +1,4071 @@
+# Copyright (C) 2026 WPMU DEV
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Handover – Service Reports for Agencies 2.2.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/cleanup-report-generator\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-11-28T03:58:00+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: cleanup-report-generator\n"
+
+#. Plugin Name of the plugin
+#: cleanup-report-generator.php
+msgid "Handover – Service Reports for Agencies"
+msgstr ""
+
+#. Description of the plugin
+#: cleanup-report-generator.php
+msgid "Branded service reports for your clients: malware cleanup and website optimization reports, written in wp-admin, approved through a review workflow and exported as PDF."
+msgstr ""
+
+#. Author of the plugin
+#: cleanup-report-generator.php
+#: includes/class-cleanup-report-presets.php:23
+msgid "WPMU DEV"
+msgstr ""
+
+#: includes/class-cleanup-report-access.php:123
+msgid "<strong>This report is approved, so it can't be changed.</strong> Once it's been sent to the member, set its status to Completed in the Save & review box. A Buddylead can reopen it if something needs fixing."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:63
+#: includes/class-cleanup-report-settings.php:399
+msgid "Draft"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:64
+#: includes/class-cleanup-report-admin.php:94
+msgid "Submitted for review"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:65
+#: includes/class-cleanup-report-settings.php:400
+msgid "Needs revision"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:66
+#: includes/class-cleanup-report-admin.php:97
+#: includes/class-cleanup-report-settings.php:400
+msgid "Approved"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:67
+#: includes/class-cleanup-report-settings.php:401
+#: templates/parts/cover.php:40
+#: templates/types/generic.php:40
+msgid "Completed"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:74
+msgid "Report moved back to draft."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:75
+msgid "Report submitted for review."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:76
+msgid "Report sent back for revision. The author will see your notes."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:77
+msgid "Report approved. It can now be sent to the member."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:78
+msgid "Report marked completed."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:88
+msgid "Created the report"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:89
+msgid "Edited"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:90
+msgid "Moved to Trash"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:91
+msgid "Restored from Trash"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:92
+msgid "Downloaded the PDF"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:93
+msgid "Moved back to draft"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:95
+msgid "Resubmitted for review"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:96
+msgid "Sent back for revision"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:98
+msgid "Marked completed"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:99
+msgid "Title"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:100
+#: templates/types/generic-body.php:54
+#: templates/types/malware-cleanup-body.php:169
+#: templates/types/malware-cleanup-body.php:201
+#: templates/types/site-optimization-body.php:22
+msgid "Notes"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:301
+msgid "Edits, review steps and PDF downloads will be noted here."
+msgstr ""
+
+#. translators: %d: number of older history entries
+#: includes/class-cleanup-report-admin.php:319
+#, php-format
+msgid "Show %d earlier"
+msgid_plural "Show %d earlier"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/class-cleanup-report-admin.php:342
+msgid "Save & review"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:344
+#: includes/class-cleanup-report-cpt.php:9
+#: includes/class-cleanup-report-pdf.php:71
+msgid "Report"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:345
+msgid "History"
+msgstr ""
+
+#. translators: %s: the report type's title suffix, e.g. Malware cleanup report
+#: includes/class-cleanup-report-admin.php:370
+#, php-format
+msgid "Report title, e.g. Acme Bakery – %s"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:379
+msgid "Report sections"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:392
+msgid "Save the report to preview it or download the PDF."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:400
+#: includes/class-cleanup-report-admin.php:402
+#: includes/class-cleanup-report-plugin.php:67
+#: templates/parts/head.php:224
+msgid "Download PDF"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:404
+msgid "Preview in browser"
+msgstr ""
+
+#. translators: %s: the mark on reports that aren't approved yet, e.g. NOT FINAL
+#: includes/class-cleanup-report-admin.php:412
+#, php-format
+msgid "The PDF can be downloaded once the report is approved. Until then the preview is marked <strong>%s</strong>."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:420
+msgid "Uses the last saved version."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:421
+msgid "You have unsaved changes. Save to include them."
+msgstr ""
+
+#. translators: %s: date and time
+#: includes/class-cleanup-report-admin.php:435
+#, php-format
+msgid "Submitted %s"
+msgstr ""
+
+#. translators: 1: a person's name, 2: date and time
+#: includes/class-cleanup-report-admin.php:437
+#, php-format
+msgid "Submitted by %1$s, %2$s"
+msgstr ""
+
+#. translators: %s: date and time
+#: includes/class-cleanup-report-admin.php:441
+#, php-format
+msgid "Approved %s"
+msgstr ""
+
+#. translators: 1: a person's name, 2: date and time
+#: includes/class-cleanup-report-admin.php:443
+#, php-format
+msgid "Approved by %1$s, %2$s"
+msgstr ""
+
+#. translators: %s: date and time
+#: includes/class-cleanup-report-admin.php:447
+#, php-format
+msgid "Completed %s"
+msgstr ""
+
+#. translators: 1: a person's name, 2: date and time
+#: includes/class-cleanup-report-admin.php:449
+#, php-format
+msgid "Completed by %1$s, %2$s"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:480
+#: includes/class-cleanup-report-pdf.php:110
+msgid "NOT FINAL"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:520
+msgid "Save draft"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:520
+#: includes/class-cleanup-report-admin.php:529
+msgid "Save"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:523
+msgid "Move back to draft"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:524
+msgid "Resubmit for review"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:524
+msgid "Submit for review"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:525
+msgid "Send back for revision"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:526
+msgid "Approve"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:527
+msgid "Mark completed"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:563
+msgid "Buddylead's notes"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:566
+msgid "Notes from the author"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:569
+#: includes/class-cleanup-report-settings.php:570
+#: templates/types/malware-cleanup-body.php:169
+#: templates/types/malware-cleanup-body.php:201
+#: assets/admin.js:604
+msgid "Status"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:578
+msgid "Approved. Once the report is sent to the member, mark it Completed."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:580
+msgid "As an administrator, you can approve this report or send it back for changes."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:582
+msgid "As a Buddylead, you can approve this report or send it back for changes."
+msgstr ""
+
+#. translators: %s: names of the Buddyleads, e.g. "Ana, Ben"
+#: includes/class-cleanup-report-admin.php:586
+#, php-format
+msgid "Buddyleads (%s) and administrators approve reports. Submit it for review when it's ready."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:589
+msgid "Buddyleads and administrators approve reports. Submit it for review when it's ready."
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:594
+msgid "Notes for the author"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:595
+msgid "What needs changing, or why it's approved"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:600
+msgid "Notes for the Buddylead"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:601
+msgid "Anything they should check"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:612
+msgid "Move to Trash"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:712
+msgid "Date"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:715
+#: includes/class-cleanup-report-fields.php:273
+#: includes/class-cleanup-report-settings.php:587
+msgid "Type"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:716
+#: includes/class-cleanup-report-types.php:133
+msgid "Prepared for"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:717
+msgid "Website"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:718
+#: includes/class-cleanup-report-settings.php:104
+msgid "Review"
+msgstr ""
+
+#: includes/class-cleanup-report-admin.php:719
+#: includes/class-cleanup-report-types.php:135
+msgid "Report date"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:94
+msgid "We installed an SSL certificate; all traffic is now encrypted."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:95
+msgid "We set up Cloudflare to cache and protect your site."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:96
+msgid "We moved the site to a supported PHP version."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:97
+msgid "We reviewed the administrators and removed accounts that weren't yours."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:98
+msgid "We reset the passwords of all users."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:99
+msgid "We set a custom login URL in Defender."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:100
+msgid "We enabled WPMU DEV Automate to keep plugins and themes updated."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:101
+msgid "We reviewed posts and comments and removed the spam."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:103
+msgid "Done during the cleanup."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:108
+#: includes/class-cleanup-report-settings.php:752
+msgid "Not configured yet."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:203
+msgid "Configure SSL"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:203
+msgid "Does the site need an SSL certificate?"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:203
+msgid "Install an SSL certificate so all traffic is encrypted."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:203
+msgid "Your site already has SSL."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:204
+msgid "Configure Cloudflare"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:204
+msgid "Cloudflare caches the site globally and adds security."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:204
+msgid "Once configured, Cloudflare caches and protects your site across its worldwide network."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:204
+msgid "Already in place."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:205
+msgid "Update PHP Version"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:205
+msgid "Running a supported PHP version improves security and speed."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:205
+msgid "The latest PHP version gives better security and performance."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:205
+msgid "Running a supported version."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:206
+msgid "Check any suspect admins"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:206
+msgid "Any administrator accounts the member should confirm?"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:206
+msgid "Review Users and remove any administrator you don't recognise."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:206
+msgid "No unknown administrators found."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:207
+msgid "Login & Access - Password Rules"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:207
+msgid "Force users to change their passwords at their next login after the breach."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:207
+msgid "Force users to change their passwords at their next login, because of the security breach."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:207
+msgid "Not needed."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:209
+#: includes/class-cleanup-report-checklists.php:238
+msgid "Hide Login URL"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:209
+msgid "Setting a custom login URL needs the site owner."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:209
+msgid "Set a custom login URL in Defender and share it with your team."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:209
+msgid "Already configured."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:210
+msgid "Enable WPMU DEV Automate"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:210
+msgid "Keeps plugins and themes updated automatically."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:210
+msgid "Already enabled."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:211
+msgid "Review Post/Comment Section"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:211
+msgid "Check for spam the attacker may have added."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:211
+msgid "Check recent posts and comments for spam the attacker may have added."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:211
+msgid "Nothing suspicious found."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:219
+msgid "Defender Hardening"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:220
+msgid "Enabling Audit Log"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:221
+msgid "Firewalls - Global Firewall"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:222
+msgid "Local Firewall - Login Protection"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:223
+msgid "Local Firewall - 404 Detection"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:224
+msgid "Local Firewall - Malicious Bot Detector"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:225
+msgid "Local Firewall - Trap Bots That Ignore robots.txt"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:226
+msgid "Local Firewall - Catch Fake Bots"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:227
+msgid "Local Firewall - Empty Headers"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:228
+msgid "Custom Rules - User Agent"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:229
+msgid "Password Rules - Pwned Passwords"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:230
+msgid "Password Rules - Strong Password"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:231
+msgid "Password Rules - Reset Passwords"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:232
+msgid "Tools > Issues Scan"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:233
+msgid "Tools > Firewall Detect IP Addresses"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:234
+msgid "Tools > Blocklist Monitor"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:235
+msgid "Tools > Security Headers"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:236
+msgid "Reports & Alerts - Scheduled Reports"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:238
+msgid "Choose a custom login URL and share it with your team."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:239
+msgid "Login & Access - Two-Factor Auth"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:239
+msgid "Each administrator needs to set up 2FA on their own account."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:240
+msgid "Login & Access - Session Security"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:240
+msgid "Set an idle timeout and session lock to protect your users from session hijacking."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:241
+msgid "Login & Access - Bot Protection"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:241
+msgid "Add a CAPTCHA (Google reCAPTCHA or Cloudflare Turnstile) to your login, registration and comment forms. It needs your own API keys."
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:242
+msgid "Custom Rules - User Agent - Scripts"
+msgstr ""
+
+#: includes/class-cleanup-report-checklists.php:242
+msgid "Block the Scripts preset (automated clients) if none of your own services reach the site that way."
+msgstr ""
+
+#: includes/class-cleanup-report-cpt.php:8
+#: includes/class-cleanup-report-cpt.php:10
+msgid "Reports"
+msgstr ""
+
+#: includes/class-cleanup-report-cpt.php:11
+msgid "All reports"
+msgstr ""
+
+#: includes/class-cleanup-report-cpt.php:12
+#: includes/class-cleanup-report-cpt.php:13
+#: includes/class-cleanup-report-types.php:306
+#: includes/class-cleanup-report-types.php:352
+msgid "Add report"
+msgstr ""
+
+#: includes/class-cleanup-report-cpt.php:14
+#: templates/parts/head.php:223
+msgid "Edit report"
+msgstr ""
+
+#: includes/class-cleanup-report-cpt.php:15
+msgid "New report"
+msgstr ""
+
+#: includes/class-cleanup-report-cpt.php:16
+msgid "View report"
+msgstr ""
+
+#: includes/class-cleanup-report-cpt.php:17
+msgid "Search reports"
+msgstr ""
+
+#: includes/class-cleanup-report-cpt.php:18
+msgid "No reports yet. Click \"Add report\" to write the first one."
+msgstr ""
+
+#: includes/class-cleanup-report-cpt.php:19
+msgid "No reports in the bin."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:157
+msgid "Standard text, used when this is empty"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:159
+msgid "Copy into the editor to change it"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:167
+#: includes/class-cleanup-report-fields.php:181
+#: includes/class-cleanup-report-settings.php:570
+#: includes/class-cleanup-report-settings.php:646
+#: includes/class-cleanup-report-types.php:151
+msgid "Note"
+msgstr ""
+
+#. translators: %s: a question
+#: includes/class-cleanup-report-fields.php:192
+#, php-format
+msgid "Note: %s"
+msgstr ""
+
+#. translators: %s: column names, e.g. "Name | Version"
+#: includes/class-cleanup-report-fields.php:217
+#, php-format
+msgid "One row per line: %s"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:220
+msgid "Add row"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:221
+#: includes/class-cleanup-report-fields.php:406
+#: includes/class-cleanup-report-fields.php:633
+#: assets/admin.js:350
+#: assets/admin.js:528
+msgid "Edit as text"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:234
+#: includes/class-cleanup-report-types.php:171
+msgid "Security scan – before cleanup"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:234
+#: includes/class-cleanup-report-types.php:172
+msgid "Security scan – after cleanup"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:255
+msgid "Add screenshot"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:265
+#: includes/class-cleanup-report-settings.php:684
+#: assets/admin.js:261
+#: assets/admin.js:443
+msgid "Drag to reorder"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:266
+msgid "Choose from the media library"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:270
+msgid "Caption, e.g. Defender scan after cleanup"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:270
+msgid "Caption, e.g. Logo loads without its size"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:270
+msgid "Caption"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:274
+#: includes/class-cleanup-report-fields.php:610
+#: templates/types/site-optimization-body.php:92
+msgid "Before"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:274
+#: includes/class-cleanup-report-fields.php:610
+msgid "After"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:274
+#: templates/types/malware-cleanup.php:57
+msgid "Evidence"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:274
+msgid "Other"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:281
+msgid "Image URL, or choose from the media library"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:281
+msgid "Image URL"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:282
+msgid "Choose"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:285
+#: assets/admin.js:270
+#: assets/admin.js:449
+msgid "Remove"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:285
+msgid "Remove screenshot"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:297
+msgid "Key finding"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:298
+msgid "e.g. A self-healing backdoor was hidden in the theme and re-created deleted files on every page load."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:299
+msgid "One line, shown as <strong>Key finding</strong> on the summary page. Leave empty to leave it out."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:308
+#: templates/types/malware-cleanup-body.php:25
+msgid "Issues found"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:309
+msgid "The numbers on the summary page."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:312
+#: templates/types/malware-cleanup-body.php:22
+#: templates/types/malware-cleanup-body.php:87
+#: assets/admin.js:266
+msgid "Critical"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:312
+msgid "Malware and backdoors removed"
+msgstr ""
+
+#. translators: 1: opening button tag, 2: closing button tag
+#: includes/class-cleanup-report-fields.php:314
+#, php-format
+msgid "Vulnerable components %1$suse the table below%2$s"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:315
+#: templates/types/malware-cleanup-body.php:23
+#: templates/types/malware-cleanup-body.php:87
+#: assets/admin.js:268
+msgid "Medium"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:316
+#: templates/types/malware-cleanup-body.php:24
+#: templates/types/malware-cleanup-body.php:87
+#: assets/admin.js:269
+msgid "Low"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:316
+msgid "Hardening issues"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:328
+msgid "Check plugins & themes"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:328
+msgid "Find what's abandoned, vulnerable or out of date, and add it to the report."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:330
+msgid "On the member's server, in the WordPress folder, run:"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:331
+#: assets/admin.js:577
+msgid "Copy"
+msgstr ""
+
+#. translators: 1: opening label tag, 2: closing label tag, 3: a command, wp plugin list
+#: includes/class-cleanup-report-fields.php:338
+#, php-format
+msgid "%1$sPaste the output here%2$s (the default table from %3$s works too):"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:350
+#: templates/types/generic-body.php:54
+#: templates/types/malware-cleanup-body.php:129
+msgid "Check"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:357
+msgid "Each folder name is looked up on WordPress.org (closed, last release, \"Tested up to\") and WPVulnerability.net (known vulnerabilities in the installed version); results are cached for 12 hours."
+msgstr ""
+
+#. translators: %s: URL of the Plugin list settings tab
+#: includes/class-cleanup-report-fields.php:363
+#, php-format
+msgid "Everything checked is added to the <a href=\"%s\">plugin list</a>, where premium items are marked as maintained or not."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:369
+msgid "Everything checked is added to the team's plugin list, where premium items are marked as maintained or not."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:381
+msgid "Vulnerable & outdated components"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:382
+msgid "Plugins and themes with known vulnerabilities or no longer maintained."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:384
+#: includes/class-cleanup-report-settings.php:570
+#: templates/types/malware-cleanup-body.php:215
+#: templates/types/malware-cleanup-body.php:224
+#: assets/admin.js:604
+msgid "Plugin / theme"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:384
+#: assets/admin.js:604
+msgid "Version"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:384
+#: templates/types/malware-cleanup-body.php:84
+#: assets/admin.js:264
+msgid "Issue"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:384
+#: templates/types/malware-cleanup-body.php:84
+#: assets/admin.js:265
+msgid "Severity"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:387
+msgid "No components listed."
+msgstr ""
+
+#. translators: %s: the columns of a line, "Name | Version | Issue | Severity". Keep "critical, high, medium or low" in English: they are typed as is.
+#: includes/class-cleanup-report-fields.php:396
+#, php-format
+msgid "One per line: %s (critical, high, medium or low)."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:397
+msgid "Name | Version | Issue | Severity"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:405
+msgid "Add component"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:424
+#: templates/types/malware-cleanup-body.php:132
+msgid "Security blocklists (delist request)"
+msgstr ""
+
+#. translators: 1: opening tag of the part shown once the website is known, 2: opening link tag, 3: closing link tag, 4: closing tag of that part
+#: includes/class-cleanup-report-fields.php:430
+#, php-format
+msgid "Tick each vendor that still flags the site, e.g. on VirusTotal%1$s (%2$scheck this site on VirusTotal%3$s)%4$s."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:439
+msgid "The report lists them with where to request delisting. Nothing ticked and no note: \"No problem identified\"."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:444
+msgid "Filter vendors…"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:444
+msgid "Filter vendors"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:454
+msgid "No blocklists are set up."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:454
+#: includes/class-cleanup-report-fields.php:472
+#: includes/class-cleanup-report-fields.php:537
+#: includes/class-cleanup-report-fields.php:672
+msgid "Add them in Settings"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:457
+msgid "Other blocklists or notes"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:458
+msgid "e.g. Delist requested from Norton Safe Web on 6 November"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:459
+msgid "Edit the blocklists"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:472
+msgid "No Defender settings are set up."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:476
+msgid "To be done by agent"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:477
+msgid "<strong>Applied</strong>: we configured it. <strong>Pending</strong>: not configured yet. <strong>Member to do</strong>: we couldn't, so the member has to."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:478
+msgid "Mark all applied"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:479
+#: includes/class-cleanup-report-fields.php:485
+#: includes/class-cleanup-report-fields.php:543
+#: includes/class-cleanup-report-fields.php:679
+msgid "Leave out"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:479
+#: includes/class-cleanup-report-fields.php:485
+#: templates/types/malware-cleanup-body.php:172
+msgid "Applied"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:479
+#: templates/types/malware-cleanup-body.php:172
+msgid "Pending"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:479
+#: includes/class-cleanup-report-fields.php:485
+#: includes/class-cleanup-report-fields.php:546
+msgid "Member to do"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:482
+msgid "To be done by member"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:483
+msgid "Settings that need the site owner. <strong>Member to do</strong>: listed for the member. <strong>Applied</strong>: already set up."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:484
+msgid "Mark all member to do"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:496
+msgid "Click a selected button again to leave the setting out of the report."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:499
+msgid "Clear"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:509
+#: includes/class-cleanup-report-fields.php:548
+#: includes/class-cleanup-report-fields.php:679
+msgid "Not in the report"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:510
+#: includes/class-cleanup-report-settings.php:751
+msgid "Configured to recommended settings."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:512
+msgid "Note for the member: what they need to do"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:520
+msgid "Edit the Defender checklist"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:530
+#: includes/class-cleanup-report-types.php:164
+msgid "Follow-ups"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:533
+msgid "Shown as <em>Recommended actions</em>. <strong>Already configured</strong>: in place before the cleanup. <strong>Done</strong>: we did it during the cleanup. <strong>Member to do</strong>: the member needs to act. Click a selected button again to leave the item out of the report."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:537
+msgid "No follow-ups are set up."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:544
+msgid "Already configured"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:545
+#: templates/types/malware-cleanup-body.php:204
+msgid "Done"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:555
+msgid "Edit the follow-ups list"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:567
+msgid "Shown in the report as Recommended rather than Required"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:567
+#: includes/class-cleanup-report-settings.php:717
+#: includes/class-cleanup-report-settings.php:730
+#: templates/types/malware-cleanup-body.php:204
+msgid "Recommended"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:568
+msgid "Kept because this report already uses it"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:568
+msgid "Switched off in settings"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:568
+msgid "Removed from settings"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:570
+msgid "Docs"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:570
+#: includes/class-cleanup-report-fields.php:571
+msgid "(opens in a new tab)"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:571
+msgid "Open on site"
+msgstr ""
+
+#. translators: %s: a checklist item
+#: includes/class-cleanup-report-fields.php:578
+#, php-format
+msgid "Note for %s"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:593
+msgid "Pages used for the average score"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:596
+msgid "PageSpeed Insights performance score (0–100) of each page, before and after the work. Leave an \"after\" empty until the work is done. Each average is the sum of the pages' scores divided by the number of pages."
+msgstr ""
+
+#. translators: 1: mobile target score, 2: desktop target score, 3: URL of the settings tab where the targets are set
+#: includes/class-cleanup-report-fields.php:600
+#, php-format
+msgid "Targets: <strong>mobile %1$d</strong>, <strong>desktop %2$d</strong> (average after the work; <a href=\"%3$s\">change</a>)."
+msgstr ""
+
+#. translators: 1: mobile target score, 2: desktop target score
+#: includes/class-cleanup-report-fields.php:603
+#, php-format
+msgid "Targets: <strong>mobile %1$d</strong>, <strong>desktop %2$d</strong> (average after the work)."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:610
+#: assets/admin.js:444
+msgid "Page URL"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:611
+#: includes/class-cleanup-report-settings.php:301
+#: templates/types/site-optimization.php:20
+msgid "Mobile"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:611
+#: includes/class-cleanup-report-settings.php:301
+#: templates/types/site-optimization.php:20
+msgid "Desktop"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:614
+#: templates/types/site-optimization-body.php:130
+msgid "Average"
+msgstr ""
+
+#. translators: %s: the columns of a line, "URL | mobile before | desktop before | mobile after | desktop after"
+#: includes/class-cleanup-report-fields.php:623
+#, php-format
+msgid "One page per line: %s."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:624
+msgid "URL | mobile before | desktop before | mobile after | desktop after"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:632
+msgid "Add page"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:646
+msgid "File"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:647
+msgid "Code"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:667
+msgid "The report colours each answer: green when it's the good one (e.g. <em>No</em> console errors), red when it isn't, and grey for N/A. Click a selected answer again to leave the test out of the report."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:669
+msgid "Same answers as before"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:672
+msgid "No items are set up."
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:677
+msgid "Note (optional)"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:682
+msgid "Edit the list"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:694
+#: includes/class-cleanup-report-render.php:274
+#: includes/class-cleanup-report-settings.php:334
+#: templates/types/site-optimization-body.php:185
+msgid "Yes"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:694
+#: includes/class-cleanup-report-render.php:274
+#: includes/class-cleanup-report-render.php:277
+#: includes/class-cleanup-report-settings.php:334
+#: templates/types/site-optimization-body.php:185
+msgid "No"
+msgstr ""
+
+#: includes/class-cleanup-report-fields.php:694
+#: templates/types/malware-cleanup-body.php:172
+msgid "N/A"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:31
+msgid "Is Mobile and Desktop Menu working?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:32
+msgid "Is there any browser console error?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:33
+msgid "Are there any responsive issues?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:33
+msgid "Switch to mobile view and test the selected pages."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:34
+msgid "Is there any visible layout issue?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:35
+msgid "Is there any visible CLS?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:35
+msgid "Layout shift: content moving while the page loads."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:36
+msgid "Can you select product variation?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:36
+#: includes/class-cleanup-report-optimization.php:37
+msgid "Shops only; N/A otherwise."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:37
+msgid "Can you add products to cart?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:38
+msgid "Are checkout functionalities working? (checkout page, information filling, shipping and payment options)"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:38
+msgid "No purchase is made in this step. Shops only; N/A otherwise."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:40
+#: includes/class-cleanup-report-optimization.php:41
+msgid "Backup completed?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:40
+msgid "Under the Hub › Click the site › Hosting › Backups with the comment \"pre-optimization backup\"."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:40
+msgid "Under the Hub › Click the site › Hosting › Backups with the comment \"post-optimization backup\"."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:41
+msgid "Backup taken before the optimization."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:41
+msgid "Backup taken after the optimization."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:42
+msgid "Is the site using Cloudflare?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:43
+msgid "Any other issues noticed?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:44
+msgid "Any functionality highlighted in the initial response?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:44
+msgid "Something the member asked us to check in their request."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:164
+msgid "WPMU DEV services will focus on increasing your website score. For that, we use different pages and generate the average score using a simple formula:"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:164
+msgid "We focus on increasing your website score. For that, we use different pages and generate the average score using a simple formula:"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:165
+msgid "Run the test multiple times;"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:165
+msgid "Remove the top and lowest score;"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:165
+msgid "Sum the average result for the tested pages."
+msgstr ""
+
+#. translators: %s: link to the optimization video playlist
+#: includes/class-cleanup-report-optimization.php:168
+#, php-format
+msgid "The above is described in our <a href=\"%s\">optimization playlist</a>. It gives you a more accurate result, since the performance score only takes into account the page tested, not the full site."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:169
+msgid "This gives you a more accurate result, since the performance score only takes into account the page tested, not the full site."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:170
+msgid "To maintain a good score on your website, it is important to:"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:172
+msgid "Avoid duplicate plugins for the same task;"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:173
+msgid "Keep your pages light, with the relevant information only: it reduces the number of elements the browser needs to handle;"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:174
+msgid "Wait for the cache to be generated before running the tests: a lower score is expected if the cache is not being hit;"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:175
+msgid "Avoid animations above the fold (what is visible when the page loads)."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:177
+msgid "Why is the mobile score lower?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:178
+msgid "Mobiles have fewer hardware and software resources, which reflects directly on the browser's performance. Any metric used in performance tests affects the score more drastically."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:179
+msgid "Why target 80 for mobile?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:180
+msgid "Google considers anything 90+ a good score, but it also explains that a good score doesn't mean a good user experience: Google uses the 75th percentile as the goal for a page to work well for the majority of users."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:181
+msgid "Why is my score different from the ones in this report?"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:182
+msgid "There are many reasons for a score to change, but the most common are:"
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:184
+msgid "<strong>Location:</strong> Google uses your location to decide where the page is tested from. There are 3 networks (Asia, North America and Europe); it doesn't specify the countries. We use a connection to the location closest to your server, so testing from a different location can give a different result. Cloudflare or another CDN can help make results more stable."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:185
+msgid "<strong>Big changes in the website:</strong> the optimization is done on the website as it is. Changing the layout or the settings we defined can affect the score."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:187
+msgid "Core Web Vitals say \"Failed\""
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:188
+msgid "Core Web Vitals can say \"Failed\" even after optimization and a good PageSpeed Insights (PSI) score. PSI simulates the user experience, while Core Web Vitals rely on real user data: it can take 28+ days for them to update, and a good PSI score doesn't guarantee passing Core Web Vitals because real-world conditions differ."
+msgstr ""
+
+#: includes/class-cleanup-report-optimization.php:189
+msgid "Two key factors are server location (is it close to your audience?) and traffic (is there enough data for Google to assess?). If these are addressed and Core Web Vitals still fail, further investigation is needed: a deeper look at real user performance data and field data issues, and possibly structural changes to the website."
+msgstr ""
+
+#. translators: %s: what the server is missing, e.g. "the PHP gd extension and the PHP dom extension"
+#: includes/class-cleanup-report-pdf.php:22
+#, php-format
+msgid "PDF export needs %s on this server"
+msgstr ""
+
+#: includes/class-cleanup-report-pdf.php:29
+msgid "The PDF couldn't be generated (the reason is in the PHP error log)"
+msgstr ""
+
+#. translators: %d: report ID
+#: includes/class-cleanup-report-pdf.php:102
+#, php-format
+msgid "Report #%d"
+msgstr ""
+
+#. translators: %s: client name
+#: includes/class-cleanup-report-pdf.php:105
+#, php-format
+msgid "Prepared for %s"
+msgstr ""
+
+#: includes/class-cleanup-report-pdf.php:108
+#: includes/class-cleanup-report-types.php:159
+msgid "MALWARE CLEANUP REPORT"
+msgstr ""
+
+#. translators: 1: page number, 2: number of pages
+#: includes/class-cleanup-report-pdf.php:112
+#, php-format
+msgid "Page %1$d of %2$d"
+msgstr ""
+
+#: includes/class-cleanup-report-pdf.php:324
+msgid "the bundled Dompdf library"
+msgstr ""
+
+#: includes/class-cleanup-report-pdf.php:327
+msgid "the PHP mbstring extension"
+msgstr ""
+
+#: includes/class-cleanup-report-pdf.php:330
+msgid "the PHP dom extension"
+msgstr ""
+
+#: includes/class-cleanup-report-pdf.php:333
+msgid "the PHP gd extension"
+msgstr ""
+
+#. translators: 1: a list of missing things, comma-separated, 2: the last missing thing
+#: includes/class-cleanup-report-pdf.php:362
+#, php-format
+msgid "%1$s and %2$s"
+msgstr ""
+
+#. translators: %s: a command, composer install --no-dev
+#: includes/class-cleanup-report-pdf.php:451
+#, php-format
+msgid "Install the plugin from its release zip, or run %s in the plugin folder."
+msgstr ""
+
+#: includes/class-cleanup-report-pdf.php:452
+msgid "Ask your host to enable it."
+msgid_plural "Ask your host to enable them."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/class-cleanup-report-pdf.php:454
+msgid "Then ask your host to enable the PHP extensions."
+msgstr ""
+
+#. translators: %s: what the server is missing, e.g. "the PHP gd extension and the PHP dom extension"
+#: includes/class-cleanup-report-pdf.php:458
+#, php-format
+msgid "<strong>PDF export unavailable:</strong> it needs %s, so \"Download PDF\" opens the print view instead (use the browser's Save as PDF)."
+msgstr ""
+
+#. translators: %s: the staff note on the plugin list
+#: includes/class-cleanup-report-plugin-check.php:241
+#, php-format
+msgid "Marked as no longer maintained in your plugin list: %s"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-check.php:243
+msgid "Marked as no longer maintained in your plugin list"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-check.php:269
+msgid "WPVulnerability didn't answer"
+msgstr ""
+
+#. translators: 1: number of vulnerabilities, 2: installed version
+#: includes/class-cleanup-report-plugin-check.php:288
+#, php-format
+msgid "%1$d known vulnerability in %2$s"
+msgid_plural "%1$d known vulnerabilities in %2$s"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: "N known vulnerabilities in X", 2: how many of them have no fix
+#: includes/class-cleanup-report-plugin-check.php:291
+#, php-format
+msgid "%1$s (%2$d with no fix yet)"
+msgstr ""
+
+#. translators: 1: the vulnerability text, 2: version that fixes them
+#: includes/class-cleanup-report-plugin-check.php:295
+#, php-format
+msgid "%1$s; fixed in %2$s"
+msgstr ""
+
+#. translators: 1: installed version, 2: latest version
+#: includes/class-cleanup-report-plugin-check.php:306
+#, php-format
+msgid "Update available: %1$s → %2$s"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-check.php:340
+msgid "WordPress.org didn't answer"
+msgstr ""
+
+#. translators: %s: date the plugin or theme was closed
+#: includes/class-cleanup-report-plugin-check.php:345
+#, php-format
+msgid "Closed on WordPress.org on %s"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-check.php:347
+msgid "Closed on WordPress.org"
+msgstr ""
+
+#. translators: 1: "Closed on WordPress.org…" text, 2: WordPress.org's reason for closing it
+#: includes/class-cleanup-report-plugin-check.php:351
+#, php-format
+msgctxt "closed plugin and the reason"
+msgid "%1$s (%2$s)"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-check.php:357
+msgid "marked discontinued by its author"
+msgstr ""
+
+#. translators: %s: month and year of the last release
+#: includes/class-cleanup-report-plugin-check.php:361
+#, php-format
+msgid "no release since %s"
+msgstr ""
+
+#. translators: %s: WordPress version
+#: includes/class-cleanup-report-plugin-check.php:365
+#, php-format
+msgid "tested only up to WordPress %s"
+msgstr ""
+
+#. translators: %s: comma-separated reasons, e.g. "no release since Jan 2022"
+#: includes/class-cleanup-report-plugin-check.php:371
+#: includes/class-cleanup-report-plugin-check.php:420
+#, php-format
+msgid "Not maintained: %s"
+msgstr ""
+
+#. translators: %s: name of the WordPress.org item that uses this folder name
+#: includes/class-cleanup-report-plugin-check.php:378
+#, php-format
+msgid "Not on WordPress.org under this name (WordPress.org has a different item, \"%s\", with this folder name). Mark it in Reports › Settings › Plugin list"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-check.php:380
+msgid "Not on WordPress.org: mark it as maintained or abandoned in Reports › Settings › Plugin list"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-check.php:415
+msgid "No longer maintained by the vendor"
+msgstr ""
+
+#. translators: %s: comma-separated reasons, e.g. "no release since Jan 2022"
+#: includes/class-cleanup-report-plugin-check.php:423
+#, php-format
+msgid "No longer maintained: %s"
+msgstr ""
+
+#. translators: %d: number of vulnerabilities
+#: includes/class-cleanup-report-plugin-check.php:430
+#, php-format
+msgid "%d known vulnerability"
+msgid_plural "%d known vulnerabilities"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: "N known vulnerabilities"
+#: includes/class-cleanup-report-plugin-check.php:433
+#, php-format
+msgid "%s with no fix available"
+msgstr ""
+
+#. translators: 1: "N known vulnerabilities", 2: how many of them have no fix
+#: includes/class-cleanup-report-plugin-check.php:436
+#, php-format
+msgid "%1$s, %2$d with no fix available"
+msgstr ""
+
+#. translators: 1: the vulnerability text, 2: version to update to
+#: includes/class-cleanup-report-plugin-check.php:440
+#, php-format
+msgid "%1$s; update to %2$s+"
+msgstr ""
+
+#. translators: %s: latest version
+#: includes/class-cleanup-report-plugin-check.php:445
+#, php-format
+msgid "Outdated; update to %s"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-check.php:468
+msgid "You are not allowed to do this."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-check.php:474
+msgid "Too many checks in a short time. Wait a few minutes and try again."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-check.php:479
+msgid "No plugins or themes found. Paste the output of the command above."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-registry.php:224
+#: includes/class-cleanup-report-settings.php:83
+msgid "You are not allowed to change these settings."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin-registry.php:224
+#: includes/class-cleanup-report-plugin.php:117
+#: includes/class-cleanup-report-settings.php:83
+#: includes/class-cleanup-report-settings.php:139
+msgid "Forbidden"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:69
+msgid "Preview"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:72
+msgid "Open task"
+msgstr ""
+
+#. translators: %s: the mark on reports that aren't approved yet, e.g. NOT FINAL
+#: includes/class-cleanup-report-plugin.php:90
+#, php-format
+msgid "This report can be downloaded once it's approved. Until then, use \"Preview in browser\" (marked %s)."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:94
+msgid "Not approved yet"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:109
+msgid "This link has expired. Go back to the Reports list and try again."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:109
+msgid "Link expired"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:112
+msgid "Report not found."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:112
+msgid "Not found"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:117
+msgid "You are not allowed to view this report."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:131
+msgid "<strong>Waiting for your review.</strong> Approve it, or send it back with notes, in the Save & review box."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:132
+msgid "<strong>Submitted for review.</strong> A Buddylead will check this report; their notes will appear in the Save & review box."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:137
+msgid "This report needs changes before it can be sent."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:144
+msgid "Report saved."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:148
+msgid "Custom field updated."
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:149
+msgid "Custom field deleted."
+msgstr ""
+
+#. translators: %s: date and time of the revision
+#: includes/class-cleanup-report-plugin.php:154
+#, php-format
+msgid "Report restored to revision from %s"
+msgstr ""
+
+#: includes/class-cleanup-report-plugin.php:161
+msgid "Draft saved."
+msgstr ""
+
+#: includes/class-cleanup-report-presets.php:22
+msgid "Generic"
+msgstr ""
+
+#: includes/class-cleanup-report-presets.php:55
+#: includes/class-cleanup-report-presets.php:57
+msgid "Our team"
+msgstr ""
+
+#: includes/class-cleanup-report-presets.php:62
+msgid "WPMU DEV hosting"
+msgstr ""
+
+#: includes/class-cleanup-report-presets.php:62
+#: includes/class-cleanup-report-presets.php:63
+msgid "Third-party hosting"
+msgstr ""
+
+#: includes/class-cleanup-report-presets.php:63
+msgid "Our hosting"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:276
+msgid "Hosting Type"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:276
+msgid "Hosting type"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:277
+msgid "Are backups created before and after the cleanup?"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:277
+msgid "Backups before and after the cleanup"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:277
+msgid "Yes, before and after"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:277
+msgid "Before the cleanup only"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:277
+msgid "After the cleanup only"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:278
+msgid "Any sFTP/SSH accounts present?"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:278
+msgid "sFTP/SSH accounts"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:281
+msgid "HUB team member"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:281
+msgid "Hub team member"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:345
+msgid "Success"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:345
+msgid "Done, Applied, Low"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:346
+msgid "Warning"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:346
+msgid "Recommended, Medium, Pending actions box"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:347
+#: templates/types/malware-cleanup-body.php:87
+#: assets/admin.js:267
+msgid "High"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:347
+msgid "High severity"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:348
+msgid "Danger"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:348
+msgid "Required, Pending, Critical"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:349
+msgid "Neutral"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:349
+#: templates/types/malware-cleanup-body.php:204
+msgid "In place"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:354
+msgid "Subtle"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:354
+msgid "Balanced"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:354
+msgid "Bold"
+msgstr ""
+
+#. translators: %s: the website's domain, e.g. example.com. Keep the line breaks, the "•" bullets and the CAPITALS: headings.
+#: includes/class-cleanup-report-render.php:461
+#, php-format
+msgid ""
+"IMPORTANT: Because of the malware, your site's SEO may be affected and Google may show unwanted content for it.\n"
+"\n"
+"RECOMMENDED ACTIONS:\n"
+"• Search Google for site:%s and look for unexpected content, such as pharmaceutical results\n"
+"• If you find any, resubmit your sitemap in Google Search Console and Bing Webmaster Tools\n"
+"• Request a review in Search Console if Google shows a security warning\n"
+"\n"
+"NOTE: It takes time for search engines to update their results."
+msgstr ""
+
+#. translators: keep the "•" bullets and line breaks.
+#: includes/class-cleanup-report-render.php:464
+msgid ""
+"• Configure and force two-factor authentication with WPMU DEV Defender\n"
+"• Keep your plugins and theme updated with WPMU DEV Automate\n"
+"• Keep safe backups with the Snapshot plugin (not needed for sites hosted with WPMU DEV)\n"
+"• If you use shared hosting, move other sites off this account (for example to WPMU DEV hosting) to avoid cross-site infection\n"
+"• Use WPMU DEV uptime monitoring: a spike in response time is sometimes the first sign of an attack"
+msgstr ""
+
+#. translators: keep the "•" bullets and line breaks.
+#: includes/class-cleanup-report-render.php:466
+msgid ""
+"• Turn on two-factor authentication for every administrator\n"
+"• Keep WordPress, your plugins and your theme updated\n"
+"• Keep regular backups stored away from the server\n"
+"• If you use shared hosting, move other sites off this account to avoid cross-site infection\n"
+"• Use uptime monitoring: a spike in response time is sometimes the first sign of an attack"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:467
+msgid "We performed a full malware check on the website:"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:468
+msgid "WordPress core, plugin and theme integrity"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:469
+msgid "Database scan for malware signatures"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:470
+msgid "Hidden PHP files inside the uploads folder"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:471
+msgid "Front-end scan with external malware scanners such as VirusTotal"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:472
+msgid "Security audit of plugins and theme"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:473
+msgid "Manual check of the theme's functions.php, header.php and footer.php"
+msgstr ""
+
+#: includes/class-cleanup-report-render.php:474
+msgid "Audit of administrator accounts, including application passwords"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:31
+#: includes/class-cleanup-report-settings.php:33
+#: includes/class-cleanup-report-settings.php:147
+msgid "Report settings"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:31
+#: includes/class-cleanup-report-settings.php:33
+#: includes/class-cleanup-report-settings.php:43
+#: includes/class-cleanup-report-settings.php:405
+msgid "Settings"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:103
+msgid "Branding"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:107
+msgid "Plugin list"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:139
+msgid "You are not allowed to view these settings."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:149
+msgid "Default items restored."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:175
+msgid "How the report and PDF are branded."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:178
+msgid "Defaults"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:184
+msgid "What reports start with when nothing is set: <strong>WPMU DEV</strong> uses the WPMU DEV support team's brand, the Defender checklist, the Hub check and WPMU DEV products in the standard texts; <strong>Generic</strong> uses this site's name and neutral texts. Your saved settings and checklists always win."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:187
+msgid "Brand name"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:189
+msgid "Shown on the cover and in \"Prepared by … security team\"."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:191
+msgid "Logo for the light theme"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:191
+msgid "A dark or coloured logo, for the light cover."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:191
+msgid "Logo for the dark theme"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:191
+msgid "A white logo, for the dark cover."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:198
+msgid "Choose image"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:200
+msgid "Leave empty to show the brand name instead."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:205
+msgid "Colour presets"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:213
+msgid "Fills the colours and cover gradient below in one click. Nothing changes until you save; you can still adjust any colour afterwards. Bold is the original look."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:217
+msgid "Primary colour"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:219
+msgid "Headings, links and highlights. The default blue is <code>#0059FF</code>."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:222
+msgid "Status colours"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:231
+msgid "Text on each colour is chosen automatically (white or near-black) so it stays readable."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:235
+msgid "Report theme"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:238
+msgid "Light (day)"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:239
+msgid "Dark"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:240
+msgid "Light prints well and suits most members; dark is a near-black cover and panels. Applies to the PDF and the preview."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:244
+msgid "Cover gradient"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:246
+msgid "How strong the blue glow on the cover is. 100% is the original look; lower is lighter, and 0 removes it."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:249
+msgid "Footer text"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:251
+msgid "Printed at the bottom of every PDF page. <code>{year}</code> is replaced with the current year."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:264
+msgid "The <strong>Follow-ups</strong> staff mark on every report. Each one the report includes appears under <em>Your next steps › Recommended actions</em>: as <strong>In place</strong> (already configured), <strong>Done</strong> (we did it), or as <strong>Required</strong>/<strong>Recommended</strong> when the member needs to act."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:270
+msgid "Add follow-up"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:281
+msgid "The <strong>Defender settings</strong> staff mark on every report, in two parts: <strong>to be done by the agent</strong> (what we configure during the cleanup) and <strong>to be done by the member</strong> (what needs the site owner). They appear in the report's <em>Defender security configuration</em> section."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:287
+msgid "Add Defender setting"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:298
+msgid "For <strong>Website optimization</strong> reports: the score each average should reach after the work, and the tests staff answer before and after it (the report's <em>Pre-work</em> and <em>Post-work checklist</em>)."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:299
+msgid "Targets"
+msgstr ""
+
+#. translators: %s: device, "Mobile" or "Desktop"
+#: includes/class-cleanup-report-settings.php:305
+#, php-format
+msgid "%s average"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:311
+msgid "The report's <em>Optimization result</em> says whether each was reached. A report keeps the targets it was last saved with."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:312
+msgid "Tests"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:318
+msgid "Add test"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:330
+#: templates/types/site-optimization-body.php:22
+msgid "Test"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:330
+msgid "The question, as it appears in the report."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:331
+#: includes/class-cleanup-report-settings.php:721
+#: includes/class-cleanup-report-settings.php:750
+msgid "Hint for staff"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:331
+msgid "Edit screen only: how to test it."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:333
+msgid "Good answer"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:334
+msgid "Neither (just information)"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:337
+msgid "The report shows the good answer in green and the other in red. N/A is always grey."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:339
+msgid "Report note before the work"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:339
+msgid "Used in the pre-work checklist when the report has no note of its own."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:340
+msgid "Report note after the work"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:340
+msgid "Used in the post-work checklist when the report has no note of its own."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:351
+msgid "The <strong>security vendors</strong> staff can tick under <em>Security blocklists (delist request)</em> when VirusTotal or another scanner still flags a site. Each one ticked appears in the report with where the member requests delisting."
+msgstr ""
+
+#. translators: %s: the drag handle icon
+#: includes/class-cleanup-report-settings.php:355
+#, php-format
+msgid "Drag %s to change the order. Turn a vendor off to hide it from new reports without deleting it."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:357
+msgid "Use the vendor's name as VirusTotal shows it, so staff can find it quickly."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:358
+msgid "Reports keep the contact details they were saved with."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:364
+msgid "Add vendor"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:375
+#: assets/admin.js:617
+msgid "Vendor"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:375
+msgid "As VirusTotal shows it."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:376
+msgid "Delisting form"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:376
+msgid "Where the site owner reports a false positive or asks for a review."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:377
+msgid "Email"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:377
+msgid "Optional. Only if the vendor accepts delisting requests by email."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:378
+msgid "How to ask"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:378
+msgid "Optional. Shown in the report under the contact, e.g. a required subject line or the option to choose."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:397
+msgid "How a report moves from draft to sent:"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:399
+msgid "Anyone writing reports can draft one and <strong>submit it for review</strong>."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:400
+msgid "Only <strong>Buddyleads</strong> and administrators can approve a report or send it back with notes."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:401
+msgid "Once approved, anyone can mark it completed after sending it to the member."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:403
+msgid "Who can do what"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:405
+msgid "Who"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:405
+msgid "WordPress role"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:405
+msgid "Their own reports"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:405
+msgid "Others' reports"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:405
+msgid "Approve / send back"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:407
+msgid "Writers"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:407
+msgid "support staff who write reports"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:407
+#: includes/class-cleanup-report-settings.php:408
+msgctxt "WordPress user role"
+msgid "Editor"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:407
+msgid "Create, edit, submit for review"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:407
+msgid "Preview; download the PDF and mark Completed once approved"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:408
+#: includes/class-cleanup-report-settings.php:499
+msgid "Buddyleads"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:408
+msgid "ticked below"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:408
+#: includes/class-cleanup-report-settings.php:409
+msgid "Everything"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:408
+msgid "Open and edit any report"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:408
+msgid "Plugin list, and the checklists: Follow-ups, Defender checklist, Blocklists, Website optimization"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:409
+msgid "Administrators"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:409
+msgctxt "WordPress user role"
+msgid "Administrator"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:409
+msgid "All tabs, including Branding and Review"
+msgstr ""
+
+#. translators: 1: URL of the Users screen, 2: URL of the Add New User screen
+#: includes/class-cleanup-report-settings.php:416
+#, php-format
+msgid "Approved reports are read-only for Writers, except marking them Completed. Give everyone who works on reports the <strong>Editor</strong> role in <a href=\"%1$s\">Users</a> (<a href=\"%2$s\">add someone</a>). Lower roles can't save someone else's report (WordPress asks for Editor), so a Buddylead couldn't approve and a writer couldn't mark a report Completed. The report rules above still apply to Editors."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:424
+msgid "PDF download"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:426
+msgid "Only approved reports can be downloaded as PDF"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:427
+msgid "Until a report is approved, staff can preview it in the browser, with the watermark below across every page. Turn this off to allow downloading earlier; those PDFs carry the same watermark."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:429
+msgid "Watermark on reports that aren't approved"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:432
+msgid "Up to 40 characters, e.g. NOT FINAL, DRAFT or FOR REVIEW ONLY. Longer text is set smaller to fit the page."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:434
+msgid "Data retention"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:442
+msgid "Delete reports nobody has edited for"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:443
+msgid "days"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:445
+msgid "Checked once a day. A report is deleted <strong>permanently</strong>, including the Trash, with its history and the screenshots uploaded to it (a screenshot another report uses is kept; images chosen from the Media Library that belong elsewhere are never deleted). This can't be undone. Use 0 to keep reports forever."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:448
+msgid "Retention is off: reports are kept until someone deletes them."
+msgstr ""
+
+#. translators: %d: number of days
+#: includes/class-cleanup-report-settings.php:453
+#, php-format
+msgid "Nothing to delete yet: every report was edited in the last %d day."
+msgid_plural "Nothing to delete yet: every report was edited in the last %d days."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: number of reports, 2: number of days
+#: includes/class-cleanup-report-settings.php:456
+#, php-format
+msgid "%1$d report hasn't been edited for %2$d days."
+msgid_plural "%1$d reports haven't been edited for %2$d days."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: date and time of the next cleanup
+#: includes/class-cleanup-report-settings.php:462
+#, php-format
+msgid "The next cleanup, around %s, deletes it."
+msgid_plural "The next cleanup, around %s, deletes them."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of reports
+#: includes/class-cleanup-report-settings.php:469
+#: includes/class-cleanup-report-settings.php:638
+#, php-format
+msgid "%d report"
+msgid_plural "%d reports"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of screenshots
+#: includes/class-cleanup-report-settings.php:471
+#, php-format
+msgid "%d screenshot"
+msgid_plural "%d screenshots"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: date and time of the last cleanup, 2: "N reports", 3: "N screenshots"
+#: includes/class-cleanup-report-settings.php:473
+#, php-format
+msgid "Last cleanup %1$s: %2$s and %3$s deleted."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:478
+msgid "Outside services"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:480
+msgid "Re-check the plugin list every day"
+msgstr ""
+
+#. translators: 1: number of plugins and themes checked per day, 2: URL of the plugin list, 3: number of days
+#: includes/class-cleanup-report-settings.php:485
+#, php-format
+msgid "Once a day, WP-Cron asks WordPress.org (api.wordpress.org) and WPVulnerability.net for the status of up to %1$d plugins and themes on the <a href=\"%2$s\">plugin list</a> not checked for %3$d days. Only their folder names are sent. Off: the list is updated only when someone runs \"Check plugins &amp; themes\" on a report or clicks \"Re-check WordPress.org now\"."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:494
+msgid "Removing the plugin"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:496
+msgid "Delete all reports and settings when the plugin is deleted"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:497
+msgid "Off (recommended): deleting the plugin leaves every report and setting in place, so reinstalling brings them back. On: deleting it in Plugins removes all reports (with their history), every setting, the plugin list and the plugin's cache folder, permanently. Screenshots stay in the Media Library. Deactivating never deletes anything."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:500
+msgid "Who can approve reports or send them back, besides administrators (who have full access). Only Editors and administrators are listed: approving saves someone else's report, which WordPress allows only from the Editor role up."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:515
+msgid "All"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:516
+#: includes/class-cleanup-report-settings.php:539
+msgid "Needs a decision"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:517
+#: includes/class-cleanup-report-settings.php:539
+#: includes/class-cleanup-report-settings.php:588
+#: includes/class-cleanup-report-settings.php:643
+#: assets/admin.js:541
+msgid "Not maintained"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:518
+msgid "Unfixed vulnerabilities"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:519
+#: includes/class-cleanup-report-settings.php:539
+#: includes/class-cleanup-report-settings.php:588
+#: includes/class-cleanup-report-settings.php:642
+msgid "Maintained"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:539
+#: assets/admin.js:540
+msgid "Closed"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:542
+msgid "Plugin list saved."
+msgstr ""
+
+#. translators: %d: number of plugins and themes re-checked
+#: includes/class-cleanup-report-settings.php:545
+#, php-format
+msgid "%d item re-checked on WordPress.org."
+msgid_plural "%d items re-checked on WordPress.org."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/class-cleanup-report-settings.php:548
+msgid "Every plugin and theme checked on a report is added here automatically. <strong>WordPress.org</strong> items keep their status up to date by themselves (re-checked weekly). Anything else (premium or custom) needs a one-time decision: is it still maintained? Reports then use that answer."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:560
+msgid "Filter by name or folder"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:561
+msgid "Re-check WordPress.org now"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:562
+msgid "Download CSV"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:570
+#: templates/types/malware-cleanup-body.php:215
+#: templates/types/malware-cleanup-body.php:224
+#: assets/admin.js:604
+msgid "Why"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:570
+msgid "Seen in"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:570
+msgid "Your decision"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:570
+msgid "Vendor or changelog link"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:570
+#: includes/class-cleanup-report-settings.php:692
+msgid "Delete"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:573
+msgid "Nothing here."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:573
+msgid "Nothing yet: run \"Check plugins & themes\" on a report and its plugins appear here."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:583
+msgid "Add a premium plugin or theme by hand"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:585
+msgid "Folder, e.g. js_composer"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:585
+msgid "Folder"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:586
+#: includes/class-cleanup-report-settings.php:720
+msgid "Name"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:587
+msgid "Plugin"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:587
+msgid "Theme"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:588
+#: includes/class-cleanup-report-settings.php:640
+msgid "Decision"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:588
+msgid "Check WordPress.org"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:589
+#: includes/class-cleanup-report-settings.php:645
+msgid "Vendor link"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:592
+#: includes/class-cleanup-report-settings.php:672
+msgid "Save changes"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:605
+msgid "Decided by staff"
+msgstr ""
+
+#. translators: %s: date of the last release
+#: includes/class-cleanup-report-settings.php:609
+#, php-format
+msgid "On WordPress.org, last release %s"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:611
+msgid "On WordPress.org"
+msgstr ""
+
+#. translators: 1: "On WordPress.org…" text, 2: latest version number
+#: includes/class-cleanup-report-settings.php:615
+#, php-format
+msgctxt "status and the latest version"
+msgid "%1$s (%2$s)"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:619
+msgid "Not on WordPress.org: is it still maintained?"
+msgstr ""
+
+#. translators: %s: theme folder name
+#: includes/class-cleanup-report-settings.php:626
+#, php-format
+msgid "%s · theme"
+msgstr ""
+
+#. translators: %d: number of vulnerabilities with no fix
+#: includes/class-cleanup-report-settings.php:632
+#, php-format
+msgid "%d unfixed vulnerability"
+msgid_plural "%d unfixed vulnerabilities"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/class-cleanup-report-settings.php:641
+msgid "Automatic"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:641
+msgid "Not decided"
+msgstr ""
+
+#. translators: %s: plugin or theme name
+#: includes/class-cleanup-report-settings.php:649
+#, php-format
+msgid "Delete %s"
+msgstr ""
+
+#. translators: %s: the drag handle icon
+#: includes/class-cleanup-report-settings.php:660
+#, php-format
+msgid "Drag %s to change the order. Turn an item off to hide it from new reports without deleting it."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:662
+msgid "Changes apply to a report the next time it's saved; reports keep the wording they were saved with."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:663
+msgid "Report texts can use <code>{site}</code>, <code>{host}</code> and <code>{wp_admin}</code>, filled in from the report's website URL."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:673
+msgid "Replace this list with the default items? Your custom items will be removed."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:673
+msgid "Restore default items"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:685
+#: assets/admin.js:884
+msgid "New item"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:688
+#: includes/class-cleanup-report-settings.php:690
+msgid "Show on new reports"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:720
+msgid "Shown in the report and on the edit screen."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:721
+msgid "Edit screen only: when to mark it."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:722
+msgid "Report text when already configured"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:722
+msgid "It was in place before the cleanup, or nothing was needed."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:722
+msgid "e.g. Your site already has SSL."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:723
+msgid "Report text when done"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:723
+msgid "We did it during the cleanup."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:723
+msgid "e.g. We installed an SSL certificate."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:724
+#: includes/class-cleanup-report-settings.php:753
+msgid "Report text when the member needs to act"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:724
+msgid "e.g. Install an SSL certificate so all traffic is encrypted."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:725
+msgid "Link on the member's site"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:725
+msgid "Optional. Shown in the report so the member can open the right screen. {wp_admin} is filled in from the report's website URL."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:726
+msgid "Documentation link for staff"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:726
+msgid "Optional. Shown next to the item on the edit screen."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:728
+msgid "When the member needs to act, label it"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:729
+#: templates/types/malware-cleanup-body.php:204
+msgid "Required"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:740
+#: includes/class-cleanup-report-settings.php:747
+msgid "Member"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:743
+#: templates/types/malware-cleanup-body.php:169
+msgid "Setting"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:743
+msgid "As it appears in the report."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:745
+msgid "To be done by"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:746
+msgid "Agent"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:748
+msgid "Which part of the report's Defender section it's listed in by default: what we configure during the cleanup, or what the member has to set up."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:750
+msgid "Edit screen only: where to find it, what to check."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:751
+msgid "Report text when applied"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:751
+msgid "Used when the report has no note of its own."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:752
+msgid "Report text when pending"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:752
+msgid "Not configured yet. Used when the report has no note of its own."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:753
+msgid "Tell the member what to do. Used when the report has no note of its own."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:753
+msgid "e.g. Turn this on in {wp_admin} › Defender."
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:754
+msgid "Defender screen for this setting"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:754
+msgid "Shown in the report as \"Visit to configure\". {wp_admin} is filled in from the report's website URL, e.g. {wp_admin}/admin.php?page=wdf-ip-lockout&view=local-firewall"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:755
+msgid "Public doc"
+msgstr ""
+
+#: includes/class-cleanup-report-settings.php:755
+msgid "Optional. Shown in the report as \"Public doc\", like the team's report template."
+msgstr ""
+
+#. translators: %s: report type, e.g. "Website optimization"
+#: includes/class-cleanup-report-types.php:72
+#, php-format
+msgid "Add %s report"
+msgstr ""
+
+#. translators: %s: report type, e.g. "Website optimization"
+#: includes/class-cleanup-report-types.php:75
+#, php-format
+msgid "%s report"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:79
+msgid "team"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:130
+msgid "Member & website"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:133
+msgid "Member or business name"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:133
+msgid "Optional. The cover shows the website as its headline, with \"Prepared for …\" under it."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:134
+msgid "Website URL"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:134
+msgid "Paste any page or wp-admin link; it's trimmed to the site address."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:136
+msgid "Support request link"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:136
+msgid "The member's ticket or forum thread. The report ends with \"Reply on your support request\" linking here."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:137
+msgid "Task URL"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:137
+msgid "Internal: our task for this report. Not shown in the report."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:143
+msgid "A bulleted list, one per item. Put the folder in brackets and a reason after a dash, e.g. <em>Slider Revolution (revslider) – no licence provided</em>."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:146
+msgid "Note, e.g. the host or plan"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:147
+msgid "Link to the backups, e.g. in the Hub"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:148
+msgid "Which accounts, and what was done"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:154
+msgid "Malware cleanup"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:156
+msgid "Add cleanup report"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:157
+msgid "What was found and removed, how the site was verified, Defender settings and the member's next steps."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:158
+msgid "Malware cleanup report"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:161
+msgid "malware cleanup"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:162
+msgid "security team"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:164
+msgid "Defender checklist"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:164
+msgid "Blocklists"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:168
+msgid "Findings"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:170
+#: templates/types/generic.php:44
+msgid "Screenshots"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:170
+msgid "Scan results before and after the cleanup, plus any evidence. Shown in the report in this order; drag to reorder."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:175
+#: templates/types/malware-cleanup.php:126
+msgid "Infection summary"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:175
+msgid "What was found and how the site was compromised."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:179
+#: templates/types/malware-cleanup-body.php:93
+msgid "Suggested improvements & hardening"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:179
+msgid "Optional: changes that would make the site harder to attack (fewer plugins, replacing risky ones…)."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:183
+msgid "Work done & verification"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:185
+msgid "Work carried out"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:185
+msgid "What we did to clean the site. Shown under <strong>Actions taken</strong>, before the list of standard steps every cleanup includes."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:186
+#: templates/types/malware-cleanup.php:129
+msgid "Verification"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:186
+msgid "How the site was checked after the cleanup, and anything still showing."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:187
+msgid "Additional sites on this hosting account"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:187
+#: templates/types/malware-cleanup.php:121
+msgid "No problem identified"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:187
+msgid "Other sites found and what was done about them, one per line. Leave empty for \"No problem identified\"."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:188
+msgid "Hosting & access"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:188
+msgid "Shown in the report's Verification table. Leave a question unanswered to leave it out."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:193
+msgid "Defender"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:197
+msgid "Member next steps"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:199
+#: templates/types/malware-cleanup-body.php:192
+msgid "Pending actions"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:199
+msgid "Anything the member must still do, as a bulleted or numbered list. Leave empty if nothing is pending."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:201
+msgid "Reinstall: premium plugins & themes not provided"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:202
+msgid "Replace: plugins & themes no longer maintained"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:206
+#: includes/class-cleanup-report-types.php:268
+msgid "Member guidance"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:208
+msgid "Helpful links"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:208
+msgid "Supported PHP versions: https://www.php.net/supported-versions.php"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:208
+msgid "One per line as <code>Title: https://…</code>. Links to the Defender docs, 2FA and Hide Login URL are always added."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:209
+#: templates/types/malware-cleanup-body.php:255
+msgid "Search engines (SEO)"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:209
+msgid "What to check in Google and how to clean up search results. Leave empty to use the standard text."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:210
+#: templates/types/malware-cleanup-body.php:256
+msgid "Staying protected"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:210
+msgid "How to keep the site safe from now on. Leave empty to use the standard text."
+msgstr ""
+
+#. translators: %s: "pre-work" or "post-work"
+#: includes/class-cleanup-report-types.php:220
+#, php-format
+msgid "What the %s checklist found worth showing, e.g. a layout shift. None: the report says \"No relevant screenshots.\""
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:224
+msgid "Website optimization"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:226
+msgid "Add optimization report"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:227
+msgid "PageSpeed scores before and after, the pre- and post-work checklists, the optimization steps and the result against the targets."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:228
+msgid "Website optimization report"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:229
+msgid "WEBSITE OPTIMIZATION REPORT"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:231
+msgid "website optimization"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:232
+msgid "experts team"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:234
+msgid "Checklist & targets"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:239
+msgid "Scores"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:242
+msgid "Lighthouse JSON (before)"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:242
+msgid "Optional: a link to the shared JSON of the tests before the work. The report says it opens in the Lighthouse viewer."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:246
+#: templates/types/site-optimization.php:50
+msgid "Pre-work checklist"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:248
+msgid "Test the site before changing anything."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:249
+#: includes/class-cleanup-report-types.php:264
+msgid "Relevant screenshots"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:249
+msgid "pre-work"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:253
+msgid "Optimization work"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:255
+#: templates/types/site-optimization.php:51
+msgid "Optimization steps"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:255
+msgid "What was changed, grouped by plugin or tool (e.g. Elementor, Hummingbird, Smush, Hosting). Shown after \"For the site optimization, the following steps were taken:\"."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:256
+msgid "Code added"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:256
+msgid "Optional: custom code added to the site, e.g. an mu-plugin. Shown in full at the end of the report, so it doesn't break up the steps."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:257
+#: templates/types/site-optimization-body.php:193
+msgid "Optimization summary"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:257
+msgid "Shown under <strong>Optimization result</strong>, after whether the mobile and desktop targets were reached (worked out from the scores)."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:261
+#: templates/types/site-optimization.php:53
+msgid "Post-work checklist"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:263
+msgid "Same answers as pre-work"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:263
+msgid "Test the site again once the work is done."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:264
+msgid "post-work"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:270
+#: templates/types/site-optimization.php:54
+msgid "Helpful information about the performance"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:270
+msgid "How the score is measured and how to keep it. Leave empty to use the standard text."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:271
+msgid "Questions about the score"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:271
+msgid "Why mobile is lower, why the target is 80, why scores differ, Core Web Vitals. Leave empty to use the standard text."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:348
+msgid "You are not allowed to add reports."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:353
+msgid "Which kind of report? It can't be changed once the report is started."
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:380
+msgid "Filter by type"
+msgstr ""
+
+#: includes/class-cleanup-report-types.php:382
+msgid "All types"
+msgstr ""
+
+#: templates/parts/cover.php:24
+msgid "Confidential"
+msgstr ""
+
+#. translators: %s: client name
+#: templates/parts/cover.php:29
+#, php-format
+msgid "Prepared for <strong>%s</strong>"
+msgstr ""
+
+#: templates/parts/cover.php:41
+msgid "Report ID"
+msgstr ""
+
+#. translators: %d: report number
+#: templates/parts/cover.php:41
+#, php-format
+msgid "#%d"
+msgstr ""
+
+#. translators: %d: report number
+#: templates/parts/cover.php:42
+msgid "Prepared by"
+msgstr ""
+
+#. translators: 1: brand name, e.g. "WPMU DEV", 2: team, e.g. "Security Team"
+#: templates/parts/cover.php:42
+#, php-format
+msgid "%1$s %2$s"
+msgstr ""
+
+#. translators: %s: client name or website
+#: templates/parts/cover.php:46
+#, php-format
+msgid "Confidential — prepared for %s."
+msgstr ""
+
+#. translators: %s: client name or website
+#: templates/parts/cover.php:46
+msgid "Confidential."
+msgstr ""
+
+#. translators: 1: report type, 2: website or client name
+#: templates/parts/head.php:15
+#, php-format
+msgid "%1$s – %2$s"
+msgstr ""
+
+#. translators: %s: why the PDF couldn't be made
+#: templates/parts/head.php:209
+#, php-format
+msgid "<strong>Print view</strong> · %s. Use your browser's Save as PDF."
+msgstr ""
+
+#. translators: %s: website or client name
+#: templates/parts/head.php:215
+#, php-format
+msgid "<strong>Preview</strong> · %s · not approved yet, so this isn't the final report"
+msgstr ""
+
+#. translators: %s: website or client name
+#: templates/parts/head.php:217
+#, php-format
+msgid "<strong>Preview</strong> · %s · this is how the PDF reads"
+msgstr ""
+
+#: templates/parts/setup.php:33
+msgid "Your website"
+msgstr ""
+
+#: templates/types/generic-body.php:15
+#: templates/types/malware-cleanup-body.php:12
+#: templates/types/site-optimization-body.php:55
+msgid "At a glance"
+msgstr ""
+
+#. translators: 1: report type, 2: website, 3: date
+#: templates/types/generic-body.php:16
+#, php-format
+msgid "A summary of the %1$s of %2$s on %3$s."
+msgstr ""
+
+#: templates/types/generic-body.php:25
+msgid "Nothing has been filled in yet."
+msgstr ""
+
+#: templates/types/generic-body.php:54
+#: templates/types/malware-cleanup-body.php:129
+#: templates/types/site-optimization-body.php:22
+#: templates/types/site-optimization-body.php:172
+msgid "Result"
+msgstr ""
+
+#: templates/types/generic-body.php:65
+#: templates/types/malware-cleanup-body.php:61
+#: templates/types/site-optimization-body.php:43
+msgid "Screenshot unavailable."
+msgstr ""
+
+#. translators: %s: brand name
+#: templates/types/generic-body.php:80
+#: templates/types/malware-cleanup-body.php:269
+#: templates/types/site-optimization-body.php:210
+#, php-format
+msgid "Thank you for trusting %s."
+msgstr ""
+
+#. translators: %s: link to the member's support request
+#: templates/types/generic-body.php:82
+#: templates/types/site-optimization-body.php:212
+#, php-format
+msgid "Questions about this report? Reply on your <a href=\"%s\">support request</a> and our team will help."
+msgstr ""
+
+#: templates/types/generic-body.php:84
+#: templates/types/malware-cleanup-body.php:273
+#: templates/types/site-optimization-body.php:214
+msgid "Questions about this report? Contact our support team and we'll be happy to help."
+msgstr ""
+
+#: templates/types/generic.php:42
+msgid "Sections"
+msgstr ""
+
+#: templates/types/generic.php:43
+msgid "Checks passed"
+msgstr ""
+
+#. translators: %s: report type, e.g. "Website migration"
+#: templates/types/generic.php:48
+#, php-format
+msgid "Describes the website at the time of the %s."
+msgstr ""
+
+#. translators: 1: website, 2: date
+#: templates/types/malware-cleanup-body.php:13
+#, php-format
+msgid "A summary of the cleanup of %1$s on %2$s."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:16
+#: templates/types/malware-cleanup-body.php:18
+msgid "Your site has been cleaned."
+msgstr ""
+
+#. translators: %d: number of items
+#: templates/types/malware-cleanup-body.php:16
+#, php-format
+msgid "%d item needs your attention to keep it secure — see <strong>Your next steps</strong>."
+msgid_plural "%d items need your attention to keep it secure — see <strong>Your next steps</strong>."
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/types/malware-cleanup-body.php:18
+msgid "No further action is needed from you."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:22
+msgid "Malware & backdoors"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:23
+msgid "Vulnerable components"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:24
+msgid "Hardening"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:25
+msgid "Total"
+msgstr ""
+
+#. translators: 1: settings applied, 2: settings listed
+#: templates/types/malware-cleanup-body.php:29
+#, php-format
+msgid "%1$d of %2$d"
+msgstr ""
+
+#. translators: 1: settings applied, 2: settings listed
+#: templates/types/malware-cleanup-body.php:29
+#: templates/types/malware-cleanup.php:152
+msgid "Defender settings applied"
+msgstr ""
+
+#. translators: 1: settings applied, 2: settings listed
+#: templates/types/malware-cleanup-body.php:30
+#: templates/types/malware-cleanup.php:153
+msgid "Items for you to action"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:31
+msgid "Vulnerable components flagged"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:35
+msgid "Key finding:"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:55
+msgid "Scan results before and after the cleanup."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:57
+msgid "Security scan"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:81
+msgid "Plugins and themes that exposed the site to attack or are out of date."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:84
+msgid "Component"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:84
+msgid "Installed"
+msgstr ""
+
+#. translators: %s: brand name, e.g. "WPMU DEV"
+#: templates/types/malware-cleanup-body.php:105
+#, php-format
+msgid "Every %s cleanup includes"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:108
+msgid "A backup, whenever possible"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:109
+msgid "An evaluation of the infection"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:110
+msgid "A manual check by our expert for known malware"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:111
+msgid "External tools to find potential backdoors and malware"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:115
+msgid "Cleanup by reinstalling WordPress, plugins and theme"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:116
+msgid "Defender configured to keep protecting your site"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:117
+msgid "A quality review (Q&A) before this report is shared"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:131
+msgid "Additional sites on the hosting account"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:131
+msgid "Sharing one hosting account between sites can re-infect a cleaned site."
+msgstr ""
+
+#. translators: 1: number of security vendors, 2: their names, comma-separated
+#: templates/types/malware-cleanup-body.php:135
+#, php-format
+msgid "Listed by %1$d security vendor: %2$s. Please request delisting (see Your next steps)."
+msgid_plural "Listed by %1$d security vendors: %2$s. Please request delisting (see Your next steps)."
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/types/malware-cleanup-body.php:143
+msgid "Some security providers may list an infected site as suspicious; a delist request removes the warning."
+msgstr ""
+
+#. translators: %s: plugin name, "WPMU DEV Defender" or "Defender"
+#: templates/types/malware-cleanup-body.php:156
+#, php-format
+msgid "We configured %s to keep protecting your site."
+msgstr ""
+
+#. translators: %s: plugin name, "WPMU DEV Defender" or "Defender"
+#: templates/types/malware-cleanup-body.php:156
+msgid "Some settings need your attention: please apply the ones listed under <strong>To be done by you</strong> as soon as possible."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:159
+msgid "Configured by our team"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:160
+msgid "To be done by you"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:160
+msgid "Configuration must be done by you: these settings need your own choices or accounts, or couldn't be completed on our side."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:172
+msgid "Your action"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:176
+msgid "Visit to configure ›"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:176
+msgid "Public doc ›"
+msgstr ""
+
+#. translators: %s: website
+#: templates/types/malware-cleanup-body.php:183
+#, php-format
+msgid "Each \"Visit to configure\" link opens that setting in Defender on %s (log in first)."
+msgstr ""
+
+#. translators: %s: URL of the Defender documentation
+#: templates/types/malware-cleanup-body.php:183
+#, php-format
+msgid "\"Public doc\" opens its section of the <a href=\"%s\">Defender documentation</a>."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:191
+msgid "Some actions could not be completed on our side because of access limits, content familiarity, or premium plugin and theme files that weren't provided before the cleanup. Please complete these to keep your site secure."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:191
+msgid "There is nothing you need to do. We will let you know if anything changes."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:199
+msgid "Recommended actions"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:201
+msgid "Action"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:205
+msgid "View on your site ›"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:205
+msgid "Open on your site ›"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:212
+msgid "Reinstall these plugins & themes"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:213
+msgid "Premium items whose files weren't provided before cleanup. Reinstall a fresh copy from the vendor."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:215
+#: templates/types/malware-cleanup-body.php:224
+msgid "Folder (slug)"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:216
+msgid "Files weren't provided."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:221
+msgid "Replace these plugins & themes"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:222
+msgid "No longer receiving security updates. Replacing them prevents future issues."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:225
+msgid "No longer maintained."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:230
+msgid "Request delisting from these blocklists"
+msgstr ""
+
+#. translators: %s: website
+#: templates/types/malware-cleanup-body.php:231
+#, php-format
+msgid "These security providers still list %s as suspicious."
+msgstr ""
+
+#. translators: %s: website
+#: templates/types/malware-cleanup-body.php:231
+msgid "These security providers still list your site as suspicious."
+msgstr ""
+
+#. translators: %s: website
+#: templates/types/malware-cleanup-body.php:231
+msgid "The malware is removed, so ask each one to review the site and remove the listing."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:233
+msgid "Blocklist"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:233
+msgid "Where to request delisting"
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:242
+msgid "Contact the vendor's support."
+msgstr ""
+
+#: templates/types/malware-cleanup-body.php:261
+msgid "Resources"
+msgstr ""
+
+#. translators: %s: link to the member's support request
+#: templates/types/malware-cleanup-body.php:271
+#, php-format
+msgid "Questions about this report? Reply on your <a href=\"%s\">support request</a> and our security team will help."
+msgstr ""
+
+#: templates/types/malware-cleanup.php:55
+msgid "Before cleanup"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:56
+msgid "After cleanup"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:58
+msgid "Screenshot"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:108
+msgid "Defender documentation"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:109
+msgid "Setting up two-factor authentication"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:110
+msgid "Hiding the login URL"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:125
+msgid "Malware visual identification"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:127
+msgid "Vulnerable components & hardening"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:128
+msgid "Actions taken"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:130
+msgid "Defender security configuration"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:131
+msgid "Your next steps"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:132
+msgid "It is important to know"
+msgstr ""
+
+#. translators: %d: number of items the member has to action
+#: templates/types/malware-cleanup.php:148
+#, php-format
+msgid "Cleaned · %d item for you to action"
+msgid_plural "Cleaned · %d items for you to action"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/types/malware-cleanup.php:149
+msgid "Cleaned · no action needed"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:151
+msgid "Issues found and fixed"
+msgstr ""
+
+#: templates/types/malware-cleanup.php:156
+msgid "Describes the security state of the website at the time of cleanup."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:17
+msgid "Relevant screenshots from the pre-work checklist"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:17
+msgid "Relevant screenshots from the post-work checklist"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:30
+msgid "No tests recorded."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:37
+msgid "Relevant visual identifications found in our pre-work checklist."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:37
+msgid "Relevant visual identifications found in our post-work checklist."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:49
+msgid "No relevant screenshots."
+msgstr ""
+
+#. translators: 1: website, 2: date
+#: templates/types/site-optimization-body.php:56
+#, php-format
+msgid "A summary of the optimization of %1$s on %2$s."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:59
+msgid "Scores after the work haven't been entered yet."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:59
+msgid "The result is shown once they are."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:61
+#: templates/types/site-optimization-body.php:86
+msgid "Your site has been optimized."
+msgstr ""
+
+#. translators: 1: average score after the work, 2: target score
+#: templates/types/site-optimization-body.php:66
+#, php-format
+msgid "The mobile average (%1$s) is below the target of %2$d."
+msgstr ""
+
+#. translators: 1: average score after the work, 2: target score
+#: templates/types/site-optimization-body.php:68
+#, php-format
+msgid "The desktop average (%1$s) is below the target of %2$d."
+msgstr ""
+
+#. translators: 1: mobile average after the work, 2: mobile target, 3: desktop average after the work, 4: desktop target
+#: templates/types/site-optimization-body.php:76
+#, php-format
+msgid "The mobile average (%1$s) is below the target of %2$d, and the desktop average (%3$s) is below the target of %4$d."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:84
+msgid "See <strong>Optimization result</strong>."
+msgstr ""
+
+#. translators: 1: mobile target score, 2: desktop target score
+#: templates/types/site-optimization-body.php:86
+#, php-format
+msgid "Both average scores reached their targets: mobile %1$d, desktop %2$d."
+msgstr ""
+
+#. translators: %d: target score
+#: templates/types/site-optimization-body.php:93
+#, php-format
+msgid "After · target %d"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:98
+msgid "Mobile score change"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:99
+msgid "Desktop score change"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:100
+msgid "Page tested"
+msgid_plural "Pages tested"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/types/site-optimization-body.php:114
+msgid "PageSpeed Insights performance scores of the pages used for the average score, before and after the optimization."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:118
+msgid "Page"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:118
+#: assets/admin.js:445
+msgid "Mobile before"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:118
+#: assets/admin.js:447
+msgid "Mobile after"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:118
+#: assets/admin.js:446
+msgid "Desktop before"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:118
+#: assets/admin.js:448
+msgid "Desktop after"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:138
+msgid "* Score calculated by the sum of the individual pages' score divided by the number of selected pages. Score calculated using a VPN to the closest server location."
+msgstr ""
+
+#. translators: 1: link to the shared JSON, 2: link to the Lighthouse viewer
+#: templates/types/site-optimization-body.php:138
+#, php-format
+msgid "To view the data before the optimization, open the <a href=\"%1$s\">shared JSON</a> in the <a href=\"%2$s\">Lighthouse viewer</a>."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:140
+msgid "No scores entered."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:154
+msgid "For the site optimization, the following steps were taken:"
+msgstr ""
+
+#. translators: %s: file the code was added to
+#: templates/types/site-optimization-body.php:160
+#, php-format
+msgid "We also added custom code to the site, in <code>%s</code>."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:161
+msgid "We also added custom code to the site."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:162
+msgid "It's shown in full in <strong>Code added to your site</strong>, at the end of this report."
+msgstr ""
+
+#: templates/types/site-optimization-body.php:172
+msgid "Question"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:172
+msgid "Average after the work"
+msgstr ""
+
+#. translators: %d: target average score
+#: templates/types/site-optimization-body.php:177
+#, php-format
+msgid "Was the expected score reached for mobile? (%d avg)"
+msgstr ""
+
+#. translators: %d: target average score
+#: templates/types/site-optimization-body.php:179
+#, php-format
+msgid "Was the expected score reached for desktop? (%d avg)"
+msgstr ""
+
+#: templates/types/site-optimization-body.php:185
+msgid "Not measured"
+msgstr ""
+
+#. translators: %s: file the code was added to
+#: templates/types/site-optimization-body.php:223
+#, php-format
+msgid "Added as <code>%s</code>."
+msgstr ""
+
+#. translators: %s: file the code was added to
+#: templates/types/site-optimization-body.php:223
+msgid "Added to your site during the optimization."
+msgstr ""
+
+#: templates/types/site-optimization.php:49
+msgid "Performance scores"
+msgstr ""
+
+#: templates/types/site-optimization.php:52
+msgid "Optimization result"
+msgstr ""
+
+#: templates/types/site-optimization.php:55
+msgid "Code added to your site"
+msgstr ""
+
+#: templates/types/site-optimization.php:63
+msgid "Scores after the work not entered yet"
+msgstr ""
+
+#: templates/types/site-optimization.php:67
+msgid "Optimized · mobile target not reached"
+msgstr ""
+
+#: templates/types/site-optimization.php:68
+msgid "Optimized · desktop target not reached"
+msgstr ""
+
+#: templates/types/site-optimization.php:69
+msgid "Optimized · mobile and desktop target not reached"
+msgstr ""
+
+#: templates/types/site-optimization.php:73
+msgid "Optimized · targets reached"
+msgstr ""
+
+#: templates/types/site-optimization.php:81
+msgid "Describes the website's performance at the time of the optimization."
+msgstr ""
+
+#: templates/types/site-optimization.php:85
+msgid "Mobile average score"
+msgstr ""
+
+#. translators: %s: average score before the work
+#: templates/types/site-optimization.php:87
+#, php-format
+msgid "Mobile average score, from %s"
+msgstr ""
+
+#: templates/types/site-optimization.php:90
+msgid "Desktop average score"
+msgstr ""
+
+#. translators: %s: average score before the work
+#: templates/types/site-optimization.php:92
+#, php-format
+msgid "Desktop average score, from %s"
+msgstr ""
+
+#: templates/types/site-optimization.php:102
+msgid "Targets reached"
+msgstr ""
+
+#: assets/admin.js:57
+msgid "Choose an image"
+msgstr ""
+
+#: assets/admin.js:57
+msgid "Use this image"
+msgstr ""
+
+#. translators: %d: number of components in the table
+#: assets/admin.js:149
+#, js-format
+msgid "use %d from the table below"
+msgstr ""
+
+#: assets/admin.js:162
+msgid "Replace what's in the editor with the standard text?"
+msgstr ""
+
+#: assets/admin.js:262
+msgid "Plugin or theme"
+msgstr ""
+
+#: assets/admin.js:263
+msgid "Installed version"
+msgstr ""
+
+#: assets/admin.js:264
+msgid "5 known vulnerabilities; update to 7.1.0+"
+msgstr ""
+
+#. translators: %s: the values typed, e.g. "urgent" (Slider Revolution)
+#: assets/admin.js:293
+#, js-format
+msgid "Not a severity, so set to Medium: %s. Use critical, high, medium or low."
+msgstr ""
+
+#: assets/admin.js:350
+#: assets/admin.js:528
+msgid "Back to table"
+msgstr ""
+
+#: assets/admin.js:449
+msgid "Remove page"
+msgstr ""
+
+#. translators: %d: the target average score
+#: assets/admin.js:500
+#, js-format
+msgid "Target %d"
+msgstr ""
+
+#: assets/admin.js:542
+msgid "Vulnerable"
+msgstr ""
+
+#: assets/admin.js:543
+msgid "Update available"
+msgstr ""
+
+#: assets/admin.js:544
+msgid "Unknown"
+msgstr ""
+
+#: assets/admin.js:577
+msgid "Copied"
+msgstr ""
+
+#: assets/admin.js:578
+msgid "Copy this command:"
+msgstr ""
+
+#: assets/admin.js:604
+msgid "Add to report"
+msgstr ""
+
+#: assets/admin.js:609
+msgid "theme"
+msgstr ""
+
+#: assets/admin.js:609
+msgid "premium"
+msgstr ""
+
+#: assets/admin.js:612
+msgid "Marked as maintained in your plugin list"
+msgstr ""
+
+#: assets/admin.js:612
+msgid "Maintained, up to date, no known vulnerabilities"
+msgstr ""
+
+#. translators: %s: what failed
+#: assets/admin.js:614
+#, js-format
+msgid "%s. Try again later."
+msgstr ""
+
+#: assets/admin.js:623
+#: assets/admin.js:649
+msgid "Added"
+msgstr ""
+
+#: assets/admin.js:627
+msgid "Components"
+msgstr ""
+
+#: assets/admin.js:630
+msgid "Replace list"
+msgstr ""
+
+#: assets/admin.js:633
+msgid "Reinstall list"
+msgstr ""
+
+#. translators: %d: number of flagged plugins and themes
+#: assets/admin.js:642
+#, js-format
+msgid "Add the %d flagged item to the report"
+msgid_plural "Add all %d flagged to the report"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/admin.js:650
+msgid "Added to the components table and the Replace list"
+msgstr ""
+
+#: assets/admin.js:652
+msgid "Components table, plus the Replace list for closed or abandoned items. Review the wording before sending."
+msgstr ""
+
+#. translators: 1: number of plugins and themes checked, 2: summary, e.g. "2 vulnerable · 1 closed"
+#: assets/admin.js:657
+#, js-format
+msgid "%1$d checked: %2$s"
+msgstr ""
+
+#: assets/admin.js:663
+msgid "Paste the command's output first."
+msgstr ""
+
+#: assets/admin.js:669
+msgid "Checking… (up to half a minute the first time)"
+msgstr ""
+
+#: assets/admin.js:675
+msgid "The check failed."
+msgstr ""
+
+#: assets/admin.js:678
+msgid "The check failed (network or server error). Try again."
+msgstr ""
+
+#. translators: 1: applied, 2: pending, 3: for the member (counts)
+#: assets/admin.js:710
+#, js-format
+msgid "%1$d applied · %2$d pending · %3$d for the member"
+msgstr ""
+
+#. translators: 1: already configured, 2: done, 3: for the member (counts)
+#: assets/admin.js:722
+#, js-format
+msgid "%1$d already configured · %2$d done · %3$d for the member"
+msgstr ""
+
+#. translators: %d: number of items left out of the report
+#: assets/admin.js:725
+#, js-format
+msgid "%d left out"
+msgstr ""
+
+#. translators: %d: number of vendors
+#: assets/admin.js:752
+#, js-format
+msgid "%d vendor ticked"
+msgid_plural "%d vendors ticked"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of items
+#: assets/admin.js:859
+#, js-format
+msgid "Delete %d item from the list? It comes back if a report checks it again."
+msgid_plural "Delete %d items from the list? They come back if a report checks them again."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: item name
+#: assets/admin.js:873
+#, js-format
+msgid "Delete \"%s\"? Reports that already use it keep it."
+msgstr ""
+
+#: assets/admin.js:899
+msgid "Give every item a name, or delete the ones you don't need."
+msgstr ""

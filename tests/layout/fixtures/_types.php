@@ -1,12 +1,12 @@
 <?php
 /**
- * A test-only report type, "Website migration", defined with the handover_report_types filter and nothing else: it
+ * A test-only report type, "Website migration", defined with the cleanup_report_types filter and nothing else: it
  * uses every generic field type and the generic template. Loaded by the "generic" fixture and by render.php, so the
  * type exists while the report is seeded and while it's rendered. Never part of the plugin.
  */
 defined( 'WP_CLI' ) || exit;
 
-add_filter( 'handover_report_types', static function ( $types ) {
+add_filter( 'cleanup_report_types', static function ( $types ) {
 	$types['site_migration'] = [
 		'label'    => 'Website migration',
 		'about'    => 'Test type for the layout check.',

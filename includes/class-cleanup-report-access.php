@@ -73,7 +73,7 @@ class Cleanup_Report_Access {
             return $caps;
         }
         if ( 'edit_post' === $cap && in_array( Cleanup_Report_Admin::status( $post->ID ), [ 'approved', 'complete' ], true ) ) {
-            return [ 'edit_posts' ]; // open it to mark it Completed; everything else is locked
+            return [ 'edit_others_posts' ]; // Writers (Editors) open it to mark it Completed; everything else is locked. Lower roles can't.
         }
         return [ 'do_not_allow' ];
     }
@@ -120,7 +120,7 @@ class Cleanup_Report_Access {
 
     public static function locked_notice( $post ) {
         if ( 'cleanup_report' === $post->post_type && self::locked( $post->ID ) ) {
-            echo '<div class="notice notice-info inline crg-locked-notice"><p><strong>This report is approved, so it can\'t be changed.</strong> Once it\'s been sent to the member, set its status to Completed in the Save &amp; review box. A Buddylead can reopen it if something needs fixing.</p></div>';
+            echo '<div class="notice notice-info inline crg-locked-notice"><p>' . wp_kses( __( '<strong>This report is approved, so it can\'t be changed.</strong> Once it\'s been sent to the member, set its status to Completed in the Save & review box. A Buddylead can reopen it if something needs fixing.', 'cleanup-report-generator' ), [ 'strong' => [] ] ) . '</p></div>';
         }
     }
 }

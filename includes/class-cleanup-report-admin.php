@@ -9,6 +9,7 @@ class Cleanup_Report_Admin {
     /**
      * Review workflow. Anyone who can edit a report can draft it and submit it for review; only Buddyleads
      * (Reports › Settings › Review) can approve it or send it back; once approved, anyone can mark it completed.
+     * The labels are shown translated through statuses().
      */
     const STATUSES = [
         'draft'          => 'Draft',
@@ -31,7 +32,7 @@ class Cleanup_Report_Admin {
         'complete'       => 'publish',
     ];
 
-    /** "Report approved." etc. after a save that changed the review status (post_updated_messages indexes). */
+    /** "Report approved." etc. after a save that changed the review status (post_updated_messages indexes; shown translated through status_messages()). */
     const STATUS_MESSAGES = [
         'draft'          => [ 51, 'Report moved back to draft.' ],
         'submitted'      => [ 52, 'Report submitted for review.' ],
@@ -41,13 +42,13 @@ class Cleanup_Report_Admin {
     ];
 
     /** Bump to run upgrade() once more on every site (stored in the autoloaded option crg_db_version). */
-    const DB_VERSION = 4;
+    const DB_VERSION = 5;
 
     /** The review status this request changed the report to, for the "saved" message. */
     private static $changed_to = '';
 
 
-    /** What each review step is called in the history. */
+    /** What each review step is called in the history (stored in English; translated on display by history_label()). */
     const HISTORY_STEPS = [
         'draft'          => 'Moved back to draft',
         'submitted'      => 'Submitted for review',
@@ -55,6 +56,51 @@ class Cleanup_Report_Admin {
         'approved'       => 'Approved',
         'complete'       => 'Marked completed',
     ];
+
+    /** STATUSES, translated: review status => label. */
+    public static function statuses() {
+        return [
+            'draft'          => __( 'Draft', 'cleanup-report-generator' ),
+            'submitted'      => __( 'Submitted for review', 'cleanup-report-generator' ),
+            'needs_revision' => __( 'Needs revision', 'cleanup-report-generator' ),
+            'approved'       => __( 'Approved', 'cleanup-report-generator' ),
+            'complete'       => __( 'Completed', 'cleanup-report-generator' ),
+        ];
+    }
+
+    /** STATUS_MESSAGES, translated: review status => [ post_updated_messages index, message ]. */
+    public static function status_messages() {
+        return [
+            'draft'          => [ self::STATUS_MESSAGES['draft'][0], __( 'Report moved back to draft.', 'cleanup-report-generator' ) ],
+            'submitted'      => [ self::STATUS_MESSAGES['submitted'][0], __( 'Report submitted for review.', 'cleanup-report-generator' ) ],
+            'needs_revision' => [ self::STATUS_MESSAGES['needs_revision'][0], __( 'Report sent back for revision. The author will see your notes.', 'cleanup-report-generator' ) ],
+            'approved'       => [ self::STATUS_MESSAGES['approved'][0], __( 'Report approved. It can now be sent to the member.', 'cleanup-report-generator' ) ],
+            'complete'       => [ self::STATUS_MESSAGES['complete'][0], __( 'Report marked completed.', 'cleanup-report-generator' ) ],
+        ];
+    }
+
+    /**
+     * A history entry's action or section as stored (in English, e.g. "Submitted for review", "Title"), translated for
+     * display. Section titles of the report types are shown as they were stored.
+     */
+    public static function history_label( $text ) {
+        $labels = [
+            'Created the report'     => __( 'Created the report', 'cleanup-report-generator' ),
+            'Edited'                 => __( 'Edited', 'cleanup-report-generator' ),
+            'Moved to Trash'         => __( 'Moved to Trash', 'cleanup-report-generator' ),
+            'Restored from Trash'    => __( 'Restored from Trash', 'cleanup-report-generator' ),
+            'Downloaded the PDF'     => __( 'Downloaded the PDF', 'cleanup-report-generator' ),
+            'Moved back to draft'    => __( 'Moved back to draft', 'cleanup-report-generator' ),
+            'Submitted for review'   => __( 'Submitted for review', 'cleanup-report-generator' ),
+            'Resubmitted for review' => __( 'Resubmitted for review', 'cleanup-report-generator' ),
+            'Sent back for revision' => __( 'Sent back for revision', 'cleanup-report-generator' ),
+            'Approved'               => __( 'Approved', 'cleanup-report-generator' ),
+            'Marked completed'       => __( 'Marked completed', 'cleanup-report-generator' ),
+            'Title'                  => __( 'Title', 'cleanup-report-generator' ),
+            'Notes'                  => __( 'Notes', 'cleanup-report-generator' ),
+        ];
+        return $labels[ (string) $text ] ?? (string) $text;
+    }
 
     /** Set when this request renamed the report (post_updated runs before save_post). */
     private static $title_changed = false;
@@ -81,7 +127,7 @@ class Cleanup_Report_Admin {
             }
             $out[ $section['title'] ] = $keys;
         }
-        $out[ __( 'Notes', 'cleanup-report-generator' ) ] = [ 'crg_author_notes', 'crg_review_notes' ];
+        $out['Notes'] = [ 'crg_author_notes', 'crg_review_notes' ]; // stored in English in the history; translated on display
         return $out;
     }
 
@@ -120,7 +166,8 @@ class Cleanup_Report_Admin {
      *  - Every report without a type is marked a Malware cleanup report, which it already reads as (DB_VERSION 4), so
      *    the Reports list's type filter is a plain meta query.
      *  - An install that already had the plugin keeps the WPMU DEV defaults and the daily plugin-list re-check it has
-     *    always had; a new install starts with the Generic defaults and the re-check off (DB_VERSION 4).
+     *    always had; a new install starts with the Generic defaults, the re-check off and no automatic deletion
+     *    (retention 0) (DB_VERSION 4). Settings only wp-admin needs stop being autoloaded (DB_VERSION 5).
      * Every step is safe to repeat, so a version bump simply runs them all again once.
      */
     public static function upgrade() {
@@ -136,6 +183,9 @@ class Cleanup_Report_Admin {
         Cleanup_Report_Presets::choose_on_upgrade( $had_plugin );
         if ( false === get_option( 'crg_plugin_recheck' ) ) {
             add_option( 'crg_plugin_recheck', $had_plugin ? 1 : 0 );
+        }
+        if ( ! $had_plugin && false === get_option( Cleanup_Report_Retention::OPTION ) ) {
+            add_option( Cleanup_Report_Retention::OPTION, 0, '', false ); // a new install keeps reports until someone sets a retention period
         }
         foreach ( $reports as $post ) {
             $want = self::POST_STATUS[ self::status( $post->ID ) ];
@@ -157,7 +207,7 @@ class Cleanup_Report_Admin {
         }
         Cleanup_Report_Checklists::rename_saved_labels();
         if ( function_exists( 'wp_set_options_autoload' ) ) {
-            wp_set_options_autoload( self::CHECKLIST_OPTIONS, false );
+            wp_set_options_autoload( self::ADMIN_OPTIONS, false );
         }
         $footer = get_option( 'crg_footer_text' ); // a saved "© 2026 …" froze the year: make it follow the date
         if ( is_string( $footer ) ) {
@@ -172,12 +222,20 @@ class Cleanup_Report_Admin {
         delete_transient( 'crg_upgrading' );
     }
 
-    /** The checklist settings, only needed in wp-admin. */
-    const CHECKLIST_OPTIONS = [ Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION, Cleanup_Report_Checklists::BLOCKLIST_OPTION, Cleanup_Report_Optimization::CHECKS_OPTION ];
+    /**
+     * Settings only wp-admin, WP-Cron and the PDF need: kept out of the autoload that every front-end page reads.
+     * (crg_db_version stays autoloaded: every admin page checks it.)
+     */
+    const ADMIN_OPTIONS = [
+        Cleanup_Report_Checklists::FOLLOWUP_OPTION, Cleanup_Report_Checklists::DEFENDER_OPTION, Cleanup_Report_Checklists::BLOCKLIST_OPTION, Cleanup_Report_Optimization::CHECKS_OPTION,
+        'crg_defaults', 'crg_brand_name', 'crg_brand_logo', 'crg_brand_logo_light', 'crg_brand_primary', 'crg_report_theme', 'crg_cover_glow', 'crg_footer_text',
+        'crg_color_success', 'crg_color_warning', 'crg_color_high', 'crg_color_danger', 'crg_color_neutral', 'crg_watermark_text', 'crg_pdf_requires_approval',
+        'crg_buddyleads', 'crg_retention_days', 'crg_plugin_recheck', 'crg_delete_data', 'crg_opt_target_mobile', 'crg_opt_target_desktop',
+    ];
 
-    /** The checklists are only needed in wp-admin: when first saved, keep them out of every page's autoload. */
+    /** When one of ADMIN_OPTIONS is first saved, keep it out of every page's autoload. */
     public static function checklists_not_autoloaded( $option ) {
-        if ( in_array( $option, self::CHECKLIST_OPTIONS, true ) && function_exists( 'wp_set_option_autoload' ) ) {
+        if ( in_array( $option, self::ADMIN_OPTIONS, true ) && function_exists( 'wp_set_option_autoload' ) ) {
             wp_set_option_autoload( $option, false );
         }
     }
@@ -240,12 +298,12 @@ class Cleanup_Report_Admin {
         $history = get_post_meta( $post->ID, 'crg_history', true );
         $history = is_array( $history ) ? array_reverse( $history ) : [];
         if ( ! $history ) {
-            echo '<p class="crg-muted">Edits, review steps and PDF downloads will be noted here.</p>';
+            echo '<p class="crg-muted">' . esc_html__( 'Edits, review steps and PDF downloads will be noted here.', 'cleanup-report-generator' ) . '</p>';
             return;
         }
         $row = static function ( $e ) {
             $user = get_userdata( (int) $e['u'] );
-            $what = $e['a'] . ( ! empty( $e['s'] ) ? ' ' . implode( ', ', (array) $e['s'] ) : '' );
+            $what = self::history_label( $e['a'] ) . ( ! empty( $e['s'] ) ? ' ' . implode( ', ', array_map( [ __CLASS__, 'history_label' ], (array) $e['s'] ) ) : '' );
             echo '<li><strong>' . esc_html( $what ) . '</strong><span class="crg-muted">' . esc_html( ( $user ? $user->display_name : 'WordPress' ) . ' · ' . wp_date( 'j M Y, H:i', (int) $e['t'] ) ) . '</span>';
             if ( '' !== (string) $e['n'] ) {
                 echo '<span class="crg-history-note">' . nl2br( esc_html( $e['n'] ) ) . '</span>';
@@ -256,7 +314,9 @@ class Cleanup_Report_Admin {
         array_map( $row, array_slice( $history, 0, 8 ) );
         echo '</ul>';
         if ( count( $history ) > 8 ) {
-            echo '<details class="crg-history-more"><summary>Show ' . (int) ( count( $history ) - 8 ) . ' earlier</summary><ul class="crg-history">';
+            $more = count( $history ) - 8;
+            /* translators: %d: number of older history entries */
+            echo '<details class="crg-history-more"><summary>' . esc_html( sprintf( _n( 'Show %d earlier', 'Show %d earlier', $more, 'cleanup-report-generator' ), $more ) ) . '</summary><ul class="crg-history">';
             array_map( $row, array_slice( $history, 8 ) );
             echo '</ul></details>';
         }
@@ -279,10 +339,10 @@ class Cleanup_Report_Admin {
         // The Review box saves the report, so WordPress's Publish box (its own status, visibility and publish date,
         // which mean nothing for reports) is removed. The Review box comes first, where Publish used to be.
         remove_meta_box( 'submitdiv', 'cleanup_report', 'side' );
-        add_meta_box( 'crg_review', 'Save & review', [ __CLASS__, 'box_review' ], 'cleanup_report', 'side', 'high' );
+        add_meta_box( 'crg_review', __( 'Save & review', 'cleanup-report-generator' ), [ __CLASS__, 'box_review' ], 'cleanup_report', 'side', 'high' );
         // 'core', not 'high': a saved box order moves the Review box to WordPress's 'sorted' slot, which comes after 'high'.
-        add_meta_box( 'crg_box_export', 'Report', [ __CLASS__, 'box_export' ], 'cleanup_report', 'side', 'core' );
-        add_meta_box( 'crg_history', 'History', [ __CLASS__, 'box_history' ], 'cleanup_report', 'side', 'low' );
+        add_meta_box( 'crg_box_export', __( 'Report', 'cleanup-report-generator' ), [ __CLASS__, 'box_export' ], 'cleanup_report', 'side', 'core' );
+        add_meta_box( 'crg_history', __( 'History', 'cleanup-report-generator' ), [ __CLASS__, 'box_history' ], 'cleanup_report', 'side', 'low' );
     }
 
     /**
@@ -303,7 +363,11 @@ class Cleanup_Report_Admin {
     }
 
     public static function title_placeholder( $text, $post ) {
-        return 'cleanup_report' === $post->post_type ? 'Report title, e.g. Acme Bakery – ' . Cleanup_Report_Types::get( Cleanup_Report_Types::of( $post->ID ) )['suffix'] : $text;
+        if ( 'cleanup_report' !== $post->post_type ) {
+            return $text;
+        }
+        /* translators: %s: the report type's title suffix, e.g. Malware cleanup report */
+        return sprintf( __( 'Report title, e.g. Acme Bakery – %s', 'cleanup-report-generator' ), Cleanup_Report_Types::get( Cleanup_Report_Types::of( $post->ID ) )['suffix'] );
     }
 
     /** "Jump to" links under the title, one per section. */
@@ -312,7 +376,7 @@ class Cleanup_Report_Admin {
             return;
         }
         $type = Cleanup_Report_Types::of( $post->ID );
-        echo '<nav class="crg-nav" aria-label="Report sections" data-title-suffix="' . esc_attr( Cleanup_Report_Types::get( $type )['suffix'] ) . '">';
+        echo '<nav class="crg-nav" aria-label="' . esc_attr__( 'Report sections', 'cleanup-report-generator' ) . '" data-title-suffix="' . esc_attr( Cleanup_Report_Types::get( $type )['suffix'] ) . '">';
         Cleanup_Report_Types::badge( $type );
         $n = 0;
         foreach ( self::sections( $post->ID ) as $id => $title ) {
@@ -325,7 +389,7 @@ class Cleanup_Report_Admin {
 
     public static function box_export( $post ) {
         if ( 'auto-draft' === $post->post_status ) {
-            echo '<p class="crg-muted">Save the report to preview it or download the PDF.</p>';
+            echo '<p class="crg-muted">' . esc_html__( 'Save the report to preview it or download the PDF.', 'cleanup-report-generator' ) . '</p>';
             return;
         }
         $view = wp_nonce_url( admin_url( 'admin-post.php?action=crg_view_report&post=' . $post->ID ), 'crg_view_' . $post->ID );
@@ -333,32 +397,64 @@ class Cleanup_Report_Admin {
         ?>
         <div class="crg-export">
             <?php if ( self::can_download( $post->ID ) ) : ?>
-                <a class="button button-primary crg-export-pdf" href="<?php echo esc_url( $pdf ); ?>"><span class="dashicons dashicons-pdf"></span> Download PDF</a>
+                <a class="button button-primary crg-export-pdf" href="<?php echo esc_url( $pdf ); ?>"><span class="dashicons dashicons-pdf"></span> <?php esc_html_e( 'Download PDF', 'cleanup-report-generator' ); ?></a>
             <?php else : ?>
-                <span class="button button-primary crg-export-pdf disabled" aria-disabled="true"><span class="dashicons dashicons-pdf"></span> Download PDF</span>
+                <span class="button button-primary crg-export-pdf disabled" aria-disabled="true"><span class="dashicons dashicons-pdf"></span> <?php esc_html_e( 'Download PDF', 'cleanup-report-generator' ); ?></span>
             <?php endif; ?>
-            <a class="button" href="<?php echo esc_url( $view ); ?>" target="_blank" rel="noopener">Preview in browser</a>
+            <a class="button" href="<?php echo esc_url( $view ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Preview in browser', 'cleanup-report-generator' ); ?></a>
         </div>
         <?php if ( ! self::can_download( $post->ID ) ) : ?>
-            <p class="crg-muted crg-export-locked">The PDF can be downloaded once the report is approved. Until then the preview is marked <strong><?php echo esc_html( self::watermark() ); ?></strong>.</p>
+            <p class="crg-muted crg-export-locked">
+                <?php
+                echo wp_kses(
+                    sprintf(
+                        /* translators: %s: the mark on reports that aren't approved yet, e.g. NOT FINAL */
+                        __( 'The PDF can be downloaded once the report is approved. Until then the preview is marked <strong>%s</strong>.', 'cleanup-report-generator' ),
+                        esc_html( self::watermark() )
+                    ),
+                    [ 'strong' => [] ]
+                );
+                ?>
+            </p>
         <?php endif; ?>
-        <p class="crg-muted crg-export-note">Uses the last saved version.</p>
-        <p class="crg-dirty" hidden><span class="dashicons dashicons-warning"></span> You have unsaved changes. Save to include them.</p>
+        <p class="crg-muted crg-export-note"><?php esc_html_e( 'Uses the last saved version.', 'cleanup-report-generator' ); ?></p>
+        <p class="crg-dirty" hidden><span class="dashicons dashicons-warning"></span> <?php esc_html_e( 'You have unsaved changes. Save to include them.', 'cleanup-report-generator' ); ?></p>
         <?php
     }
 
     /* ---------- side: review */
 
     private static function status_badge( $status ) {
-        printf( '<span class="crg-status-badge crg-status-%s">%s</span>', esc_attr( $status ), esc_html( self::STATUSES[ $status ] ?? $status ) );
+        printf( '<span class="crg-status-badge crg-status-%s">%s</span>', esc_attr( $status ), esc_html( self::statuses()[ $status ] ?? $status ) );
     }
 
     private static function review_dates( $post ) {
-        foreach ( [ 'submitted' => 'Submitted', 'reviewed' => 'Approved', 'completed' => 'Completed' ] as $key => $label ) {
+        $labels = [
+            'submitted' => [
+                /* translators: %s: date and time */
+                __( 'Submitted %s', 'cleanup-report-generator' ),
+                /* translators: 1: a person's name, 2: date and time */
+                __( 'Submitted by %1$s, %2$s', 'cleanup-report-generator' ),
+            ],
+            'reviewed'  => [
+                /* translators: %s: date and time */
+                __( 'Approved %s', 'cleanup-report-generator' ),
+                /* translators: 1: a person's name, 2: date and time */
+                __( 'Approved by %1$s, %2$s', 'cleanup-report-generator' ),
+            ],
+            'completed' => [
+                /* translators: %s: date and time */
+                __( 'Completed %s', 'cleanup-report-generator' ),
+                /* translators: 1: a person's name, 2: date and time */
+                __( 'Completed by %1$s, %2$s', 'cleanup-report-generator' ),
+            ],
+        ];
+        foreach ( $labels as $key => $label ) {
             $date = get_post_meta( $post->ID, 'crg_' . $key . '_date', true );
             $by   = get_userdata( (int) get_post_meta( $post->ID, 'crg_' . $key . '_by', true ) );
             if ( $date && strtotime( $date ) ) {
-                printf( '<p class="crg-muted">%s %s%s</p>', esc_html( $label ), $by ? 'by ' . esc_html( $by->display_name ) . ', ' : '', esc_html( mysql2date( 'j M Y, H:i', $date ) ) );
+                $when = mysql2date( 'j M Y, H:i', $date );
+                printf( '<p class="crg-muted">%s</p>', esc_html( $by ? sprintf( $label[1], $by->display_name, $when ) : sprintf( $label[0], $when ) ) );
             }
         }
     }
@@ -381,7 +477,7 @@ class Cleanup_Report_Admin {
 
     /** The mark on reports that aren't approved yet (Settings › Review; administrators). */
     public static function watermark() {
-        return trim( (string) get_option( 'crg_watermark_text', 'NOT FINAL' ) ) ?: 'NOT FINAL';
+        return trim( (string) get_option( 'crg_watermark_text', __( 'NOT FINAL', 'cleanup-report-generator' ) ) ) ?: __( 'NOT FINAL', 'cleanup-report-generator' );
     }
 
     /** User IDs of the Buddyleads: the only people who can approve reports or send them back. */
@@ -421,16 +517,16 @@ class Cleanup_Report_Admin {
     /** The Save button's label for moving from $current to $target. */
     public static function save_label( $target, $current ) {
         if ( $target === $current ) {
-            return 'draft' === $current ? 'Save draft' : 'Save';
+            return 'draft' === $current ? __( 'Save draft', 'cleanup-report-generator' ) : __( 'Save', 'cleanup-report-generator' );
         }
         $labels = [
-            'draft'          => 'Move back to draft',
-            'submitted'      => 'needs_revision' === $current ? 'Resubmit for review' : 'Submit for review',
-            'needs_revision' => 'Send back for revision',
-            'approved'       => 'Approve',
-            'complete'       => 'Mark completed',
+            'draft'          => __( 'Move back to draft', 'cleanup-report-generator' ),
+            'submitted'      => 'needs_revision' === $current ? __( 'Resubmit for review', 'cleanup-report-generator' ) : __( 'Submit for review', 'cleanup-report-generator' ),
+            'needs_revision' => __( 'Send back for revision', 'cleanup-report-generator' ),
+            'approved'       => __( 'Approve', 'cleanup-report-generator' ),
+            'complete'       => __( 'Mark completed', 'cleanup-report-generator' ),
         ];
-        return $labels[ $target ] ?? 'Save';
+        return $labels[ $target ] ?? __( 'Save', 'cleanup-report-generator' );
     }
 
     /** Keeps WordPress's post status in step with the review status on every save (see POST_STATUS). */
@@ -464,38 +560,45 @@ class Cleanup_Report_Admin {
             <p><?php self::status_badge( $status ); ?></p>
             <?php self::review_dates( $post ); ?>
             <?php if ( $review_notes ) : ?>
-                <div class="crg-note-box is-review"><strong>Buddylead's notes</strong><br><?php echo nl2br( esc_html( $review_notes ) ); ?></div>
+                <div class="crg-note-box is-review"><strong><?php esc_html_e( 'Buddylead\'s notes', 'cleanup-report-generator' ); ?></strong><br><?php echo nl2br( esc_html( $review_notes ) ); ?></div>
             <?php endif; ?>
             <?php if ( $author_notes && $lead ) : ?>
-                <div class="crg-note-box"><strong>Notes from the author</strong><br><?php echo nl2br( esc_html( $author_notes ) ); ?></div>
+                <div class="crg-note-box"><strong><?php esc_html_e( 'Notes from the author', 'cleanup-report-generator' ); ?></strong><br><?php echo nl2br( esc_html( $author_notes ) ); ?></div>
             <?php endif; ?>
             <p>
-                <label for="crg_review_status"><strong>Status</strong></label>
+                <label for="crg_review_status"><strong><?php esc_html_e( 'Status', 'cleanup-report-generator' ); ?></strong></label>
                 <select id="crg_review_status" name="crg_review_status" class="widefat" data-current="<?php echo esc_attr( $status ); ?>">
                     <?php foreach ( $allowed as $value ) : ?>
-                        <option value="<?php echo esc_attr( $value ); ?>" data-label="<?php echo esc_attr( self::save_label( $value, $status ) ); ?>" data-post-status="<?php echo esc_attr( self::POST_STATUS[ $value ] ); ?>" <?php selected( $status, $value ); ?>><?php echo esc_html( self::STATUSES[ $value ] ); ?></option>
+                        <option value="<?php echo esc_attr( $value ); ?>" data-label="<?php echo esc_attr( self::save_label( $value, $status ) ); ?>" data-post-status="<?php echo esc_attr( self::POST_STATUS[ $value ] ); ?>" <?php selected( $status, $value ); ?>><?php echo esc_html( self::statuses()[ $value ] ); ?></option>
                     <?php endforeach; ?>
                 </select>
             </p>
             <p class="crg-muted">
                 <?php if ( 'approved' === $status ) : ?>
-                    Approved. Once the report is sent to the member, mark it Completed.
+                    <?php esc_html_e( 'Approved. Once the report is sent to the member, mark it Completed.', 'cleanup-report-generator' ); ?>
+                <?php elseif ( $lead && current_user_can( 'manage_options' ) ) : ?>
+                    <?php esc_html_e( 'As an administrator, you can approve this report or send it back for changes.', 'cleanup-report-generator' ); ?>
                 <?php elseif ( $lead ) : ?>
-                    <?php echo current_user_can( 'manage_options' ) ? 'As an administrator' : 'As a Buddylead'; ?>, you can approve this report or send it back for changes.
+                    <?php esc_html_e( 'As a Buddylead, you can approve this report or send it back for changes.', 'cleanup-report-generator' ); ?>
+                <?php elseif ( $names ) : ?>
+                    <?php
+                    /* translators: %s: names of the Buddyleads, e.g. "Ana, Ben" */
+                    echo esc_html( sprintf( __( 'Buddyleads (%s) and administrators approve reports. Submit it for review when it\'s ready.', 'cleanup-report-generator' ), implode( ', ', $names ) ) );
+                    ?>
                 <?php else : ?>
-                    Buddyleads<?php echo $names ? ' (' . esc_html( implode( ', ', $names ) ) . ')' : ''; ?> and administrators approve reports. Submit it for review when it's ready.
+                    <?php esc_html_e( 'Buddyleads and administrators approve reports. Submit it for review when it\'s ready.', 'cleanup-report-generator' ); ?>
                 <?php endif; ?>
             </p>
             <?php if ( $lead ) : ?>
                 <p>
-                    <label for="crg_review_notes"><strong>Notes for the author</strong></label>
-                    <textarea id="crg_review_notes" name="crg_review_notes" rows="3" class="widefat" placeholder="What needs changing, or why it's approved"><?php echo esc_textarea( $review_notes ); ?></textarea>
+                    <label for="crg_review_notes"><strong><?php esc_html_e( 'Notes for the author', 'cleanup-report-generator' ); ?></strong></label>
+                    <textarea id="crg_review_notes" name="crg_review_notes" rows="3" class="widefat" placeholder="<?php esc_attr_e( 'What needs changing, or why it\'s approved', 'cleanup-report-generator' ); ?>"><?php echo esc_textarea( $review_notes ); ?></textarea>
                 </p>
             <?php endif; ?>
             <?php if ( in_array( $status, [ 'draft', 'needs_revision' ], true ) ) : ?>
                 <p>
-                    <label for="crg_author_notes"><strong>Notes for the Buddylead</strong></label>
-                    <textarea id="crg_author_notes" name="crg_author_notes" rows="2" class="widefat" placeholder="Anything they should check"><?php echo esc_textarea( $author_notes ); ?></textarea>
+                    <label for="crg_author_notes"><strong><?php esc_html_e( 'Notes for the Buddylead', 'cleanup-report-generator' ); ?></strong></label>
+                    <textarea id="crg_author_notes" name="crg_author_notes" rows="2" class="widefat" placeholder="<?php esc_attr_e( 'Anything they should check', 'cleanup-report-generator' ); ?>"><?php echo esc_textarea( $author_notes ); ?></textarea>
                 </p>
             <?php endif; ?>
             <div class="crg-save">
@@ -506,7 +609,7 @@ class Cleanup_Report_Admin {
                     <button type="button" class="button button-large crg-submit-review"><?php echo esc_html( self::save_label( 'submitted', $status ) ); ?></button>
                 <?php endif; ?>
                 <?php if ( 'auto-draft' !== $post->post_status && current_user_can( 'delete_post', $post->ID ) ) : ?>
-                    <a class="crg-trash" href="<?php echo esc_url( get_delete_post_link( $post->ID ) ); ?>">Move to Trash</a>
+                    <a class="crg-trash" href="<?php echo esc_url( get_delete_post_link( $post->ID ) ); ?>"><?php esc_html_e( 'Move to Trash', 'cleanup-report-generator' ); ?></a>
                 <?php endif; ?>
             </div>
         </div>
@@ -606,14 +709,14 @@ class Cleanup_Report_Admin {
     /* ================================================================== Reports list */
 
     public static function columns( $columns ) {
-        $date = $columns['date'] ?? 'Date';
+        $date = $columns['date'] ?? __( 'Date', 'cleanup-report-generator' );
         unset( $columns['date'] );
         return $columns + [
-            'crg_type'   => 'Type',
-            'crg_client' => 'Prepared for',
-            'crg_site'   => 'Website',
-            'crg_review' => 'Review',
-            'crg_date'   => 'Report date',
+            'crg_type'   => __( 'Type', 'cleanup-report-generator' ),
+            'crg_client' => __( 'Prepared for', 'cleanup-report-generator' ),
+            'crg_site'   => __( 'Website', 'cleanup-report-generator' ),
+            'crg_review' => __( 'Review', 'cleanup-report-generator' ),
+            'crg_date'   => __( 'Report date', 'cleanup-report-generator' ),
             'date'       => $date,
         ];
     }

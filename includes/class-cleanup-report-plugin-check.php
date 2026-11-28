@@ -114,7 +114,10 @@ class Cleanup_Report_Plugin_Check {
         // A plain user agent: WordPress's default one names this site, which these services don't need.
         $headers = [ 'User-Agent' => 'Cleanup-Report-Generator/' . CLEANUP_REPORT_VERSION, 'Accept' => 'application/json' ];
         $bodies  = [];
-        if ( $todo && class_exists( '\WpOrg\Requests\Requests' ) ) {
+        // In parallel when nothing on this site shapes outgoing requests; otherwise through the WordPress HTTP API, so
+        // WP_HTTP_BLOCK_EXTERNAL, a proxy and pre_http_request filters apply.
+        $parallel = class_exists( '\WpOrg\Requests\Requests' ) && ! ( defined( 'WP_HTTP_BLOCK_EXTERNAL' ) && WP_HTTP_BLOCK_EXTERNAL ) && ! ( defined( 'WP_PROXY_HOST' ) && WP_PROXY_HOST ) && ! has_filter( 'pre_http_request' ) && ! has_filter( 'http_request_args' );
+        if ( $todo && $parallel ) {
             // 20 at a time: a full check is a few hundred URLs, and all at once invites rate limiting.
             foreach ( array_chunk( $todo, 20 ) as $chunk ) {
                 $requests = [];
@@ -233,7 +236,12 @@ class Cleanup_Report_Plugin_Check {
                 $row['link']   = $p['vendor'];
                 if ( 'abandoned' === $p['decision'] ) {
                     $row['status']    = 'abandoned';
-                    $row['reasons'][] = 'Marked as no longer maintained in your plugin list' . ( $p['note'] ? ': ' . $p['note'] : '' );
+                    if ( $p['note'] ) {
+                        /* translators: %s: the staff note on the plugin list */
+                        $row['reasons'][] = sprintf( __( 'Marked as no longer maintained in your plugin list: %s', 'cleanup-report-generator' ), $p['note'] );
+                    } else {
+                        $row['reasons'][] = __( 'Marked as no longer maintained in your plugin list', 'cleanup-report-generator' );
+                    }
                 }
             } else {
                 $m = self::maintenance( $it, $data[ self::org_url( $it['type'], $it['slug'] ) ] ?? null, $wp );
@@ -258,7 +266,7 @@ class Cleanup_Report_Plugin_Check {
                 $vdata = $data[ self::vuln_url( $it['type'], str_replace( '_', '-', $it['slug'] ) ) ] ?? $vdata;
             }
             if ( null === $vdata ) {
-                $row['errors'][] = 'WPVulnerability didn\'t answer';
+                $row['errors'][] = __( 'WPVulnerability didn\'t answer', 'cleanup-report-generator' );
             }
             $row['vulns']['open'] = self::open_vulns( $vdata );
             foreach ( (array) ( $vdata['data']['vulnerability'] ?? [] ) as $vuln ) {
@@ -275,10 +283,18 @@ class Cleanup_Report_Plugin_Check {
                 $row['vulns']['score'] = max( $row['vulns']['score'], (float) ( $vuln['impact']['cvss']['score'] ?? 0 ) );
             }
             if ( $row['vulns']['count'] ) {
-                $n                = $row['vulns']['count'];
-                $row['reasons'][] = $n . ' known ' . ( 1 === $n ? 'vulnerability' : 'vulnerabilities' ) . ' in ' . $it['version']
-                    . ( $row['vulns']['unfixed'] ? ' (' . $row['vulns']['unfixed'] . ' with no fix yet)' : '' )
-                    . ( $row['vulns']['fixed_in'] ? '; fixed in ' . $row['vulns']['fixed_in'] : '' );
+                $n      = $row['vulns']['count'];
+                /* translators: 1: number of vulnerabilities, 2: installed version */
+                $reason = sprintf( _n( '%1$d known vulnerability in %2$s', '%1$d known vulnerabilities in %2$s', $n, 'cleanup-report-generator' ), $n, $it['version'] );
+                if ( $row['vulns']['unfixed'] ) {
+                    /* translators: 1: "N known vulnerabilities in X", 2: how many of them have no fix */
+                    $reason = sprintf( __( '%1$s (%2$d with no fix yet)', 'cleanup-report-generator' ), $reason, $row['vulns']['unfixed'] );
+                }
+                if ( $row['vulns']['fixed_in'] ) {
+                    /* translators: 1: the vulnerability text, 2: version that fixes them */
+                    $reason = sprintf( __( '%1$s; fixed in %2$s', 'cleanup-report-generator' ), $reason, $row['vulns']['fixed_in'] );
+                }
+                $row['reasons'][] = $reason;
                 if ( 'ok' === $row['status'] ) {
                     $row['status'] = 'vulnerable';
                 }
@@ -286,7 +302,8 @@ class Cleanup_Report_Plugin_Check {
 
             // 3. Update available?
             if ( $row['latest'] && $it['version'] && version_compare( self::v( $row['latest'] ), self::v( $it['version'] ), '>' ) ) {
-                $row['reasons'][] = 'Update available: ' . $it['version'] . ' → ' . $row['latest'];
+                /* translators: 1: installed version, 2: latest version */
+                $row['reasons'][] = sprintf( __( 'Update available: %1$s → %2$s', 'cleanup-report-generator' ), $it['version'], $row['latest'] );
                 if ( 'ok' === $row['status'] ) {
                     $row['status'] = 'outdated';
                 }
@@ -320,34 +337,47 @@ class Cleanup_Report_Plugin_Check {
         $link  = 'https://wordpress.org/' . $it['type'] . 's/' . strtolower( $it['slug'] ) . '/';
         $major = static function ( $v ) { $p = array_map( 'intval', explode( '.', self::v( $v ) ) ); return $p[0] * 10 + ( $p[1] ?? 0 ); };
         if ( null === $org ) {
-            $out['error'] = 'WordPress.org didn\'t answer';
+            $out['error'] = __( 'WordPress.org didn\'t answer', 'cleanup-report-generator' );
         } elseif ( 'closed' === ( $org['error'] ?? '' ) ) {
             $out = [ 'source' => 'wporg', 'status' => 'closed', 'link' => $link, 'last_release' => (string) ( $org['closed_date'] ?? '' ) ] + $out;
-            $out['reason'] = 'Closed on WordPress.org' . ( ! empty( $org['closed_date'] ) ? ' on ' . wp_date( 'j M Y', strtotime( $org['closed_date'] ) ) : '' ) . ( ! empty( $org['reason_text'] ) ? ' (' . $org['reason_text'] . ')' : '' );
+            if ( ! empty( $org['closed_date'] ) ) {
+                /* translators: %s: date the plugin or theme was closed */
+                $out['reason'] = sprintf( __( 'Closed on WordPress.org on %s', 'cleanup-report-generator' ), wp_date( 'j M Y', strtotime( $org['closed_date'] ) ) );
+            } else {
+                $out['reason'] = __( 'Closed on WordPress.org', 'cleanup-report-generator' );
+            }
+            if ( ! empty( $org['reason_text'] ) ) {
+                /* translators: 1: "Closed on WordPress.org…" text, 2: WordPress.org's reason for closing it */
+                $out['reason'] = sprintf( _x( '%1$s (%2$s)', 'closed plugin and the reason', 'cleanup-report-generator' ), $out['reason'], $org['reason_text'] );
+            }
         } elseif ( ! empty( $org['version'] ) && self::same_item( $it, $org ) ) {
             $updated   = strtotime( $org['last_updated'] ?? '' );
             $abandoned = [];
             if ( false !== stripos( $org['name'] ?? '', 'discontinued' ) ) {
-                $abandoned[] = 'marked discontinued by its author';
+                $abandoned[] = __( 'marked discontinued by its author', 'cleanup-report-generator' );
             }
             if ( $updated && ( time() - $updated ) / DAY_IN_SECONDS > self::STALE_DAYS ) {
-                $abandoned[] = 'no release since ' . wp_date( 'M Y', $updated );
+                /* translators: %s: month and year of the last release */
+                $abandoned[] = sprintf( __( 'no release since %s', 'cleanup-report-generator' ), wp_date( 'M Y', $updated ) );
             }
             if ( ! empty( $org['tested'] ) && $major( $wp ) - $major( $org['tested'] ) >= self::TESTED_BEHIND ) {
-                $abandoned[] = 'tested only up to WordPress ' . $org['tested'];
+                /* translators: %s: WordPress version */
+                $abandoned[] = sprintf( __( 'tested only up to WordPress %s', 'cleanup-report-generator' ), $org['tested'] );
             }
             $out = [
                 'source'       => 'wporg',
                 'status'       => $abandoned ? 'abandoned' : 'ok',
-                'reason'       => $abandoned ? 'Not maintained: ' . implode( ', ', $abandoned ) : '',
+                /* translators: %s: comma-separated reasons, e.g. "no release since Jan 2022" */
+                'reason'       => $abandoned ? sprintf( __( 'Not maintained: %s', 'cleanup-report-generator' ), implode( ', ', $abandoned ) ) : '',
                 'latest'       => (string) $org['version'],
                 'last_release' => $updated ? gmdate( 'Y-m-d', $updated ) : '',
                 'link'         => $link,
             ] + $out;
         } elseif ( ! empty( $org['version'] ) ) {
-            $out['reason'] = 'Not on WordPress.org under this name (WordPress.org has a different item, "' . wp_strip_all_tags( $org['name'] ?? '' ) . '", with this folder name). Mark it in Reports › Settings › Plugin list';
+            /* translators: %s: name of the WordPress.org item that uses this folder name */
+            $out['reason'] = sprintf( __( 'Not on WordPress.org under this name (WordPress.org has a different item, "%s", with this folder name). Mark it in Reports › Settings › Plugin list', 'cleanup-report-generator' ), wp_strip_all_tags( $org['name'] ?? '' ) );
         } else {
-            $out['reason'] = 'Not on WordPress.org: mark it as maintained or abandoned in Reports › Settings › Plugin list';
+            $out['reason'] = __( 'Not on WordPress.org: mark it as maintained or abandoned in Reports › Settings › Plugin list', 'cleanup-report-generator' );
         }
         return $out;
     }
@@ -381,16 +411,38 @@ class Cleanup_Report_Plugin_Check {
         $v      = $row['vulns'];
         $issue  = [];
         if ( in_array( $row['status'], [ 'closed', 'abandoned' ], true ) ) {
-            $issue[] = 'premium' === $row['source']
-                ? 'No longer maintained by the vendor'
-                : preg_replace( '/^Not maintained: /', 'No longer maintained: ', $row['reasons'][0] );
+            if ( 'premium' === $row['source'] ) {
+                $issue[] = __( 'No longer maintained by the vendor', 'cleanup-report-generator' );
+            } else {
+                // "Not maintained: …" (from maintenance()) reads "No longer maintained: …" in the report.
+                $reason = $row['reasons'][0];
+                /* translators: %s: comma-separated reasons, e.g. "no release since Jan 2022" */
+                $prefix = sprintf( __( 'Not maintained: %s', 'cleanup-report-generator' ), '' );
+                if ( '' !== $prefix && 0 === strpos( $reason, $prefix ) ) {
+                    /* translators: %s: comma-separated reasons, e.g. "no release since Jan 2022" */
+                    $reason = sprintf( __( 'No longer maintained: %s', 'cleanup-report-generator' ), substr( $reason, strlen( $prefix ) ) );
+                }
+                $issue[] = $reason;
+            }
         }
         if ( $v['count'] ) {
-            $issue[] = $v['count'] . ' known ' . ( 1 === $v['count'] ? 'vulnerability' : 'vulnerabilities' )
-                . ( $v['unfixed'] ? ( $v['unfixed'] === $v['count'] ? ' with no fix available' : ', ' . $v['unfixed'] . ' with no fix available' ) : '' )
-                . ( $v['fixed_in'] && ! in_array( $row['status'], [ 'closed', 'abandoned' ], true ) ? '; update to ' . $v['fixed_in'] . '+' : '' );
+            /* translators: %d: number of vulnerabilities */
+            $text = sprintf( _n( '%d known vulnerability', '%d known vulnerabilities', $v['count'], 'cleanup-report-generator' ), $v['count'] );
+            if ( $v['unfixed'] && $v['unfixed'] === $v['count'] ) {
+                /* translators: %s: "N known vulnerabilities" */
+                $text = sprintf( __( '%s with no fix available', 'cleanup-report-generator' ), $text );
+            } elseif ( $v['unfixed'] ) {
+                /* translators: 1: "N known vulnerabilities", 2: how many of them have no fix */
+                $text = sprintf( __( '%1$s, %2$d with no fix available', 'cleanup-report-generator' ), $text, $v['unfixed'] );
+            }
+            if ( $v['fixed_in'] && ! in_array( $row['status'], [ 'closed', 'abandoned' ], true ) ) {
+                /* translators: 1: the vulnerability text, 2: version to update to */
+                $text = sprintf( __( '%1$s; update to %2$s+', 'cleanup-report-generator' ), $text, $v['fixed_in'] );
+            }
+            $issue[] = $text;
         } elseif ( 'outdated' === $row['status'] ) {
-            $issue[] = 'Outdated; update to ' . $row['latest'];
+            /* translators: %s: latest version */
+            $issue[] = sprintf( __( 'Outdated; update to %s', 'cleanup-report-generator' ), $row['latest'] );
         }
         if ( ! $issue ) {
             return [ 'severity' => '', 'issue' => '', 'list' => '' ];
@@ -410,15 +462,24 @@ class Cleanup_Report_Plugin_Check {
 
     public static function ajax() {
         check_ajax_referer( 'crg_check_plugins', 'nonce' );
-        if ( ! current_user_can( 'edit_posts' ) ) {
-            wp_send_json_error( [ 'message' => 'You are not allowed to do this.' ], 403 );
+        $post_id = absint( $_POST['post_id'] ?? 0 );
+        // Only from a report this user may edit: the results are recorded against it on the plugin list.
+        if ( 'cleanup_report' !== get_post_type( $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
+            wp_send_json_error( [ 'message' => __( 'You are not allowed to do this.', 'cleanup-report-generator' ) ], 403 );
         }
+        // At most 10 checks per person in 10 minutes: each one can send a few hundred requests to the two services.
+        $rate_key = 'crg_pc_rate_' . get_current_user_id();
+        $recent   = (int) get_transient( $rate_key );
+        if ( $recent >= 10 ) {
+            wp_send_json_error( [ 'message' => __( 'Too many checks in a short time. Wait a few minutes and try again.', 'cleanup-report-generator' ) ], 429 );
+        }
+        set_transient( $rate_key, $recent + 1, 10 * MINUTE_IN_SECONDS );
         $items = self::parse( sanitize_textarea_field( wp_unslash( $_POST['list'] ?? '' ) ) );
         if ( ! $items ) {
-            wp_send_json_error( [ 'message' => 'No plugins or themes found. Paste the output of the command above.' ] );
+            wp_send_json_error( [ 'message' => __( 'No plugins or themes found. Paste the output of the command above.', 'cleanup-report-generator' ) ] );
         }
         $rows = self::check( $items );
-        Cleanup_Report_Plugin_Registry::record( $rows, absint( $_POST['post_id'] ?? 0 ) );
+        Cleanup_Report_Plugin_Registry::record( $rows, $post_id );
         wp_send_json_success( [ 'rows' => $rows ] );
     }
 }

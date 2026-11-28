@@ -28,20 +28,20 @@ class Cleanup_Report_Optimization {
             return [ 'key' => $key, 'label' => $label, 'good' => $good, 'hint' => $hint, 'pre_note' => $pre, 'post_note' => $post, 'enabled' => true ];
         };
         return [
-            $c( 'menu', 'Is Mobile and Desktop Menu working?', 'yes' ),
-            $c( 'console_errors', 'Is there any browser console error?', 'no' ),
-            $c( 'responsive', 'Are there any responsive issues?', 'no', 'Switch to mobile view and test the selected pages.' ),
-            $c( 'layout', 'Is there any visible layout issue?', 'no' ),
-            $c( 'cls', 'Is there any visible CLS?', 'no', 'Layout shift: content moving while the page loads.' ),
-            $c( 'product_variation', 'Can you select product variation?', 'yes', 'Shops only; N/A otherwise.' ),
-            $c( 'add_to_cart', 'Can you add products to cart?', 'yes', 'Shops only; N/A otherwise.' ),
-            $c( 'checkout', 'Are checkout functionalities working? (checkout page, information filling, shipping and payment options)', 'yes', 'No purchase is made in this step. Shops only; N/A otherwise.' ),
+            $c( 'menu', __( 'Is Mobile and Desktop Menu working?', 'cleanup-report-generator' ), 'yes' ),
+            $c( 'console_errors', __( 'Is there any browser console error?', 'cleanup-report-generator' ), 'no' ),
+            $c( 'responsive', __( 'Are there any responsive issues?', 'cleanup-report-generator' ), 'no', __( 'Switch to mobile view and test the selected pages.', 'cleanup-report-generator' ) ),
+            $c( 'layout', __( 'Is there any visible layout issue?', 'cleanup-report-generator' ), 'no' ),
+            $c( 'cls', __( 'Is there any visible CLS?', 'cleanup-report-generator' ), 'no', __( 'Layout shift: content moving while the page loads.', 'cleanup-report-generator' ) ),
+            $c( 'product_variation', __( 'Can you select product variation?', 'cleanup-report-generator' ), 'yes', __( 'Shops only; N/A otherwise.', 'cleanup-report-generator' ) ),
+            $c( 'add_to_cart', __( 'Can you add products to cart?', 'cleanup-report-generator' ), 'yes', __( 'Shops only; N/A otherwise.', 'cleanup-report-generator' ) ),
+            $c( 'checkout', __( 'Are checkout functionalities working? (checkout page, information filling, shipping and payment options)', 'cleanup-report-generator' ), 'yes', __( 'No purchase is made in this step. Shops only; N/A otherwise.', 'cleanup-report-generator' ) ),
             Cleanup_Report_Presets::is( 'wpmudev' )
-                ? $c( 'backup', 'Backup completed?', 'yes', '', 'Under the Hub › Click the site › Hosting › Backups with the comment "pre-optimization backup".', 'Under the Hub › Click the site › Hosting › Backups with the comment "post-optimization backup".' )
-                : $c( 'backup', 'Backup completed?', 'yes', '', 'Backup taken before the optimization.', 'Backup taken after the optimization.' ),
-            $c( 'cloudflare', 'Is the site using Cloudflare?', '' ),
-            $c( 'other_issues', 'Any other issues noticed?', 'no' ),
-            $c( 'initial_response', 'Any functionality highlighted in the initial response?', '', 'Something the member asked us to check in their request.' ),
+                ? $c( 'backup', __( 'Backup completed?', 'cleanup-report-generator' ), 'yes', '', __( 'Under the Hub › Click the site › Hosting › Backups with the comment "pre-optimization backup".', 'cleanup-report-generator' ), __( 'Under the Hub › Click the site › Hosting › Backups with the comment "post-optimization backup".', 'cleanup-report-generator' ) )
+                : $c( 'backup', __( 'Backup completed?', 'cleanup-report-generator' ), 'yes', '', __( 'Backup taken before the optimization.', 'cleanup-report-generator' ), __( 'Backup taken after the optimization.', 'cleanup-report-generator' ) ),
+            $c( 'cloudflare', __( 'Is the site using Cloudflare?', 'cleanup-report-generator' ), '' ),
+            $c( 'other_issues', __( 'Any other issues noticed?', 'cleanup-report-generator' ), 'no' ),
+            $c( 'initial_response', __( 'Any functionality highlighted in the initial response?', 'cleanup-report-generator' ), '', __( 'Something the member asked us to check in their request.', 'cleanup-report-generator' ) ),
         ];
     }
 
@@ -158,23 +158,35 @@ class Cleanup_Report_Optimization {
 
     /** Standard texts used when a report leaves them empty (also shown under the editors). From the team's template. */
     public static function default_texts() {
+        $wpmudev = Cleanup_Report_Presets::is( 'wpmudev' );
+        $li      = static function ( array $items ) { return '<li>' . implode( '</li><li>', $items ) . '</li>'; };
         return [
-            'info' => '<p>' . ( Cleanup_Report_Presets::is( 'wpmudev' ) ? 'WPMU DEV services will focus on increasing your website score.' : 'We focus on increasing your website score.' ) . ' For that, we use different pages and generate the average score using a simple formula:</p>'
-                . '<ol><li>Run the test multiple times;</li><li>Remove the top and lowest score;</li><li>Sum the average result for the tested pages.</li></ol>'
-                . '<p>' . ( Cleanup_Report_Presets::is( 'wpmudev' ) ? 'The above is described in our <a href="' . esc_url( self::PLAYLIST ) . '">optimization playlist</a>. It' : 'This' ) . ' gives you a more accurate result, since the performance score only takes into account the page tested, not the full site.</p>'
-                . '<p>To maintain a good score on your website, it is important to:</p>'
-                . '<ul><li>Avoid duplicate plugins for the same task;</li><li>Keep your pages light, with the relevant information only: it reduces the number of elements the browser needs to handle;</li><li>Wait for the cache to be generated before running the tests: a lower score is expected if the cache is not being hit;</li><li>Avoid animations above the fold (what is visible when the page loads).</li></ul>',
-            'faq'  => '<p><strong>Why is the mobile score lower?</strong></p>'
-                . '<p>Mobiles have fewer hardware and software resources, which reflects directly on the browser\'s performance. Any metric used in performance tests affects the score more drastically.</p>'
-                . '<p><strong>Why target 80 for mobile?</strong></p>'
-                . '<p>Google considers anything 90+ a good score, but it also explains that a good score doesn\'t mean a good user experience: Google uses the 75th percentile as the goal for a page to work well for the majority of users.</p>'
-                . '<p><strong>Why is my score different from the ones in this report?</strong></p>'
-                . '<p>There are many reasons for a score to change, but the most common are:</p>'
-                . '<ul><li><strong>Location:</strong> Google uses your location to decide where the page is tested from. There are 3 networks (Asia, North America and Europe); it doesn\'t specify the countries. We use a connection to the location closest to your server, so testing from a different location can give a different result. Cloudflare or another CDN can help make results more stable.</li>'
-                . '<li><strong>Big changes in the website:</strong> the optimization is done on the website as it is. Changing the layout or the settings we defined can affect the score.</li></ul>'
-                . '<p><strong>Core Web Vitals say "Failed"</strong></p>'
-                . '<p>Core Web Vitals can say "Failed" even after optimization and a good PageSpeed Insights (PSI) score. PSI simulates the user experience, while Core Web Vitals rely on real user data: it can take 28+ days for them to update, and a good PSI score doesn\'t guarantee passing Core Web Vitals because real-world conditions differ.</p>'
-                . '<p>Two key factors are server location (is it close to your audience?) and traffic (is there enough data for Google to assess?). If these are addressed and Core Web Vitals still fail, further investigation is needed: a deeper look at real user performance data and field data issues, and possibly structural changes to the website.</p>',
+            'info' => '<p>' . ( $wpmudev ? __( 'WPMU DEV services will focus on increasing your website score. For that, we use different pages and generate the average score using a simple formula:', 'cleanup-report-generator' ) : __( 'We focus on increasing your website score. For that, we use different pages and generate the average score using a simple formula:', 'cleanup-report-generator' ) ) . '</p>'
+                . '<ol>' . $li( [ __( 'Run the test multiple times;', 'cleanup-report-generator' ), __( 'Remove the top and lowest score;', 'cleanup-report-generator' ), __( 'Sum the average result for the tested pages.', 'cleanup-report-generator' ) ] ) . '</ol>'
+                . '<p>' . ( $wpmudev
+                    /* translators: %s: link to the optimization video playlist */
+                    ? sprintf( __( 'The above is described in our <a href="%s">optimization playlist</a>. It gives you a more accurate result, since the performance score only takes into account the page tested, not the full site.', 'cleanup-report-generator' ), esc_url( self::PLAYLIST ) )
+                    : __( 'This gives you a more accurate result, since the performance score only takes into account the page tested, not the full site.', 'cleanup-report-generator' ) ) . '</p>'
+                . '<p>' . __( 'To maintain a good score on your website, it is important to:', 'cleanup-report-generator' ) . '</p>'
+                . '<ul>' . $li( [
+                    __( 'Avoid duplicate plugins for the same task;', 'cleanup-report-generator' ),
+                    __( 'Keep your pages light, with the relevant information only: it reduces the number of elements the browser needs to handle;', 'cleanup-report-generator' ),
+                    __( 'Wait for the cache to be generated before running the tests: a lower score is expected if the cache is not being hit;', 'cleanup-report-generator' ),
+                    __( 'Avoid animations above the fold (what is visible when the page loads).', 'cleanup-report-generator' ),
+                ] ) . '</ul>',
+            'faq'  => '<p><strong>' . __( 'Why is the mobile score lower?', 'cleanup-report-generator' ) . '</strong></p>'
+                . '<p>' . __( 'Mobiles have fewer hardware and software resources, which reflects directly on the browser\'s performance. Any metric used in performance tests affects the score more drastically.', 'cleanup-report-generator' ) . '</p>'
+                . '<p><strong>' . __( 'Why target 80 for mobile?', 'cleanup-report-generator' ) . '</strong></p>'
+                . '<p>' . __( 'Google considers anything 90+ a good score, but it also explains that a good score doesn\'t mean a good user experience: Google uses the 75th percentile as the goal for a page to work well for the majority of users.', 'cleanup-report-generator' ) . '</p>'
+                . '<p><strong>' . __( 'Why is my score different from the ones in this report?', 'cleanup-report-generator' ) . '</strong></p>'
+                . '<p>' . __( 'There are many reasons for a score to change, but the most common are:', 'cleanup-report-generator' ) . '</p>'
+                . '<ul>' . $li( [
+                    __( '<strong>Location:</strong> Google uses your location to decide where the page is tested from. There are 3 networks (Asia, North America and Europe); it doesn\'t specify the countries. We use a connection to the location closest to your server, so testing from a different location can give a different result. Cloudflare or another CDN can help make results more stable.', 'cleanup-report-generator' ),
+                    __( '<strong>Big changes in the website:</strong> the optimization is done on the website as it is. Changing the layout or the settings we defined can affect the score.', 'cleanup-report-generator' ),
+                ] ) . '</ul>'
+                . '<p><strong>' . __( 'Core Web Vitals say "Failed"', 'cleanup-report-generator' ) . '</strong></p>'
+                . '<p>' . __( 'Core Web Vitals can say "Failed" even after optimization and a good PageSpeed Insights (PSI) score. PSI simulates the user experience, while Core Web Vitals rely on real user data: it can take 28+ days for them to update, and a good PSI score doesn\'t guarantee passing Core Web Vitals because real-world conditions differ.', 'cleanup-report-generator' ) . '</p>'
+                . '<p>' . __( 'Two key factors are server location (is it close to your audience?) and traffic (is there enough data for Google to assess?). If these are addressed and Core Web Vitals still fail, further investigation is needed: a deeper look at real user performance data and field data issues, and possibly structural changes to the website.', 'cleanup-report-generator' ) . '</p>',
         ];
     }
 }

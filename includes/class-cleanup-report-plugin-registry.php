@@ -20,6 +20,7 @@ class Cleanup_Report_Plugin_Registry {
     const REFRESH_DAYS  = 7;   // re-check a WordPress.org item once a week
     const REFRESH_BATCH = 120; // items per daily run
     const MAX_REPORTS   = 25;  // report IDs remembered per item
+    const MAX_LIST      = 3000; // items on the list; beyond it, new folder names aren't added (known ones still update)
 
     public static function init() {
         add_action( self::CRON_HOOK, [ __CLASS__, 'refresh' ] );
@@ -141,6 +142,9 @@ class Cleanup_Report_Plugin_Registry {
         $list = self::all();
         foreach ( $rows as $r ) {
             $key = self::key( $r['type'], $r['slug'] );
+            if ( ! isset( $list[ $key ] ) && count( $list ) >= self::MAX_LIST ) {
+                continue;
+            }
             $e   = $list[ $key ] ?? self::blank( $r['type'], $r['slug'], $r['name'] );
             if ( '' === $e['decision'] && empty( $r['errors'] ) ) {
                 $e['source']       = 'wporg' === $r['source'] ? 'wporg' : 'unknown';
@@ -217,7 +221,7 @@ class Cleanup_Report_Plugin_Registry {
     /** Capability check (admins and Buddyleads); each handler verifies its own nonce first (check_admin_referer). */
     private static function guard() {
         if ( ! Cleanup_Report_Access::can_manage_plugin_list() ) {
-            wp_die( 'You are not allowed to change these settings.', 'Forbidden', [ 'response' => 403, 'back_link' => true ] );
+            wp_die( esc_html__( 'You are not allowed to change these settings.', 'cleanup-report-generator' ), esc_html__( 'Forbidden', 'cleanup-report-generator' ), [ 'response' => 403, 'back_link' => true ] );
         }
     }
 

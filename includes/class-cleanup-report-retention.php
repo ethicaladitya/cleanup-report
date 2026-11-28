@@ -115,7 +115,11 @@ class Cleanup_Report_Retention {
         return array_values( array_unique( $keys ) );
     }
 
-    /** The report's screenshots that are files in this site's Media Library: attachment ID => URL used in the report. */
+    /**
+     * The report's own screenshots: Media Library files uploaded to this report (their parent is the report) and used
+     * in it, attachment ID => URL. A file picked from the library that belongs to something else is never included,
+     * so the cleanup can't delete media it doesn't own. Read before the report is deleted (deleting it detaches them).
+     */
     private static function screenshots( $post_id ) {
         $urls = [];
         foreach ( self::shot_keys() as $key ) {
@@ -127,7 +131,7 @@ class Cleanup_Report_Retention {
         $out    = [];
         foreach ( array_filter( array_map( 'strval', $urls ) ) as $url ) {
             $id = attachment_url_to_postid( $url );
-            if ( $id ) {
+            if ( $id && (int) wp_get_post_parent_id( $id ) === (int) $post_id ) {
                 $out[ $id ] = $url;
             }
         }
