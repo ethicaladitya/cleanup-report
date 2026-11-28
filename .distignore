@@ -1,5 +1,6 @@
 # Not shipped in the plugin zip (wp dist-archive) or deployed by tests/layout/run.sh.
 /.git
+/.claude
 /.gitignore
 /.gitattributes
 /.github
