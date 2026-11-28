@@ -768,15 +768,16 @@ class Cleanup_Report_Type_Builder {
 
     /* ================================================================== actions */
 
-    private static function guard( $nonce_action ) {
-        check_admin_referer( $nonce_action );
+    /** Every action: its nonce is checked first (check_admin_referer() in the handler), then this. */
+    private static function guard() {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'You are not allowed to manage report types.', 'cleanup-report-generator' ), '', [ 'response' => 403, 'back_link' => true ] );
         }
     }
 
     public static function handle_save() {
-        self::guard( 'crg_save_report_type' );
+        check_admin_referer( 'crg_save_report_type' );
+        self::guard();
         $stored = self::stored();
         $key    = sanitize_key( wp_unslash( $_POST['type'] ?? '' ) );
         $raw    = isset( $_POST['def'] ) && is_array( $_POST['def'] ) ? wp_unslash( $_POST['def'] ) : []; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_definition() cleans every part
@@ -802,14 +803,15 @@ class Cleanup_Report_Type_Builder {
     }
 
     public static function handle_action() {
-        $key = sanitize_key( wp_unslash( $_GET['type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- checked in guard()
-        self::guard( 'crg_type_' . $key );
+        $key = sanitize_key( wp_unslash( $_GET['type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the nonce is checked on the next line
+        check_admin_referer( 'crg_type_' . $key );
+        self::guard();
         $stored = self::stored();
         if ( ! isset( $stored[ $key ] ) ) {
             wp_safe_redirect( self::url() );
             exit;
         }
-        $do = sanitize_key( wp_unslash( $_GET['do'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- checked in guard()
+        $do = sanitize_key( wp_unslash( $_GET['do'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the nonce is checked on the next line
         if ( 'delete' === $do ) {
             if ( self::report_count( $key ) ) {
                 wp_safe_redirect( self::url( [ 'crg_done' => 'in_use' ] ) );
@@ -828,8 +830,9 @@ class Cleanup_Report_Type_Builder {
 
     /** "Preview the report": the type's report drawn with sample values, without creating a report. */
     public static function handle_preview() {
-        $key = sanitize_key( wp_unslash( $_GET['type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- checked in guard()
-        self::guard( 'crg_preview_type_' . $key );
+        $key = sanitize_key( wp_unslash( $_GET['type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the nonce is checked on the next line
+        check_admin_referer( 'crg_preview_type_' . $key );
+        self::guard();
         if ( ! Cleanup_Report_Types::exists( $key ) ) {
             wp_die( esc_html__( 'Report type not found.', 'cleanup-report-generator' ), '', [ 'response' => 404 ] );
         }
