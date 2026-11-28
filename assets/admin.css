@@ -1305,3 +1305,31 @@
 .crg-code-field .crg-field {
 	margin-bottom: 10px;
 }
+
+/* ---------- narrow screens: wide tables scroll sideways inside their box instead of squeezing their inputs */
+@media (max-width: 782px) {
+	.crg-score-table,
+	.crg-components .crg-table,
+	.crg-gtable .crg-table {
+		display: block;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+	.crg-score-table .s-url {
+		min-width: 220px;
+	}
+	.crg-score-table input[type="number"] {
+		width: 64px;
+	}
+	.crg-components .crg-table input,
+	.crg-gtable .crg-table input {
+		min-width: 140px;
+	}
+	.nav-tab-wrapper .crg-tab-group {
+		float: none;
+		display: block;
+		clear: both;
+		margin: 10px 0 2px;
+		padding: 0;
+	}
+}

@@ -339,6 +339,7 @@ class Cleanup_Report_Admin {
         // The Review box saves the report, so WordPress's Publish box (its own status, visibility and publish date,
         // which mean nothing for reports) is removed. The Review box comes first, where Publish used to be.
         remove_meta_box( 'submitdiv', 'cleanup_report', 'side' );
+        remove_meta_box( 'pageparentdiv', 'cleanup_report', 'side' ); // a theme's page templates mean nothing for reports
         add_meta_box( 'crg_review', __( 'Save & review', 'cleanup-report-generator' ), [ __CLASS__, 'box_review' ], 'cleanup_report', 'side', 'high' );
         // 'core', not 'high': a saved box order moves the Review box to WordPress's 'sorted' slot, which comes after 'high'.
         add_meta_box( 'crg_box_export', __( 'Report', 'cleanup-report-generator' ), [ __CLASS__, 'box_export' ], 'cleanup_report', 'side', 'core' );

@@ -97,6 +97,9 @@ To build from source, run `composer install` (needs PHP 8 and Composer on the bu
 * Outside services: the plugin list's daily re-check (WordPress.org and WPVulnerability.net) now has its own setting in Settings › Review. Existing installs keep it on; new installs start with it off. Checking plugins on a report still works either way. Scheduled jobs are set up from wp-admin only, so front-end pages do no extra work.
 * Deleting the plugin can remove all its data: Settings › Review › "Delete all reports and settings when the plugin is deleted" (off by default; deactivating never deletes anything).
 * Every text in wp-admin and in the report can be translated.
+* Security: only Editors and up (Writers, Buddyleads) can open, preview or download other people's reports; Authors and Contributors see only their own. Data retention deletes only screenshots uploaded to the report, never an image picked from the Media Library that belongs to something else. "Check plugins & themes" needs edit rights on the report and is limited to 10 checks per person in 10 minutes. Uninstalling deletes only this plugin's own options.
+* New installs keep reports until a retention period is set (existing installs keep their setting, 30 days by default). Settings only wp-admin needs are no longer loaded on every page of the site.
+* On phones, the scores, components and table fields scroll sideways inside their box instead of squeezing their inputs. The theme's page Template box no longer shows on reports.
 * Settings tabs are grouped: shared tabs first, then each report type's own.
 * Data retention also removes the screenshots of optimization reports.
 * The malware cleanup report and its PDF are unchanged (checked page by page against 2.1.0).
