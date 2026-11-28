@@ -1,0 +1,21 @@
+# Not shipped in the plugin zip (wp dist-archive) or deployed by tests/layout/run.sh.
+/.git
+/.claude
+/.gitignore
+/.gitattributes
+/.github
+/build
+/.distignore
+/.vscode
+/DEPLOYMENT.md
+/README.md
+/install.sh
+/tests
+/tools
+/vendor
+/composer.json
+/composer.lock
+.DS_Store
+*.zip
+node_modules
+/.claude

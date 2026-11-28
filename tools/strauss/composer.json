@@ -1,0 +1,11 @@
+{
+    "name": "cleanup-report-generator/strauss-tool",
+    "description": "Build-time only: Strauss copies Composer dependencies into vendor-prefixed/ under the plugin's own namespace. Not shipped.",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "brianhenryie/strauss": "^0.32"
+    },
+    "config": {
+        "allow-plugins": false
+    }
+}

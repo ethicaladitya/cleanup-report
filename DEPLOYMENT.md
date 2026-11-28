@@ -1,4 +1,4 @@
-# 🚀 Deployment Checklist - Cleanup Report Generator v2.0.0
+# 🚀 Deployment Checklist - Handover – Service Reports for Agencies (formerly Cleanup Report Generator)
 
 ## ✅ Pre-Deployment Verification
 
@@ -13,15 +13,15 @@
 
 ### Core Plugin Files ✅
 - `cleanup-report-generator.php` - Main plugin file with Composer autoloader
-- `includes/class-crg-pdf.php` - Enhanced PDF generation with DOMpdf
-- `includes/class-crg-admin.php` - Admin interface with WYSIWYG editors
-- `includes/class-crg-render.php` - Report rendering and data processing
-- `includes/class-crg-plugin.php` - Plugin initialization and hooks
-- `templates/report-template.php` - WPMU DEV branded report template
+- `includes/class-cleanup-report-pdf.php` - Enhanced PDF generation with DOMpdf
+- `includes/class-cleanup-report-admin.php` - Admin interface with WYSIWYG editors
+- `includes/class-cleanup-report-render.php` - Report rendering and data processing
+- `includes/class-cleanup-report-plugin.php` - Plugin initialization and hooks
+- `templates/report-pdf.php` - the report layout, used for the PDF and the browser preview
 
 ### New Files ✅
 - `composer.json` - DOMpdf dependency configuration
-- `install.sh` - Automated server installation script
+- `install.sh` - Builds the bundled Dompdf into `vendor-prefixed/` (run on the build machine, not the server)
 - `README.md` - Complete documentation
 - `.gitignore` - Version control exclusions
 
@@ -31,24 +31,30 @@
 
 ## 🌐 Server Deployment Steps
 
-### Step 1: Upload Plugin
+### Step 1: Get the zip
+Easiest: publish a GitHub release whose tag matches the plugin's Version (e.g. `v2.1.0`). The "Build plugin zip"
+workflow (`.github/workflows/build-zip.yml`) builds `cleanup-report-generator-<version>.zip` and attaches it to the
+release. Pull requests build the same zip as a workflow artifact, and Actions › Build plugin zip › Run workflow makes one
+on demand.
+
+Or build it on your machine:
 ```bash
-# Upload the entire plugin folder to:
-/var/web/site/public_html/wp-content/plugins/cleanup-report-generator/
+./install.sh            # composer install: Dompdf, re-namespaced into vendor-prefixed/ by Strauss
+wp dist-archive .       # zip without the files in .distignore
 ```
 
-### Step 2: Run Installation Script
-```bash
-cd /var/web/site/public_html/wp-content/plugins/cleanup-report-generator
-./install.sh
-```
+A `git clone` or GitHub's "Download ZIP" has no `vendor-prefixed/`, so PDF export falls back to the print view until
+`composer install --no-dev` is run in the plugin folder. Install the release zip instead.
+
+### Step 2: Upload Plugin
+Upload the zip in Plugins › Add New › Upload Plugin. No Composer is needed on the server.
 
 ### Step 3: Activate Plugin
 - Go to WordPress Admin → Plugins
-- Activate "Cleanup Report Generator"
+- Activate "Handover – Service Reports for Agencies" (called "Cleanup Report Generator" before 2.2.0; the plugin folder is still `cleanup-report-generator`)
 
 ### Step 4: Test PDF Generation
-- Create a test cleanup report
+- Create a test report of each type (Reports › Add cleanup report / Add optimization report)
 - Click "Export PDF"
 - Verify professional PDF output
 
@@ -88,7 +94,7 @@ composer install --no-dev --optimize-autoloader
 ### If PDF Generation Fails:
 - Check error logs: `tail -f /var/log/apache2/error.log`
 - Increase PHP memory: `ini_set('memory_limit', '256M');`
-- Set proper permissions: `chown -R www-data:www-data vendor/`
+- Check `vendor-prefixed/` was uploaded with the plugin (it holds Dompdf)
 
 ## 📞 Support Notes
 

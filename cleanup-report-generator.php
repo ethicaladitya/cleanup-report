@@ -1,31 +1,37 @@
 <?php
 /**
- * Plugin Name: Cleanup Report Generator (Merged v3 – Review Workflow, Fixed Media)
- * Description: Create branded, color-coded cleanup reports with WPMU DEV styling, multiple screenshots, WYSIWYG editors, and professional PDF export. Includes review workflow and enhanced media management.
- * Version: 2.0.0
+ * Plugin Name: Handover – Service Reports for Agencies
+ * Description: Branded service reports for your clients: malware cleanup and website optimization reports, written in wp-admin, approved through a review workflow and exported as PDF.
+ * Version: 2.4.0
  * Author: WPMU DEV
  * License: GPLv2 or later
  * Text Domain: cleanup-report-generator
- * Requires at least: 5.0
- * Tested up to: 6.3
+ * Domain Path: /languages
+ * Requires at least: 5.8
  * Requires PHP: 7.4
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-// Load Composer autoloader if available
-if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
-    require_once __DIR__ . '/vendor/autoload.php';
+// Dompdf and its libraries, copied under this plugin's own namespace (CleanupReportGenerator\Vendor\) by
+// `composer install` (Strauss), so another plugin bundling a different Dompdf version can't clash with ours.
+if ( file_exists( __DIR__ . '/vendor-prefixed/autoload.php' ) ) {
+    require_once __DIR__ . '/vendor-prefixed/autoload.php';
 }
 
-define( 'CRG_VERSION', '2.0.0' );
-define( 'CRG_PATH', plugin_dir_path( __FILE__ ) );
-define( 'CRG_URL', plugin_dir_url( __FILE__ ) );
+define( 'CLEANUP_REPORT_VERSION', '2.4.0' );
+define( 'CLEANUP_REPORT_PATH', plugin_dir_path( __FILE__ ) );
+define( 'CLEANUP_REPORT_URL', plugin_dir_url( __FILE__ ) );
 
-// Include the PDF classes
-require_once CRG_PATH . 'includes/class-crg-pdf.php';
-// Main plugin class will include the other classes
-require_once CRG_PATH . 'includes/class-crg-plugin.php';
+// The main class; it registers an autoloader for the others.
+require_once CLEANUP_REPORT_PATH . 'includes/class-cleanup-report-plugin.php';
 
 // Initialize the plugin
 Cleanup_Report_Generator::init();
+
+// Activation: the plugin list's daily re-check (when it's turned on) is scheduled again.
+register_activation_hook( __FILE__, [ 'Cleanup_Report_Plugin_Registry', 'schedule' ] );
+// The plugin list's daily refresh (WP-Cron) stops when the plugin is deactivated.
+register_deactivation_hook( __FILE__, [ 'Cleanup_Report_Plugin_Registry', 'unschedule' ] );
+// So does the daily retention cleanup (Settings › Review › Data retention).
+register_deactivation_hook( __FILE__, [ 'Cleanup_Report_Retention', 'unschedule' ] );
