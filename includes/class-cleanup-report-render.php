@@ -11,8 +11,9 @@ class Cleanup_Report_Render {
     public static function get_data( $post_id ) {
         $m        = array_map( static function ( $a ) { return $a[0]; }, get_post_meta( $post_id ) );
         $type     = Cleanup_Report_Types::of( $post_id );
-        // A custom type's approved report is drawn with the definition it was approved with (Report types).
-        $info     = Cleanup_Report_Type_Builder::definition_for_report( $post_id, $type, Cleanup_Report_Types::get( $type ) );
+        // A custom type's approved report is drawn with the definition it was approved with (Report types); a report
+        // whose type no longer exists, with the one it was last saved with (callers check printable() first).
+        $info     = Cleanup_Report_Type_Builder::definition_for_report( $post_id, $type, Cleanup_Report_Types::for_report( $post_id ) );
         $template = $info['template'];
         $data     = [
             'post_id'      => $post_id,

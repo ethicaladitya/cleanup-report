@@ -35,7 +35,7 @@ function cleanup_report_uninstall_site() {
         'crg_buddyleads', 'crg_retention_days', 'crg_retention_last_run', 'crg_plugin_recheck', 'crg_delete_data',
         'crg_followup_items', 'crg_defender_items', 'crg_blocklists', 'crg_opt_checks', 'crg_opt_target_mobile',
         'crg_opt_target_desktop', 'crg_plugin_registry', 'crg_premium_items', 'crg_post_status_synced', 'crg_scanner_line_replaced', 'crg_upgrade_cursor',
-        'crg_custom_types',
+        'crg_custom_types', 'crg_types_off',
     ];
     foreach ( [ 'success', 'warning', 'high', 'danger', 'neutral' ] as $color ) {
         $options[] = 'crg_color_' . $color;

@@ -11,6 +11,15 @@
  *
  * The type is picked when a report is added (Reports › Add … report, or the chooser behind the list's "Add report"
  * button) and doesn't change afterwards. Branding, review, retention and the plugin list are shared by all types.
+ *
+ * Every type can be turned off in Reports › Report types: the ready-made ones (this file, and types added by code)
+ * through the option crg_types_off, custom types through their own setting. A type that's off can't be picked for a
+ * new report; if no report uses it, it doesn't show anywhere else either (menu, list views, filter, Settings tabs).
+ * A new install starts with the ready-made types off.
+ *
+ * A report whose type is no longer registered (its code or its definition was removed) keeps its type and values: it
+ * is listed as "Unknown type (key)", is edited and printed with the definition it was last saved with (a custom
+ * type's snapshot), and without one shows only its client and website and can't be printed.
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -19,6 +28,12 @@ class Cleanup_Report_Types {
     const META         = 'crg_report_type';
     const DEFAULT_TYPE = 'malware_cleanup';
     const CHOOSER      = 'crg-add-report';
+
+    /** Ready-made types that are turned off (not autoloaded; read with the custom types, in one query). */
+    const OFF_OPTION = 'crg_types_off';
+
+    /** The types that come with the plugin: off on a new install. */
+    const BUILT_IN = [ 'malware_cleanup', 'site_optimization' ];
 
     /** Templates bundled with the plugin (templates/types/<name>.php and <name>-body.php). */
     const TEMPLATES = [ 'malware-cleanup', 'site-optimization', 'generic' ];
@@ -37,6 +52,10 @@ class Cleanup_Report_Types {
         add_action( 'pre_get_posts', [ __CLASS__, 'filter_list' ] );
         add_filter( 'views_edit-cleanup_report', [ __CLASS__, 'list_views' ] );
         add_action( 'admin_enqueue_scripts', [ __CLASS__, 'chooser_assets' ] );
+        add_action( 'load-edit.php', [ __CLASS__, 'empty_list' ] );
+        add_action( 'admin_notices', [ __CLASS__, 'notices' ] );
+        add_filter( 'wp_insert_post_data', [ __CLASS__, 'refuse_off_type' ], 5, 2 );
+        add_filter( 'sanitize_option_' . self::OFF_OPTION, [ __CLASS__, 'sanitize_off' ] );
     }
 
     /** The chooser page uses the plugin's admin stylesheet (the edit and settings screens load it themselves). */
@@ -58,26 +77,72 @@ class Cleanup_Report_Types {
      *  - settings: Settings tabs of this type, tab key => label (built-in tabs) or [ label, render callable ].
      *  - template: one of TEMPLATES ('generic' when left out).
      *  - on_save: optional callable( $post_id ), after the fields are saved.
+     *  - hidden: true when the type is turned off (set from Reports › Report types).
      */
     public static function definitions() {
         if ( null === self::$definitions ) {
+            if ( function_exists( 'wp_prime_option_caches' ) ) { // both are read on every admin page (the menu): one query
+                wp_prime_option_caches( [ Cleanup_Report_Type_Builder::OPTION, self::OFF_OPTION ] );
+            }
             $definitions = (array) apply_filters( 'cleanup_report_types', [
                 'malware_cleanup'   => self::malware_cleanup(),
                 'site_optimization' => self::site_optimization(),
             ] );
+            if ( ! isset( $definitions[ self::DEFAULT_TYPE ] ) || ! is_array( $definitions[ self::DEFAULT_TYPE ] ) ) { // every report saved before types existed is one
+                $definitions = [ self::DEFAULT_TYPE => self::malware_cleanup() ] + $definitions;
+            }
+            $off = self::off();
             foreach ( $definitions as $key => $def ) {
                 if ( ! is_array( $def ) || empty( $def['sections'] ) || sanitize_key( $key ) !== $key ) {
                     unset( $definitions[ $key ] );
                     continue;
                 }
-                $definitions[ $key ] = self::complete( $key, $def );
-            }
-            if ( ! isset( $definitions[ self::DEFAULT_TYPE ] ) ) { // every report saved before types existed is one
-                $definitions = [ self::DEFAULT_TYPE => self::malware_cleanup() ] + $definitions;
+                $def = self::complete( $key, $def );
+                if ( empty( $def['custom'] ) && in_array( $key, $off, true ) ) {
+                    $def['hidden'] = true; // a custom type has its own on/off setting
+                }
+                $definitions[ $key ] = $def;
             }
             self::$definitions = $definitions;
         }
         return self::$definitions;
+    }
+
+    /** Ready-made types turned off. Until the upgrade has stored the list, a new install has them all off. */
+    public static function off() {
+        $off = get_option( self::OFF_OPTION, null );
+        if ( ! is_array( $off ) ) {
+            $off = (int) get_option( 'crg_db_version', 0 ) > 0 ? [] : self::BUILT_IN;
+        }
+        return $off;
+    }
+
+    /** The option crg_types_off: type keys, whatever writes it. */
+    public static function sanitize_off( $value ) {
+        $keys = array_map( 'sanitize_key', array_filter( (array) $value, 'is_string' ) );
+        return array_slice( array_values( array_unique( array_filter( $keys, 'strlen' ) ) ), 0, 100 );
+    }
+
+    /** Turns a ready-made type on or off (Reports › Report types). */
+    public static function set_on( $key, $on ) {
+        $off = array_diff( self::off(), [ $key ] );
+        if ( ! $on ) {
+            $off[] = $key;
+        }
+        update_option( self::OFF_OPTION, array_values( $off ), false ); // not autoloaded: only wp-admin reads it
+        self::flush();
+    }
+
+    /**
+     * Upgrade step (DB_VERSION 8): an install that already had the plugin keeps every ready-made type on, as it has
+     * always had them; a new install starts with them off and turns on the ones it needs. Runs once.
+     */
+    public static function choose_on_upgrade( $had_plugin ) {
+        if ( ! is_array( get_option( self::OFF_OPTION, null ) ) ) {
+            delete_option( self::OFF_OPTION ); // anything that isn't a list
+            add_option( self::OFF_OPTION, $had_plugin ? [] : self::BUILT_IN, '', false );
+            self::flush();
+        }
     }
 
     /** A definition with its defaults filled in (labels made from the name, the generic template). */
@@ -109,11 +174,14 @@ class Cleanup_Report_Types {
     /** @var array resolved definitions (sections built), by type */
     private static $resolved = [];
 
-    /** One type's definition with its sections (the default type's for an unknown key). */
+    /** One type's definition with its sections. A key that isn't registered gets unknown(). */
     public static function get( $type ) {
-        $defs = self::definitions();
-        $type = isset( $defs[ $type ] ) ? $type : self::DEFAULT_TYPE;
+        $type = (string) $type;
         if ( ! isset( self::$resolved[ $type ] ) ) {
+            $defs = self::definitions();
+            if ( ! isset( $defs[ $type ] ) ) {
+                return self::unknown( $type );
+            }
             $def = $defs[ $type ];
             if ( is_callable( $def['sections'] ) ) {
                 $def['sections'] = (array) call_user_func( $def['sections'] );
@@ -123,10 +191,37 @@ class Cleanup_Report_Types {
         return self::$resolved[ $type ];
     }
 
-    /** Forgets the definitions built for this request (after report types are saved). */
+    /**
+     * A type that isn't registered (any more). With the definition a report was saved with (a custom type's
+     * snapshot), that one, so the report still opens and prints as it was; without one, only the client and website
+     * section, so editing the report never writes another type's fields into it.
+     */
+    public static function unknown( $type, $snapshot = null ) {
+        if ( is_array( $snapshot ) && ! empty( $snapshot['label'] ) ) {
+            $def             = Cleanup_Report_Type_Builder::runtime( $type, $snapshot );
+            $def['sections'] = Cleanup_Report_Type_Builder::sections( $type, $snapshot );
+            unset( $def['on_save'] ); // the snapshot stays as it is
+            return [ 'unknown' => true, 'hidden' => true ] + self::complete( $type, $def );
+        }
+        return self::complete( $type, [
+            /* translators: %s: the key a report's type was saved under, e.g. site_migration */
+            'label'    => sprintf( __( 'Unknown type (%s)', 'cleanup-report-generator' ), $type ),
+            'unknown'  => true,
+            'hidden'   => true,
+            'icon'     => 'warning',
+            'add'      => '',
+            'eyebrow'  => __( 'Report', 'cleanup-report-generator' ),
+            'suffix'   => __( 'report', 'cleanup-report-generator' ),
+            'file'     => 'report',
+            'sections' => [ 'site' => self::site_section() ],
+        ] );
+    }
+
+    /** Forgets the definitions and counts built for this request (after report types are saved or turned on/off). */
     public static function flush() {
         self::$definitions = null;
         self::$resolved    = [];
+        self::$counts      = null;
     }
 
     /** Types a new report can be added as: all but those turned off (Reports › Report types). */
@@ -134,14 +229,63 @@ class Cleanup_Report_Types {
         return array_filter( self::definitions(), static function ( $def ) { return empty( $def['hidden'] ); } );
     }
 
+    /** Types the Reports list and Settings show: those turned on, and those turned off that reports still use. */
+    public static function listed() {
+        return array_filter( self::definitions(), static function ( $def, $key ) { return empty( $def['hidden'] ) || self::count( $key ); }, ARRAY_FILTER_USE_BOTH );
+    }
+
     public static function exists( $type ) {
         return isset( self::definitions()[ (string) $type ] );
     }
 
-    /** The report's type: its saved type, or Malware cleanup (every report saved before types existed). */
+    /**
+     * The report's type as saved, registered or not (see unknown()). A report with no type at all was saved before
+     * types existed: it's a Malware cleanup report.
+     */
     public static function of( $post_id ) {
-        $type = (string) get_post_meta( $post_id, self::META, true );
-        return self::exists( $type ) ? $type : self::DEFAULT_TYPE;
+        $type = sanitize_key( (string) get_post_meta( $post_id, self::META, true ) );
+        return '' !== $type ? $type : self::DEFAULT_TYPE;
+    }
+
+    /** The definition a report is edited and drawn with: its type's, or for an unknown type the one it was saved with. */
+    public static function for_report( $post_id ) {
+        $type = self::of( $post_id );
+        return self::exists( $type ) ? self::get( $type ) : self::unknown( $type, get_post_meta( $post_id, Cleanup_Report_Type_Builder::SNAPSHOT, true ) );
+    }
+
+    /** Can the report be previewed and printed? Not when its type is unknown and it has no saved definition. */
+    public static function printable( $post_id ) {
+        if ( self::exists( self::of( $post_id ) ) ) {
+            return true;
+        }
+        $snapshot = get_post_meta( $post_id, Cleanup_Report_Type_Builder::SNAPSHOT, true );
+        return is_array( $snapshot ) && ! empty( $snapshot['label'] );
+    }
+
+    /** @var array|null report counts by type for this request: type => [ 'live' => n, 'trash' => n ] */
+    private static $counts = null;
+
+    /**
+     * How many reports there are of each type, in the Trash and out of it (auto-drafts don't count). One grouped query
+     * per request, for the menu, the list's views and filter, Settings and Reports › Report types.
+     */
+    public static function counts() {
+        if ( null === self::$counts ) {
+            global $wpdb;
+            $rows = $wpdb->get_results( $wpdb->prepare( "SELECT m.meta_value AS type, p.post_status AS status, COUNT(*) AS n FROM {$wpdb->postmeta} m INNER JOIN {$wpdb->posts} p ON p.ID = m.post_id WHERE m.meta_key = %s AND p.post_type = 'cleanup_report' AND p.post_status NOT IN ( 'auto-draft', 'inherit' ) GROUP BY m.meta_value, p.post_status", self::META ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- one grouped count instead of a query per type; fresh on every admin load
+            self::$counts = [];
+            foreach ( (array) $rows as $row ) {
+                $where = 'trash' === $row->status ? 'trash' : 'live';
+                self::$counts[ $row->type ][ $where ] = ( self::$counts[ $row->type ][ $where ] ?? 0 ) + (int) $row->n;
+            }
+        }
+        return self::$counts;
+    }
+
+    /** Reports of a type, not counting the Trash (or counting it). */
+    public static function count( $type, $with_trash = false ) {
+        $n = self::counts()[ (string) $type ] ?? [];
+        return (int) ( $n['live'] ?? 0 ) + ( $with_trash ? (int) ( $n['trash'] ?? 0 ) : 0 );
     }
 
     /** A field of a type by its meta key, or null. */
@@ -176,7 +320,9 @@ class Cleanup_Report_Types {
             'label'       => __( 'Malware cleanup', 'cleanup-report-generator' ),
             'icon'        => 'shield',
             'add'         => __( 'Add cleanup report', 'cleanup-report-generator' ),
-            'about'       => __( 'What was found and removed, how the site was verified, Defender settings and the member\'s next steps.', 'cleanup-report-generator' ),
+            'about'       => Cleanup_Report_Presets::is( 'wpmudev' )
+                ? __( 'What was found and removed, how the site was verified, Defender settings and the member\'s next steps.', 'cleanup-report-generator' )
+                : __( 'What was found and removed, how the site was verified, the security settings and the client\'s next steps.', 'cleanup-report-generator' ),
             'eyebrow'     => __( 'Malware cleanup report', 'cleanup-report-generator' ),
             'title'       => __( 'MALWARE CLEANUP REPORT', 'cleanup-report-generator' ),
             'file'        => 'cleanup-report',
@@ -349,12 +495,70 @@ class Cleanup_Report_Types {
         $hook = add_submenu_page( $parent, __( 'Add report', 'cleanup-report-generator' ), __( 'Add report', 'cleanup-report-generator' ), 'edit_posts', self::CHOOSER, [ __CLASS__, 'chooser' ] );
         remove_submenu_page( $parent, self::CHOOSER ); // reachable by URL, not listed
         if ( $hook ) {
-            // A page removed from the menu has no admin title; WordPress's header would pass null to strip_tags().
             add_action( 'load-' . $hook, static function () {
+                if ( ! self::addable() && current_user_can( 'manage_options' ) ) { // nothing to pick yet: turn a type on first
+                    wp_safe_redirect( Cleanup_Report_Type_Builder::url() );
+                    exit;
+                }
+                // A page removed from the menu has no admin title; WordPress's header would pass null to strip_tags().
                 global $title;
                 $title = __( 'Add report', 'cleanup-report-generator' ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- the admin page title WordPress reads for this hidden page
             } );
         }
+    }
+
+    /** Reports › All reports on a site with no report and no type turned on: an administrator starts in Report types. */
+    public static function empty_list() {
+        if ( 'cleanup_report' !== sanitize_key( wp_unslash( $_GET['post_type'] ?? '' ) ) || self::addable() || ! current_user_can( 'manage_options' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing
+            return;
+        }
+        $counts = (array) wp_count_posts( 'cleanup_report' );
+        unset( $counts['auto-draft'] );
+        if ( ! array_sum( $counts ) ) {
+            wp_safe_redirect( Cleanup_Report_Type_Builder::url() );
+            exit;
+        }
+    }
+
+    /** Reports list with no type turned on, and the edit screen of a report whose type no longer exists. */
+    public static function notices() {
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        if ( ! $screen || 'cleanup_report' !== $screen->post_type ) {
+            return;
+        }
+        if ( 'edit' === $screen->base && ! self::addable() ) {
+            $where = current_user_can( 'manage_options' )
+                ? sprintf( '<a href="%s">%s</a>', esc_url( Cleanup_Report_Type_Builder::url() ), esc_html__( 'Turn one on in Report types.', 'cleanup-report-generator' ) )
+                : esc_html__( 'An administrator can turn one on in Reports › Report types.', 'cleanup-report-generator' );
+            echo '<div class="notice notice-info"><p>' . esc_html__( 'No report type is turned on, so new reports can\'t be added.', 'cleanup-report-generator' ) . ' ' . $where . '</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $where is escaped above
+            return;
+        }
+        global $post;
+        if ( 'post' !== $screen->base || ! $post || 'cleanup_report' !== $post->post_type || self::exists( self::of( $post->ID ) ) ) {
+            return;
+        }
+        $message = self::printable( $post->ID )
+            /* translators: %s: the key the report's type was saved under, e.g. site_migration */
+            ? __( 'This report\'s type, "%s", no longer exists. The report keeps its values and opens and prints with the fields it was last saved with.', 'cleanup-report-generator' )
+            /* translators: %s: the key the report's type was saved under, e.g. site_migration */
+            : __( 'This report\'s type, "%s", no longer exists, so only its client and website are shown, and it can\'t be previewed or printed. Its other values are kept: they come back if the type is added again.', 'cleanup-report-generator' );
+        echo '<div class="notice notice-warning"><p>' . esc_html( sprintf( $message, self::of( $post->ID ) ) ) . '</p></div>';
+    }
+
+    /**
+     * A new report becomes a report on its first save. If its type was turned off since the form was opened, refuse:
+     * no new report of a type that's off (its existing reports are saved as usual).
+     */
+    public static function refuse_off_type( $data, $postarr ) {
+        $id = (int) ( $postarr['ID'] ?? 0 );
+        if ( 'cleanup_report' !== $data['post_type'] || ! $id || in_array( $data['post_status'], [ 'auto-draft', 'trash', 'inherit' ], true ) || 'auto-draft' !== get_post_status( $id ) ) {
+            return $data;
+        }
+        $type = (string) get_post_meta( $id, self::META, true );
+        if ( '' !== $type && ! isset( self::addable()[ $type ] ) ) {
+            wp_die( esc_html__( 'This report type has been turned off, so a new report of it can\'t be saved. Add the report as another type.', 'cleanup-report-generator' ), esc_html__( 'Report type turned off', 'cleanup-report-generator' ), [ 'response' => 403, 'back_link' => true ] );
+        }
+        return $data;
     }
 
     /** Keeps the right "Add … report" item highlighted on the new report screen. */
@@ -376,7 +580,7 @@ class Cleanup_Report_Types {
             return;
         }
         $type = $post_id ? self::of( $post_id ) : self::requested();
-        if ( ! $type || ! isset( $wp_post_types['cleanup_report'] ) ) {
+        if ( ! $type || ! self::exists( $type ) || ! isset( $wp_post_types['cleanup_report'] ) ) { // an unknown type keeps "Edit report"
             return;
         }
         $label = strtolower( self::get( $type )['label'] );
@@ -415,11 +619,14 @@ class Cleanup_Report_Types {
         }
     }
 
-    /** On save: a report that has no type yet takes the posted one (the form's hidden field); a type never changes. */
+    /**
+     * On save: a report that has no type yet takes the posted one (the form's hidden field) if it can be added, else
+     * the default. A saved type is never changed, even when it no longer exists.
+     */
     public static function save( $post_id, $posted ) {
         $posted = sanitize_key( (string) $posted );
         if ( ! metadata_exists( 'post', $post_id, self::META ) ) {
-            update_post_meta( $post_id, self::META, self::exists( $posted ) ? $posted : self::DEFAULT_TYPE );
+            update_post_meta( $post_id, self::META, isset( self::addable()[ $posted ] ) ? $posted : self::DEFAULT_TYPE );
         }
     }
 
@@ -430,7 +637,11 @@ class Cleanup_Report_Types {
         ?>
         <div class="wrap crg-chooser">
             <h1><?php esc_html_e( 'Add report', 'cleanup-report-generator' ); ?></h1>
+            <?php if ( ! self::addable() ) : ?>
+                <p class="crg-lead"><?php esc_html_e( 'No report type is turned on yet. An administrator can turn one on in Reports › Report types.', 'cleanup-report-generator' ); ?></p>
+            <?php else : ?>
             <p class="crg-lead"><?php esc_html_e( 'Which kind of report? It can\'t be changed once the report is started.', 'cleanup-report-generator' ); ?></p>
+            <?php endif; ?>
             <div class="crg-chooser-cards">
                 <?php foreach ( self::addable() as $key => $type ) : ?>
                     <a class="crg-chooser-card crg-type-card-<?php echo esc_attr( $key ); ?>" href="<?php echo esc_url( self::add_url( $key ) ); ?>">
@@ -445,9 +656,9 @@ class Cleanup_Report_Types {
         <?php
     }
 
-    /** The type as a small coloured label (Reports list, edit screen, chooser). */
+    /** The type as a small coloured label (Reports list, edit screen); a neutral "Unknown type (key)" for an unknown one. */
     public static function badge( $type ) {
-        printf( '<span class="crg-type-badge crg-type-%s">%s</span>', esc_attr( $type ), esc_html( self::get( $type )['label'] ) );
+        printf( '<span class="crg-type-badge crg-type-%s">%s</span>', esc_attr( self::exists( $type ) ? $type : 'unknown' ), esc_html( self::get( $type )['label'] ) );
     }
 
     /** Reports list: "All types" / one type. */
@@ -460,32 +671,26 @@ class Cleanup_Report_Types {
         <label for="crg-type-filter" class="screen-reader-text"><?php esc_html_e( 'Filter by type', 'cleanup-report-generator' ); ?></label>
         <select name="crg_type" id="crg-type-filter">
             <option value=""><?php esc_html_e( 'All types', 'cleanup-report-generator' ); ?></option>
-            <?php foreach ( self::definitions() as $key => $type ) : ?>
+            <?php foreach ( self::listed() as $key => $type ) : ?>
                 <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $current, $key ); ?>><?php echo esc_html( $type['label'] ); ?></option>
             <?php endforeach; ?>
         </select>
         <?php
     }
 
-    /** Reports list: one view per type with its count ("Malware cleanup (12) | Website optimization (3)"). */
+    /**
+     * Reports list: one view per type with its count ("Malware cleanup (12) | Website optimization (3)"), from one
+     * grouped count. Types turned off with no reports aren't listed; reports of an unknown type count under All only.
+     */
     public static function list_views( $views ) {
         $current = self::requested();
-        foreach ( self::definitions() as $key => $def ) {
-            $q = new WP_Query( [
-                'post_type'              => 'cleanup_report',
-                'post_status'            => array_values( array_diff( get_post_stati( [ 'show_in_admin_all_list' => true ] ), [ 'trash', 'auto-draft' ] ) ),
-                'fields'                 => 'ids',
-                'posts_per_page'         => 1,
-                'update_post_meta_cache' => false,
-                'update_post_term_cache' => false,
-                'meta_query'             => [ self::meta_match( $key ) ], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- admin list counts, one small query per type
-            ] );
+        foreach ( self::listed() as $key => $def ) {
             $views[ 'crg_type_' . $key ] = sprintf(
                 '<a href="%s"%s>%s <span class="count">(%s)</span></a>',
                 esc_url( add_query_arg( [ 'post_type' => 'cleanup_report', 'crg_type' => $key ], admin_url( 'edit.php' ) ) ),
                 $current === $key ? ' class="current" aria-current="page"' : '',
                 esc_html( $def['label'] ),
-                esc_html( number_format_i18n( $q->found_posts ) )
+                esc_html( number_format_i18n( self::count( $key ) ) )
             );
         }
         return $views;
